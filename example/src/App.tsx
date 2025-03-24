@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Slider from '@react-native-community/slider';
-import { pause, play, resume } from 'react-native-audio-pro';
+import { pause, play, resume, stop } from 'react-native-audio-pro';
 import { formatTime, playlist } from './services';
 
 export default function App() {
@@ -26,6 +26,12 @@ export default function App() {
       }
     }
     setIsPlaying(!isPlaying);
+  };
+
+  const handleStop = () => {
+    stop();
+    setIsPlaying(false);
+    setHasStarted(false);
   };
 
   return (
@@ -83,6 +89,11 @@ export default function App() {
           <Text style={styles.controlText}>+30s</Text>
         </TouchableOpacity>
       </View>
+      <View>
+        <TouchableOpacity onPress={handleStop}>
+          <Text style={styles.controlText}>Stop</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
@@ -138,5 +149,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-around',
     width: '40%',
+    marginBottom: 20,
   },
 });

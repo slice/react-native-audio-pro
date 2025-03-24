@@ -28,3 +28,7 @@ export function pause(): void {
 export function resume(): void {
   AudioPro.resume();
 }
+
+export function stop(): void {
+  AudioPro.stop();
+}
