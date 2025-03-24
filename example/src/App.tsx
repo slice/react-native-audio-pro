@@ -7,9 +7,10 @@ import {
   stop,
   AudioProEvent,
 } from 'react-native-audio-pro';
-import { formatTime, playlist } from './services';
 import { usePlayerStore } from './usePlayerStore';
 import { useState } from 'react';
+import { formatTime } from './utils';
+import { playlist } from './playlist';
 
 export default function App() {
   const [currentPosition, setCurrentPosition] = useState(0);

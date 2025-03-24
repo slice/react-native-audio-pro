@@ -6,6 +6,12 @@ export enum AudioProEvent {
   IsStopped = 'IsStopped',
 }
 
+export interface AudioProEventPayload {
+  state: AudioProEvent;
+  position?: number;
+  duration?: number;
+}
+
 const LINKING_ERROR =
   `The package 'react-native-audio-pro' doesn't seem to be linked. Make sure: \n\n` +
   Platform.select({ ios: "- You have run 'pod install'\n", default: '' }) +
@@ -41,22 +47,16 @@ export function stop(): void {
 
 const emitter = new NativeEventEmitter(AudioPro);
 
-export type AudioProCallback = (state: AudioProEvent) => void;
+export type AudioProCallback = (state: AudioProEventPayload) => void;
 
 export function addAudioProListener(callback: AudioProCallback) {
-  return emitter.addListener('AudioProEvent', (event: { state: string }) => {
-    switch (event.state) {
-      case AudioProEvent.IsPlaying:
-        callback(AudioProEvent.IsPlaying);
-        break;
-      case AudioProEvent.IsPaused:
-        callback(AudioProEvent.IsPaused);
-        break;
-      case AudioProEvent.IsStopped:
-        callback(AudioProEvent.IsStopped);
-        break;
-      default:
-        break;
-    }
+  return emitter.addListener('AudioProEvent', (event: any) => {
+    const state = event.state as AudioProEvent;
+    const position =
+      typeof event.position === 'number' ? event.position : undefined;
+    const duration =
+      typeof event.duration === 'number' ? event.duration : undefined;
+
+    callback({ state, position, duration });
   });
 }

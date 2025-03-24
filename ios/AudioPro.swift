@@ -5,6 +5,7 @@ import React
 @objc(AudioPro)
 class AudioPro: RCTEventEmitter {
   private var player: AVPlayer?
+  private var timer: Timer?
   private var hasListeners = false
   private let eventName = "AudioProEvent"
   private let isPlaying = "IsPlaying"
@@ -13,6 +14,34 @@ class AudioPro: RCTEventEmitter {
 
   override func supportedEvents() -> [String]! {
     return [eventName]
+  }
+
+  private func startTimer() {
+    DispatchQueue.main.async {
+      self.timer?.invalidate()
+      self.timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+        self?.sendTimingEvent()
+      }
+    }
+  }
+
+  private func stopTimer() {
+    DispatchQueue.main.async {
+      self.timer?.invalidate()
+      self.timer = nil
+    }
+  }
+
+  private func sendTimingEvent() {
+    guard let player = player, let currentItem = player.currentItem else { return }
+    let currentTimeSec = CMTimeGetSeconds(player.currentTime())
+    let durationSec = CMTimeGetSeconds(currentItem.duration)
+    let body: [String: Any] = [
+      "state": isPlaying,
+      "position": currentTimeSec * 1000,
+      "duration": durationSec * 1000
+    ]
+    sendEvent(withName: eventName, body: body)
   }
 
   override func startObserving() {
@@ -32,6 +61,7 @@ class AudioPro: RCTEventEmitter {
     if hasListeners {
       sendEvent(withName: eventName, body: ["state": isPlaying])
     }
+    startTimer()
   }
 
   @objc(pause)
@@ -40,6 +70,7 @@ class AudioPro: RCTEventEmitter {
     if hasListeners {
       sendEvent(withName: eventName, body: ["state": isPaused])
     }
+    stopTimer()
   }
 
   @objc(resume)
@@ -48,6 +79,7 @@ class AudioPro: RCTEventEmitter {
     if hasListeners {
       sendEvent(withName: eventName, body: ["state": isPlaying])
     }
+    startTimer()
   }
 
   @objc(stop)
@@ -57,6 +89,7 @@ class AudioPro: RCTEventEmitter {
     if hasListeners {
       sendEvent(withName: eventName, body: ["state": isStopped])
     }
+    stopTimer()
   }
 
   override static func requiresMainQueueSetup() -> Bool {

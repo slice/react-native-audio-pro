@@ -1,9 +1,13 @@
-import { addAudioProListener, AudioProEvent } from 'react-native-audio-pro';
+import {
+  addAudioProListener,
+  AudioProEvent,
+  type AudioProEventPayload,
+} from 'react-native-audio-pro';
 import { usePlayerStore } from './usePlayerStore';
 
 export function registerAudioProListeners() {
-  addAudioProListener((event: AudioProEvent) => {
-    switch (event) {
+  addAudioProListener((event: AudioProEventPayload) => {
+    switch (event.state) {
       case AudioProEvent.IsPlaying:
         usePlayerStore.getState().setState(AudioProEvent.IsPlaying);
         break;
