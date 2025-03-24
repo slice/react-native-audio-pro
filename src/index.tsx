@@ -12,6 +12,14 @@ export interface AudioProEventPayload {
   duration?: number;
 }
 
+export type AudioProTrack = {
+  url: string;
+  artwork: string;
+  title: string;
+  album?: string;
+  artist?: string;
+};
+
 const LINKING_ERROR =
   `The package 'react-native-audio-pro' doesn't seem to be linked. Make sure: \n\n` +
   Platform.select({ ios: "- You have run 'pod install'\n", default: '' }) +
@@ -29,8 +37,8 @@ const AudioPro = NativeModules.AudioPro
       }
     );
 
-export function play(url: string): void {
-  AudioPro.play(url);
+export function play(track: AudioProTrack): void {
+  AudioPro.play(track);
 }
 
 export function pause(): void {

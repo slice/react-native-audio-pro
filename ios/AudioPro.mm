@@ -3,7 +3,7 @@
 
 @interface RCT_EXTERN_MODULE(AudioPro, RCTEventEmitter)
 
-RCT_EXTERN_METHOD(play:(NSString *)urlString)
+RCT_EXTERN_METHOD(play:(NSDictionary *)track)
 RCT_EXTERN_METHOD(pause)
 RCT_EXTERN_METHOD(resume)
 RCT_EXTERN_METHOD(stop)

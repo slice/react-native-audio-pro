@@ -28,7 +28,7 @@ export default function App() {
     } else if (playerState === AudioProEvent.IsPaused) {
       resume();
     } else {
-      play(currentTrack.url);
+      play(currentTrack);
     }
   };
 
@@ -38,7 +38,7 @@ export default function App() {
 
   return (
     <View style={styles.container}>
-      <Image source={{ uri: currentTrack.artworkUrl }} style={styles.artwork} />
+      <Image source={{ uri: currentTrack.artwork }} style={styles.artwork} />
       <Text style={styles.title}>{currentTrack.title}</Text>
       <Text style={styles.artist}>{currentTrack.artist}</Text>
       <View style={styles.sliderContainer}>
