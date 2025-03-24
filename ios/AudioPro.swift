@@ -167,6 +167,102 @@ class AudioPro: RCTEventEmitter {
     stopTimer()
   }
 
+  @objc(seekTo:)
+  func seekTo(position: Double) {
+    guard let player = player, let currentItem = player.currentItem else {
+      triggerErrorEvent("Cannot seek: no track is playing")
+      return
+    }
+
+    let positionInSeconds = position / 1000.0
+    let duration = currentItem.duration.seconds
+
+    if duration.isNaN || duration.isInfinite {
+      triggerErrorEvent("Cannot seek: invalid track duration")
+      return
+    }
+
+    let validPosition = max(0, min(positionInSeconds, duration))
+
+    let time = CMTime(seconds: validPosition, preferredTimescale: 1000)
+
+    player.seek(to: time) { [weak self] completed in
+      if completed {
+        self?.updateNowPlayingInfoWithCurrentTime(validPosition)
+        self?.sendTimingEvent()
+      }
+    }
+  }
+
+  @objc(seekForward:)
+  func seekForward(amount: Double) {
+    guard let player = player, let currentItem = player.currentItem else {
+      triggerErrorEvent("Cannot seek: no track is playing")
+      return
+    }
+
+    let amountInSeconds = amount / 1000.0
+    let currentTime = player.currentTime().seconds
+    let duration = currentItem.duration.seconds
+
+    if currentTime.isNaN || currentTime.isInfinite || duration.isNaN || duration.isInfinite {
+      triggerErrorEvent("Cannot seek: invalid track position or duration")
+      return
+    }
+
+    let newPosition = min(currentTime + amountInSeconds, duration)
+
+    let time = CMTime(seconds: newPosition, preferredTimescale: 1000)
+
+    player.seek(to: time) { [weak self] completed in
+      if completed {
+        self?.updateNowPlayingInfoWithCurrentTime(newPosition)
+        self?.sendTimingEvent()
+      }
+    }
+  }
+
+  @objc(seekBack:)
+  func seekBack(amount: Double) {
+    guard let player = player else {
+      triggerErrorEvent("Cannot seek: no track is playing")
+      return
+    }
+
+    let amountInSeconds = amount / 1000.0
+    let currentTime = player.currentTime().seconds
+
+    if currentTime.isNaN || currentTime.isInfinite {
+      triggerErrorEvent("Cannot seek: invalid track position")
+      return
+    }
+
+    let newPosition = max(0, currentTime - amountInSeconds)
+
+    let time = CMTime(seconds: newPosition, preferredTimescale: 1000)
+
+    player.seek(to: time) { [weak self] completed in
+      if completed {
+        self?.updateNowPlayingInfoWithCurrentTime(newPosition)
+        self?.sendTimingEvent()
+      }
+    }
+  }
+
+  private func updateNowPlayingInfoWithCurrentTime(_ time: Double) {
+    var nowPlayingInfo = MPNowPlayingInfoCenter.default().nowPlayingInfo ?? [String: Any]()
+    nowPlayingInfo[MPNowPlayingInfoPropertyElapsedPlaybackTime] = time
+
+    if let currentItem = player?.currentItem {
+      let duration = currentItem.duration.seconds
+      if !duration.isNaN && !duration.isInfinite {
+        nowPlayingInfo[MPMediaItemPropertyPlaybackDuration] = duration
+      }
+    }
+
+    MPNowPlayingInfoCenter.default().nowPlayingInfo = nowPlayingInfo
+  }
+
   func triggerErrorEvent(_ errorMessage: String) {
     if hasListeners {
       sendEvent(withName: eventName, body: ["state": errorEvent, "error": errorMessage])

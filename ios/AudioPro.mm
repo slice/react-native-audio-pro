@@ -7,6 +7,9 @@ RCT_EXTERN_METHOD(play:(NSDictionary *)track)
 RCT_EXTERN_METHOD(pause)
 RCT_EXTERN_METHOD(resume)
 RCT_EXTERN_METHOD(stop)
+RCT_EXTERN_METHOD(seekTo:(double)position)
+RCT_EXTERN_METHOD(seekForward:(double)amount)
+RCT_EXTERN_METHOD(seekBack:(double)amount)
 
 + (BOOL)requiresMainQueueSetup
 {

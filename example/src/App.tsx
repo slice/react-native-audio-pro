@@ -6,6 +6,9 @@ import {
   resume,
   stop,
   AudioProState,
+  seekTo,
+  seekBack,
+  seekForward,
 } from 'react-native-audio-pro';
 import { usePlayerStore } from './usePlayerStore';
 import { useState } from 'react';
@@ -36,6 +39,10 @@ export default function App() {
     stop();
   };
 
+  const handleSeek = (value: number) => {
+    seekTo(value);
+  };
+
   return (
     <View style={styles.container}>
       <Image source={{ uri: currentTrack.artwork }} style={styles.artwork} />
@@ -54,6 +61,7 @@ export default function App() {
           onValueChange={(value) => {
             console.log('~~~ value', value);
           }}
+          onSlidingComplete={handleSeek}
         />
         <Text style={styles.timeText}>
           {formatTime(Math.max(0, duration - position))}
@@ -84,14 +92,14 @@ export default function App() {
       <View style={styles.seekRow}>
         <TouchableOpacity
           onPress={() => {
-            // Decrease position by 30s, etc.
+            seekBack(); // Use default 30s
           }}
         >
           <Text style={styles.controlText}>-30s</Text>
         </TouchableOpacity>
         <TouchableOpacity
           onPress={() => {
-            // Increase position by 30s, etc.
+            seekForward(); // Use default 30s
           }}
         >
           <Text style={styles.controlText}>+30s</Text>

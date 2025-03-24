@@ -1,5 +1,8 @@
 import { NativeEventEmitter, NativeModules, Platform } from 'react-native';
 
+const DEFAULT_SEEK_SECONDS = 30;
+const DEFAULT_SEEK_MILLISECONDS = DEFAULT_SEEK_SECONDS * 1000;
+
 export enum AudioProState {
   Playing = 'playing',
   Paused = 'paused',
@@ -75,6 +78,18 @@ export function resume(): void {
 
 export function stop(): void {
   AudioPro.stop();
+}
+
+export function seekTo(position: number): void {
+  AudioPro.seekTo(position);
+}
+
+export function seekForward(amount: number = DEFAULT_SEEK_MILLISECONDS): void {
+  AudioPro.seekForward(amount);
+}
+
+export function seekBack(amount: number = DEFAULT_SEEK_MILLISECONDS): void {
+  AudioPro.seekBack(amount);
 }
 
 const emitter = new NativeEventEmitter(AudioPro);
