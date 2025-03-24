@@ -1,4 +1,4 @@
-package com.audiopro
+package dev.rnap.reactnativeaudiopro
 
 import com.facebook.react.ReactPackage
 import com.facebook.react.bridge.NativeModule

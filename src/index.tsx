@@ -17,6 +17,10 @@ const AudioPro = NativeModules.AudioPro
       }
     );
 
-export function multiply(a: number, b: number): Promise<number> {
-  return AudioPro.multiply(a, b);
+export function play(url: string): void {
+  AudioPro.play(url);
+}
+
+export function pause(): void {
+  AudioPro.pause();
 }
