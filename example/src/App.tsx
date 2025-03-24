@@ -1,37 +1,38 @@
-import { useState } from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Slider from '@react-native-community/slider';
-import { pause, play, resume, stop } from 'react-native-audio-pro';
+import {
+  pause,
+  play,
+  resume,
+  stop,
+  AudioProEvent,
+} from 'react-native-audio-pro';
 import { formatTime, playlist } from './services';
+import { usePlayerStore } from './usePlayerStore';
+import { useState } from 'react';
 
 export default function App() {
-  const [hasStarted, setHasStarted] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
   const [currentPosition, setCurrentPosition] = useState(0);
   const [currentIndex, setCurrentIndex] = useState(0);
   const totalDuration = 240;
   const currentTrack = playlist[currentIndex];
 
+  const playerState = usePlayerStore((state) => state.state);
+
   if (!currentTrack) return null;
 
   const handlePlayPause = () => {
-    if (isPlaying) {
+    if (playerState === AudioProEvent.IsPlaying) {
       pause();
+    } else if (playerState === AudioProEvent.IsPaused) {
+      resume();
     } else {
-      if (!hasStarted) {
-        play(currentTrack.url);
-        setHasStarted(true);
-      } else {
-        resume();
-      }
+      play(currentTrack.url);
     }
-    setIsPlaying(!isPlaying);
   };
 
   const handleStop = () => {
     stop();
-    setIsPlaying(false);
-    setHasStarted(false);
   };
 
   return (
@@ -62,7 +63,9 @@ export default function App() {
           <Text style={styles.controlText}>Prev</Text>
         </TouchableOpacity>
         <TouchableOpacity onPress={handlePlayPause}>
-          <Text style={styles.controlText}>{isPlaying ? 'Pause' : 'Play'}</Text>
+          <Text style={[styles.controlText, styles.playPauseText]}>
+            {playerState === AudioProEvent.IsPlaying ? 'Pause' : 'Play'}
+          </Text>
         </TouchableOpacity>
         <TouchableOpacity
           onPress={() => {
@@ -89,11 +92,12 @@ export default function App() {
           <Text style={styles.controlText}>+30s</Text>
         </TouchableOpacity>
       </View>
-      <View>
+      <View style={styles.stopRow}>
         <TouchableOpacity onPress={handleStop}>
           <Text style={styles.controlText}>Stop</Text>
         </TouchableOpacity>
       </View>
+      <Text style={styles.stateText}>State: {playerState}</Text>
     </View>
   );
 }
@@ -144,11 +148,23 @@ const styles = StyleSheet.create({
   controlText: {
     fontSize: 18,
   },
+  playPauseText: {
+    fontWeight: 'bold',
+  },
   seekRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-around',
     width: '40%',
     marginBottom: 20,
+  },
+  stopRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginVertical: 20,
+  },
+  stateText: {
+    fontSize: 16,
+    marginTop: 20,
   },
 });

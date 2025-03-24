@@ -1,5 +1,5 @@
 import { addAudioProListener, AudioProEvent } from 'react-native-audio-pro';
-import { usePlayerStore } from './AudioProStore';
+import { usePlayerStore } from './usePlayerStore';
 
 export function registerAudioProListeners() {
   addAudioProListener((event: AudioProEvent) => {
