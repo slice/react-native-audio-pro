@@ -5,7 +5,7 @@ import {
   play,
   resume,
   stop,
-  AudioProEvent,
+  AudioProState,
 } from 'react-native-audio-pro';
 import { usePlayerStore } from './usePlayerStore';
 import { useState } from 'react';
@@ -23,9 +23,9 @@ export default function App() {
   if (!currentTrack) return null;
 
   const handlePlayPause = () => {
-    if (playerState === AudioProEvent.IsPlaying) {
+    if (playerState === AudioProState.Playing) {
       pause();
-    } else if (playerState === AudioProEvent.IsPaused) {
+    } else if (playerState === AudioProState.Paused) {
       resume();
     } else {
       play(currentTrack);
@@ -52,7 +52,6 @@ export default function App() {
           maximumTrackTintColor="#8E8E93"
           thumbTintColor="#1EB1FC"
           onValueChange={(value) => {
-            // Optionally allow seeking here
             console.log('~~~ value', value);
           }}
         />
@@ -70,7 +69,7 @@ export default function App() {
         </TouchableOpacity>
         <TouchableOpacity onPress={handlePlayPause}>
           <Text style={[styles.controlText, styles.playPauseText]}>
-            {playerState === AudioProEvent.IsPlaying ? 'Pause' : 'Play'}
+            {playerState === AudioProState.Playing ? 'Pause' : 'Play'}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -85,14 +84,14 @@ export default function App() {
       <View style={styles.seekRow}>
         <TouchableOpacity
           onPress={() => {
-            // setCurrentPosition(Math.max(0, currentPosition - 30));
+            // Decrease position by 30s, etc.
           }}
         >
           <Text style={styles.controlText}>-30s</Text>
         </TouchableOpacity>
         <TouchableOpacity
           onPress={() => {
-            // setCurrentPosition(Math.min(totalDuration, currentPosition + 30));
+            // Increase position by 30s, etc.
           }}
         >
           <Text style={styles.controlText}>+30s</Text>

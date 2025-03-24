@@ -1,6 +1,6 @@
 import {
   addAudioProListener,
-  AudioProEvent,
+  AudioProState,
   type AudioProEventPayload,
 } from 'react-native-audio-pro';
 import { usePlayerStore } from './usePlayerStore';
@@ -9,24 +9,17 @@ export function registerAudioProListeners() {
   addAudioProListener((event: AudioProEventPayload) => {
     const store = usePlayerStore.getState();
 
-    if (event.position !== undefined) {
+    if (event.state === AudioProState.Playing) {
       store.setPosition(event.position);
-    }
-
-    if (event.duration !== undefined) {
       store.setDuration(event.duration);
-    }
-
-    switch (event.state) {
-      case AudioProEvent.IsPlaying:
-        store.setState(AudioProEvent.IsPlaying);
-        break;
-      case AudioProEvent.IsPaused:
-        store.setState(AudioProEvent.IsPaused);
-        break;
-      case AudioProEvent.IsStopped:
-        store.setState(AudioProEvent.IsStopped);
-        break;
+      store.setState(AudioProState.Playing);
+    } else if (event.state === AudioProState.Paused) {
+      store.setState(AudioProState.Paused);
+    } else if (event.state === AudioProState.Stopped) {
+      store.setState(AudioProState.Stopped);
+    } else if (event.state === AudioProState.Error) {
+      console.error('AudioPro Error:', event.error);
+      store.setState(AudioProState.Error);
     }
   });
 }

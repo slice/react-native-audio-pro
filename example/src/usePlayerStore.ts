@@ -1,17 +1,17 @@
 import { create } from 'zustand';
-import { AudioProEvent } from 'react-native-audio-pro';
+import { AudioProState } from 'react-native-audio-pro';
 
 export interface PlayerState {
-  state: AudioProEvent;
+  state: AudioProState;
   position: number;
   duration: number;
-  setState: (newState: AudioProEvent) => void;
+  setState: (newState: AudioProState) => void;
   setPosition: (value: number) => void;
   setDuration: (value: number) => void;
 }
 
 export const usePlayerStore = create<PlayerState>((set) => ({
-  state: AudioProEvent.IsStopped,
+  state: AudioProState.Stopped,
   position: 0,
   duration: 0,
   setState: (newState) => set({ state: newState }),

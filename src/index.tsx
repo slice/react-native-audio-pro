@@ -1,16 +1,40 @@
 import { NativeEventEmitter, NativeModules, Platform } from 'react-native';
 
-export enum AudioProEvent {
-  IsPlaying = 'IsPlaying',
-  IsPaused = 'IsPaused',
-  IsStopped = 'IsStopped',
+export enum AudioProState {
+  Playing = 'playing',
+  Paused = 'paused',
+  Stopped = 'stopped',
+  Error = 'error',
 }
 
-export interface AudioProEventPayload {
-  state: AudioProEvent;
-  position?: number;
-  duration?: number;
+export interface BaseAudioProEventPayload {
+  state: AudioProState;
 }
+
+export interface AudioProPlayingStatePayload extends BaseAudioProEventPayload {
+  state: AudioProState.Playing;
+  position: number;
+  duration: number;
+}
+
+export interface AudioProPausedStatePayload extends BaseAudioProEventPayload {
+  state: AudioProState.Paused;
+}
+
+export interface AudioProStoppedStatePayload extends BaseAudioProEventPayload {
+  state: AudioProState.Stopped;
+}
+
+export interface AudioProErrorStatePayload extends BaseAudioProEventPayload {
+  state: AudioProState.Error;
+  error: string;
+}
+
+export type AudioProEventPayload =
+  | AudioProPlayingStatePayload
+  | AudioProPausedStatePayload
+  | AudioProStoppedStatePayload
+  | AudioProErrorStatePayload;
 
 export type AudioProTrack = {
   url: string;
@@ -55,16 +79,32 @@ export function stop(): void {
 
 const emitter = new NativeEventEmitter(AudioPro);
 
-export type AudioProCallback = (state: AudioProEventPayload) => void;
+export type AudioProCallback = (payload: AudioProEventPayload) => void;
 
 export function addAudioProListener(callback: AudioProCallback) {
   return emitter.addListener('AudioProEvent', (event: any) => {
-    const state = event.state as AudioProEvent;
-    const position =
-      typeof event.position === 'number' ? event.position : undefined;
-    const duration =
-      typeof event.duration === 'number' ? event.duration : undefined;
-
-    callback({ state, position, duration });
+    switch (event.state) {
+      case AudioProState.Playing:
+        callback({
+          state: AudioProState.Playing,
+          position: event.position,
+          duration: event.duration,
+        });
+        break;
+      case AudioProState.Error:
+        callback({
+          state: AudioProState.Error,
+          error: event.error,
+        });
+        break;
+      case AudioProState.Paused:
+        callback({ state: AudioProState.Paused });
+        break;
+      case AudioProState.Stopped:
+        callback({ state: AudioProState.Stopped });
+        break;
+      default:
+        break;
+    }
   });
 }

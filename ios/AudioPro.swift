@@ -10,9 +10,10 @@ class AudioPro: RCTEventEmitter {
   private var timer: Timer?
   private var hasListeners = false
   private let eventName = "AudioProEvent"
-  private let isPlaying = "IsPlaying"
-  private let isPaused = "IsPaused"
-  private let isStopped = "IsStopped"
+  private let playing = "playing"
+  private let paused = "paused"
+  private let stopped = "stopped"
+  private let errorEvent = "error"
 
   override func supportedEvents() -> [String]! {
     return [eventName]
@@ -36,14 +37,22 @@ class AudioPro: RCTEventEmitter {
 
   private func sendTimingEvent() {
     guard let player = player, let currentItem = player.currentItem else { return }
-    let currentTimeMs = Int(round(player.currentTime().seconds * 1000))
-    let durationSeconds = player.currentItem?.duration.seconds ?? 0
-    let durationMs = Int(round(durationSeconds * 1000))
+
+    let currentTimeSec = player.currentTime().seconds
+    let durationSec = currentItem.duration.seconds
+
+    let validCurrentTimeSec = currentTimeSec.isNaN || currentTimeSec.isInfinite ? 0 : currentTimeSec
+    let validDurationSec = durationSec.isNaN || durationSec.isInfinite ? 0 : durationSec
+
+    let currentTimeMs = Int(round(validCurrentTimeSec * 1000))
+    let durationMs = Int(round(validDurationSec * 1000))
+
     let body: [String: Any] = [
-      "state": isPlaying,
+      "state": playing,
       "position": currentTimeMs,
       "duration": durationMs
     ]
+
     sendEvent(withName: eventName, body: body)
   }
 
@@ -64,6 +73,8 @@ class AudioPro: RCTEventEmitter {
       let artworkUrlString = track["artwork"] as? String,
       let artworkUrl = URL(string: artworkUrlString)
     else {
+      triggerErrorEvent("Invalid track data")
+      stop()
       return
     }
 
@@ -86,18 +97,43 @@ class AudioPro: RCTEventEmitter {
     player?.play()
 
     if hasListeners {
-      sendEvent(withName: eventName, body: ["state": isPlaying])
+      let currentTimeSec = player?.currentTime().seconds ?? 0
+      let durationSec = player?.currentItem?.duration.seconds ?? 0
+
+      let validCurrentTimeSec = currentTimeSec.isNaN || currentTimeSec.isInfinite ? 0 : currentTimeSec
+      let validDurationSec = durationSec.isNaN || durationSec.isInfinite ? 0 : durationSec
+
+      let currentTimeMs = Int(round(validCurrentTimeSec * 1000))
+      let durationMs = Int(round(validDurationSec * 1000))
+
+      let body: [String: Any] = [
+        "state": playing,
+        "position": currentTimeMs,
+        "duration": durationMs
+      ]
+
+      sendEvent(withName: eventName, body: body)
     }
+
     startTimer()
 
     DispatchQueue.global().async {
-      if let data = try? Data(contentsOf: artworkUrl), let image = UIImage(data: data) {
+      do {
+        let data = try Data(contentsOf: artworkUrl)
+        guard let image = UIImage(data: data) else {
+          throw NSError(domain: "AudioPro", code: 0, userInfo: [NSLocalizedDescriptionKey: "Invalid image data"])
+        }
         let mpmArtwork = MPMediaItemArtwork(boundsSize: image.size, requestHandler: { _ in image })
         DispatchQueue.main.async {
           var currentInfo = MPNowPlayingInfoCenter.default().nowPlayingInfo ?? [String: Any]()
           currentInfo[MPMediaItemPropertyArtwork] = mpmArtwork
           MPNowPlayingInfoCenter.default().nowPlayingInfo = currentInfo
         }
+      } catch {
+        DispatchQueue.main.async {
+          self.triggerErrorEvent(error.localizedDescription)
+        }
+        self.stop()
       }
     }
   }
@@ -106,7 +142,7 @@ class AudioPro: RCTEventEmitter {
   func pause() {
     player?.pause()
     if hasListeners {
-      sendEvent(withName: eventName, body: ["state": isPaused])
+      sendEvent(withName: eventName, body: ["state": paused])
     }
     stopTimer()
   }
@@ -115,7 +151,7 @@ class AudioPro: RCTEventEmitter {
   func resume() {
     player?.play()
     if hasListeners {
-      sendEvent(withName: eventName, body: ["state": isPlaying])
+      sendEvent(withName: eventName, body: ["state": playing])
     }
     startTimer()
   }
@@ -126,9 +162,15 @@ class AudioPro: RCTEventEmitter {
     player = nil
     MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
     if hasListeners {
-      sendEvent(withName: eventName, body: ["state": isStopped])
+      sendEvent(withName: eventName, body: ["state": stopped])
     }
     stopTimer()
+  }
+
+  func triggerErrorEvent(_ errorMessage: String) {
+    if hasListeners {
+      sendEvent(withName: eventName, body: ["state": errorEvent, "error": errorMessage])
+    }
   }
 
   override static func requiresMainQueueSetup() -> Bool {
