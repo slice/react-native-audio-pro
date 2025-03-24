@@ -4,10 +4,12 @@ const DEFAULT_SEEK_SECONDS = 30;
 const DEFAULT_SEEK_MILLISECONDS = DEFAULT_SEEK_SECONDS * 1000;
 
 export enum AudioProState {
-  Playing = 'playing',
-  Paused = 'paused',
-  Stopped = 'stopped',
-  Error = 'error',
+  PLAYING = 'PLAYING',
+  PAUSED = 'PAUSED',
+  STOPPED = 'STOPPED',
+  ERROR = 'ERROR',
+  SEEK_START = 'SEEK_START',
+  SEEK_COMPLETE = 'SEEK_COMPLETE',
 }
 
 export interface BaseAudioProEventPayload {
@@ -15,29 +17,43 @@ export interface BaseAudioProEventPayload {
 }
 
 export interface AudioProPlayingStatePayload extends BaseAudioProEventPayload {
-  state: AudioProState.Playing;
+  state: AudioProState.PLAYING;
   position: number;
   duration: number;
 }
 
 export interface AudioProPausedStatePayload extends BaseAudioProEventPayload {
-  state: AudioProState.Paused;
+  state: AudioProState.PAUSED;
 }
 
 export interface AudioProStoppedStatePayload extends BaseAudioProEventPayload {
-  state: AudioProState.Stopped;
+  state: AudioProState.STOPPED;
 }
 
 export interface AudioProErrorStatePayload extends BaseAudioProEventPayload {
-  state: AudioProState.Error;
+  state: AudioProState.ERROR;
   error: string;
+}
+
+export interface AudioProSeekStartStatePayload
+  extends BaseAudioProEventPayload {
+  state: AudioProState.SEEK_START;
+}
+
+export interface AudioProSeekCompleteStatePayload
+  extends BaseAudioProEventPayload {
+  state: AudioProState.SEEK_COMPLETE;
+  position: number;
+  duration: number;
 }
 
 export type AudioProEventPayload =
   | AudioProPlayingStatePayload
   | AudioProPausedStatePayload
   | AudioProStoppedStatePayload
-  | AudioProErrorStatePayload;
+  | AudioProErrorStatePayload
+  | AudioProSeekStartStatePayload
+  | AudioProSeekCompleteStatePayload;
 
 export type AudioProTrack = {
   url: string;
@@ -99,24 +115,34 @@ export type AudioProCallback = (payload: AudioProEventPayload) => void;
 export function addAudioProListener(callback: AudioProCallback) {
   return emitter.addListener('AudioProEvent', (event: any) => {
     switch (event.state) {
-      case AudioProState.Playing:
+      case AudioProState.PLAYING:
         callback({
-          state: AudioProState.Playing,
+          state: AudioProState.PLAYING,
           position: event.position,
           duration: event.duration,
         });
         break;
-      case AudioProState.Error:
+      case AudioProState.ERROR:
         callback({
-          state: AudioProState.Error,
+          state: AudioProState.ERROR,
           error: event.error,
         });
         break;
-      case AudioProState.Paused:
-        callback({ state: AudioProState.Paused });
+      case AudioProState.PAUSED:
+        callback({ state: AudioProState.PAUSED });
         break;
-      case AudioProState.Stopped:
-        callback({ state: AudioProState.Stopped });
+      case AudioProState.STOPPED:
+        callback({ state: AudioProState.STOPPED });
+        break;
+      case AudioProState.SEEK_START:
+        callback({ state: AudioProState.SEEK_START });
+        break;
+      case AudioProState.SEEK_COMPLETE:
+        callback({
+          state: AudioProState.SEEK_COMPLETE,
+          position: event.position,
+          duration: event.duration,
+        });
         break;
       default:
         break;

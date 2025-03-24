@@ -9,14 +9,16 @@ class AudioPro: RCTEventEmitter {
   private var player: AVPlayer?
   private var timer: Timer?
   private var hasListeners = false
-  private let eventName = "AudioProEvent"
-  private let playing = "playing"
-  private let paused = "paused"
-  private let stopped = "stopped"
-  private let errorEvent = "error"
+  private let EVENT_NAME = "AudioProEvent"
+  private let EVENT_STATE_PLAYING = "PLAYING"
+  private let EVENT_STATE_PAUSED = "PAUSED"
+  private let EVENT_STATE_STOPPED = "STOPPED"
+  private let EVENT_STATE_ERROR = "ERROR"
+  private let EVENT_STATE_SEEK_START = "SEEK_START"
+  private let EVENT_STATE_SEEK_COMPLETE = "SEEK_COMPLETE"
 
   override func supportedEvents() -> [String]! {
-    return [eventName]
+    return [EVENT_NAME]
   }
 
   private func startTimer() {
@@ -48,12 +50,41 @@ class AudioPro: RCTEventEmitter {
     let durationMs = Int(round(validDurationSec * 1000))
 
     let body: [String: Any] = [
-      "state": playing,
+      "state": EVENT_STATE_PLAYING,
       "position": currentTimeMs,
       "duration": durationMs
     ]
 
-    sendEvent(withName: eventName, body: body)
+    sendEvent(withName: EVENT_NAME, body: body)
+  }
+
+  private func beginSeeking() {
+    stopTimer()
+
+    if hasListeners {
+      sendEvent(withName: EVENT_NAME, body: ["state": EVENT_STATE_SEEK_START])
+    }
+  }
+
+  private func completeSeeking(newPosition: Double) {
+    if hasListeners {
+      guard let player = player, let currentItem = player.currentItem else { return }
+
+      let durationSec = currentItem.duration.seconds
+      let validDurationSec = durationSec.isNaN || durationSec.isInfinite ? 0 : durationSec
+      let durationMs = Int(round(validDurationSec * 1000))
+      let positionMs = Int(round(newPosition * 1000))
+
+      let body: [String: Any] = [
+        "state": EVENT_STATE_SEEK_COMPLETE,
+        "position": positionMs,
+        "duration": durationMs
+      ]
+
+      sendEvent(withName: EVENT_NAME, body: body)
+    }
+
+    startTimer()
   }
 
   override func startObserving() {
@@ -107,12 +138,12 @@ class AudioPro: RCTEventEmitter {
       let durationMs = Int(round(validDurationSec * 1000))
 
       let body: [String: Any] = [
-        "state": playing,
+        "state": EVENT_STATE_PLAYING,
         "position": currentTimeMs,
         "duration": durationMs
       ]
 
-      sendEvent(withName: eventName, body: body)
+      sendEvent(withName: EVENT_NAME, body: body)
     }
 
     startTimer()
@@ -142,7 +173,7 @@ class AudioPro: RCTEventEmitter {
   func pause() {
     player?.pause()
     if hasListeners {
-      sendEvent(withName: eventName, body: ["state": paused])
+      sendEvent(withName: EVENT_NAME, body: ["state": EVENT_STATE_PAUSED])
     }
     stopTimer()
   }
@@ -151,7 +182,7 @@ class AudioPro: RCTEventEmitter {
   func resume() {
     player?.play()
     if hasListeners {
-      sendEvent(withName: eventName, body: ["state": playing])
+      sendEvent(withName: EVENT_NAME, body: ["state": EVENT_STATE_PLAYING])
     }
     startTimer()
   }
@@ -162,7 +193,7 @@ class AudioPro: RCTEventEmitter {
     player = nil
     MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
     if hasListeners {
-      sendEvent(withName: eventName, body: ["state": stopped])
+      sendEvent(withName: EVENT_NAME, body: ["state": EVENT_STATE_STOPPED])
     }
     stopTimer()
   }
@@ -183,13 +214,18 @@ class AudioPro: RCTEventEmitter {
     }
 
     let validPosition = max(0, min(positionInSeconds, duration))
-
     let time = CMTime(seconds: validPosition, preferredTimescale: 1000)
 
+    beginSeeking()
+
     player.seek(to: time) { [weak self] completed in
+      guard let self = self else { return }
+
       if completed {
-        self?.updateNowPlayingInfoWithCurrentTime(validPosition)
-        self?.sendTimingEvent()
+        self.updateNowPlayingInfoWithCurrentTime(validPosition)
+        self.completeSeeking(newPosition: validPosition)
+      } else {
+        self.startTimer()
       }
     }
   }
@@ -211,13 +247,18 @@ class AudioPro: RCTEventEmitter {
     }
 
     let newPosition = min(currentTime + amountInSeconds, duration)
-
     let time = CMTime(seconds: newPosition, preferredTimescale: 1000)
 
+    beginSeeking()
+
     player.seek(to: time) { [weak self] completed in
+      guard let self = self else { return }
+
       if completed {
-        self?.updateNowPlayingInfoWithCurrentTime(newPosition)
-        self?.sendTimingEvent()
+        self.updateNowPlayingInfoWithCurrentTime(newPosition)
+        self.completeSeeking(newPosition: newPosition)
+      } else {
+        self.startTimer()
       }
     }
   }
@@ -238,13 +279,18 @@ class AudioPro: RCTEventEmitter {
     }
 
     let newPosition = max(0, currentTime - amountInSeconds)
-
     let time = CMTime(seconds: newPosition, preferredTimescale: 1000)
 
+    beginSeeking()
+
     player.seek(to: time) { [weak self] completed in
+      guard let self = self else { return }
+
       if completed {
-        self?.updateNowPlayingInfoWithCurrentTime(newPosition)
-        self?.sendTimingEvent()
+        self.updateNowPlayingInfoWithCurrentTime(newPosition)
+        self.completeSeeking(newPosition: newPosition)
+      } else {
+        self.startTimer()
       }
     }
   }
@@ -265,7 +311,7 @@ class AudioPro: RCTEventEmitter {
 
   func triggerErrorEvent(_ errorMessage: String) {
     if hasListeners {
-      sendEvent(withName: eventName, body: ["state": errorEvent, "error": errorMessage])
+      sendEvent(withName: EVENT_NAME, body: ["state": EVENT_STATE_ERROR, "error": errorMessage])
     }
   }
 

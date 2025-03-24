@@ -11,7 +11,7 @@ export interface PlayerState {
 }
 
 export const usePlayerStore = create<PlayerState>((set) => ({
-  state: AudioProState.Stopped,
+  state: AudioProState.STOPPED,
   position: 0,
   duration: 0,
   setState: (newState) => set({ state: newState }),

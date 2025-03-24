@@ -26,9 +26,9 @@ export default function App() {
   if (!currentTrack) return null;
 
   const handlePlayPause = () => {
-    if (playerState === AudioProState.Playing) {
+    if (playerState === AudioProState.PLAYING) {
       pause();
-    } else if (playerState === AudioProState.Paused) {
+    } else if (playerState === AudioProState.PAUSED) {
       resume();
     } else {
       play(currentTrack);
@@ -77,7 +77,7 @@ export default function App() {
         </TouchableOpacity>
         <TouchableOpacity onPress={handlePlayPause}>
           <Text style={[styles.controlText, styles.playPauseText]}>
-            {playerState === AudioProState.Playing ? 'Pause' : 'Play'}
+            {playerState === AudioProState.PLAYING ? 'Pause' : 'Play'}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
