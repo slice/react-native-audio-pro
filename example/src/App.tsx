@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Slider from '@react-native-community/slider';
-import { pause, play } from 'react-native-audio-pro';
+import { pause, play, resume } from 'react-native-audio-pro';
 import { formatTime, playlist } from './services';
 
 export default function App() {
+  const [hasStarted, setHasStarted] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentPosition, setCurrentPosition] = useState(0);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -17,7 +18,12 @@ export default function App() {
     if (isPlaying) {
       pause();
     } else {
-      play(currentTrack.url);
+      if (!hasStarted) {
+        play(currentTrack.url);
+        setHasStarted(true);
+      } else {
+        resume();
+      }
     }
     setIsPlaying(!isPlaying);
   };

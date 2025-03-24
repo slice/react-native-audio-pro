@@ -23,6 +23,11 @@ class AudioProModule(reactContext: ReactApplicationContext) :
         audioPlayer.pause()
     }
 
+    @ReactMethod
+    fun resume() {
+        audioPlayer.resume()
+    }
+
     companion object {
         const val NAME = "AudioPro"
     }

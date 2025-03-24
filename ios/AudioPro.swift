@@ -18,6 +18,11 @@ class AudioPro: NSObject {
     player?.pause()
   }
 
+  @objc(resume)
+  func resume() {
+    player?.play()
+  }
+
   @objc
   static func requiresMainQueueSetup() -> Bool {
     return false

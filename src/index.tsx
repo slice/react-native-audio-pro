@@ -24,3 +24,7 @@ export function play(url: string): void {
 export function pause(): void {
   AudioPro.pause();
 }
+
+export function resume(): void {
+  AudioPro.resume();
+}

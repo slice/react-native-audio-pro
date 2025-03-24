@@ -4,6 +4,7 @@
 
 RCT_EXTERN_METHOD(play:(NSString *)urlString)
 RCT_EXTERN_METHOD(pause)
+RCT_EXTERN_METHOD(resume)
 
 + (BOOL)requiresMainQueueSetup
 {

@@ -22,6 +22,10 @@ class AudioPlayer(private val context: Context) {
     player?.pause()
   }
 
+  fun resume() {
+    player?.play()
+  }
+
   fun stop() {
     player?.stop()
     player?.release()
