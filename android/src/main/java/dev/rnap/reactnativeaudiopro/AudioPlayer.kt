@@ -33,4 +33,19 @@ class AudioPlayer(private val context: Context) {
     mediaSession?.release()
     mediaSession = null
   }
+
+  fun getCurrentPosition(): Long {
+      return player?.applicationLooper?.let {
+          player?.run { currentPosition } ?: 0L
+      } ?: 0L
+  }
+
+  fun getDuration(): Long {
+      return player?.applicationLooper?.let {
+          player?.run {
+              val rawDuration = duration
+              if (rawDuration != androidx.media3.common.C.TIME_UNSET) rawDuration else 0L
+          } ?: 0L
+      } ?: 0L
+  }
 }

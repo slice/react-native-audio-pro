@@ -7,17 +7,25 @@ import { usePlayerStore } from './usePlayerStore';
 
 export function registerAudioProListeners() {
   addAudioProListener((event: AudioProEventPayload) => {
+    const store = usePlayerStore.getState();
+
+    if (event.position !== undefined) {
+      store.setPosition(event.position);
+    }
+
+    if (event.duration !== undefined) {
+      store.setDuration(event.duration);
+    }
+
     switch (event.state) {
       case AudioProEvent.IsPlaying:
-        usePlayerStore.getState().setState(AudioProEvent.IsPlaying);
+        store.setState(AudioProEvent.IsPlaying);
         break;
       case AudioProEvent.IsPaused:
-        usePlayerStore.getState().setState(AudioProEvent.IsPaused);
+        store.setState(AudioProEvent.IsPaused);
         break;
       case AudioProEvent.IsStopped:
-        usePlayerStore.getState().setState(AudioProEvent.IsStopped);
-        break;
-      default:
+        store.setState(AudioProEvent.IsStopped);
         break;
     }
   });

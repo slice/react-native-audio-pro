@@ -13,12 +13,12 @@ import { formatTime } from './utils';
 import { playlist } from './playlist';
 
 export default function App() {
-  const [currentPosition, setCurrentPosition] = useState(0);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const totalDuration = 240;
   const currentTrack = playlist[currentIndex];
 
   const playerState = usePlayerStore((state) => state.state);
+  const position = usePlayerStore((state) => state.position);
+  const duration = usePlayerStore((state) => state.duration);
 
   if (!currentTrack) return null;
 
@@ -42,18 +42,23 @@ export default function App() {
       <Text style={styles.title}>{currentTrack.title}</Text>
       <Text style={styles.artist}>{currentTrack.artist}</Text>
       <View style={styles.sliderContainer}>
-        <Text style={styles.timeText}>{formatTime(currentPosition)}</Text>
+        <Text style={styles.timeText}>{formatTime(position)}</Text>
         <Slider
           style={styles.slider}
           minimumValue={0}
-          maximumValue={totalDuration}
-          value={currentPosition}
+          maximumValue={duration}
+          value={position}
           minimumTrackTintColor="#1EB1FC"
           maximumTrackTintColor="#8E8E93"
           thumbTintColor="#1EB1FC"
-          onValueChange={(value) => setCurrentPosition(value)}
+          onValueChange={(value) => {
+            // Optionally allow seeking here
+            console.log('~~~ value', value);
+          }}
         />
-        <Text style={styles.timeText}>{formatTime(totalDuration)}</Text>
+        <Text style={styles.timeText}>
+          {formatTime(Math.max(0, duration - position))}
+        </Text>
       </View>
       <View style={styles.controlsRow}>
         <TouchableOpacity
@@ -80,14 +85,14 @@ export default function App() {
       <View style={styles.seekRow}>
         <TouchableOpacity
           onPress={() => {
-            setCurrentPosition(Math.max(0, currentPosition - 30));
+            // setCurrentPosition(Math.max(0, currentPosition - 30));
           }}
         >
           <Text style={styles.controlText}>-30s</Text>
         </TouchableOpacity>
         <TouchableOpacity
           onPress={() => {
-            setCurrentPosition(Math.min(totalDuration, currentPosition + 30));
+            // setCurrentPosition(Math.min(totalDuration, currentPosition + 30));
           }}
         >
           <Text style={styles.controlText}>+30s</Text>
@@ -99,6 +104,8 @@ export default function App() {
         </TouchableOpacity>
       </View>
       <Text style={styles.stateText}>State: {playerState}</Text>
+      <Text style={styles.stateText}>Duration: {duration}</Text>
+      <Text style={styles.stateText}>Position: {position}</Text>
     </View>
   );
 }

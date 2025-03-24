@@ -3,14 +3,22 @@ import { AudioProEvent } from 'react-native-audio-pro';
 
 export interface PlayerState {
   state: AudioProEvent;
+  position: number;
+  duration: number;
   setState: (newState: AudioProEvent) => void;
+  setPosition: (value: number) => void;
+  setDuration: (value: number) => void;
 }
 
 export const usePlayerStore = create<PlayerState>((set) => ({
   state: AudioProEvent.IsStopped,
-  setState: (newState: AudioProEvent) => set({ state: newState }),
+  position: 0,
+  duration: 0,
+  setState: (newState) => set({ state: newState }),
+  setPosition: (value) => set({ position: value }),
+  setDuration: (value) => set({ duration: value }),
 }));
 
 usePlayerStore.subscribe((state) => {
-  console.log('AudioProState updated:', state);
+  console.log('State updated:', state);
 });

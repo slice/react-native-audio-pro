@@ -34,12 +34,13 @@ class AudioPro: RCTEventEmitter {
 
   private func sendTimingEvent() {
     guard let player = player, let currentItem = player.currentItem else { return }
-    let currentTimeSec = CMTimeGetSeconds(player.currentTime())
-    let durationSec = CMTimeGetSeconds(currentItem.duration)
+    let currentTimeMs = Int(round(player.currentTime().seconds * 1000))
+    let durationSeconds = player.currentItem?.duration.seconds ?? 0
+    let durationMs = Int(round(durationSeconds * 1000))
     let body: [String: Any] = [
       "state": isPlaying,
-      "position": currentTimeSec * 1000,
-      "duration": durationSec * 1000
+      "position": currentTimeMs,
+      "duration": durationMs
     ]
     sendEvent(withName: eventName, body: body)
   }
