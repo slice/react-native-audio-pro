@@ -10,7 +10,7 @@ import {
   seekTo,
   stop,
 } from 'react-native-audio-pro';
-import { usePlayerStore } from './usePlayerStore';
+import { usePlayerStore } from './player-store';
 import { useState } from 'react';
 import { formatTime } from './utils';
 import { playlist } from './playlist';
@@ -72,11 +72,10 @@ export default function App() {
     }
   };
 
-  const trackDisplay = `${currentIndex + 1}/${playlist.length}`;
+  const playlistStatus = `${currentIndex + 1}/${playlist.length}`;
 
   return (
     <View style={styles.container}>
-      <Text>{trackDisplay}</Text>
       <Image source={{ uri: currentTrack.artwork }} style={styles.artwork} />
       <Text style={styles.title}>{currentTrack.title}</Text>
       <Text style={styles.artist}>{currentTrack.artist}</Text>
@@ -135,6 +134,7 @@ export default function App() {
           <Text style={styles.controlText}>Stop</Text>
         </TouchableOpacity>
       </View>
+      <Text style={styles.stateText}>Playlist: {playlistStatus}</Text>
       <Text style={styles.stateText}>State: {playerState}</Text>
       <Text style={styles.stateText}>Last Notice: {lastNotice}</Text>
     </View>

@@ -134,6 +134,7 @@ const AudioPro = NativeModules.AudioPro
 // Exposed Methods
 // ==============================
 export function play(track: AudioProTrack): void {
+  console.log('~~~ play', track);
   AudioPro.play(track);
 }
 

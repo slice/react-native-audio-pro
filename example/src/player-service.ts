@@ -6,7 +6,7 @@ import {
   type AudioProStatePayload,
   type AudioProNoticePayload,
 } from 'react-native-audio-pro';
-import { usePlayerStore } from './usePlayerStore';
+import { usePlayerStore } from './player-store';
 
 export function registerAudioProListeners() {
   // Register state listener

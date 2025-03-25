@@ -14,7 +14,6 @@ class AudioPro: RCTEventEmitter {
 
   private let STATE_STOPPED = "STOPPED"
   private let STATE_LOADING = "LOADING"
-  private let STATE_BUFFERING = "BUFFERING"
   private let STATE_PLAYING = "PLAYING"
   private let STATE_PAUSED = "PAUSED"
 
@@ -25,6 +24,7 @@ class AudioPro: RCTEventEmitter {
 
   private let GENERIC_ERROR_CODE = 1000
   private let progressInterval: TimeInterval = 1.0
+  private var shouldBePlaying = false
 
   override func supportedEvents() -> [String]! {
     return [STATE_EVENT_NAME, NOTICE_EVENT_NAME]
@@ -111,9 +111,6 @@ class AudioPro: RCTEventEmitter {
     }
   }
 
-
-
-
   private func beginSeeking() {
     stopTimer()
   }
@@ -154,8 +151,20 @@ class AudioPro: RCTEventEmitter {
       let artworkUrlString = track["artwork"] as? String,
       let artworkUrl = URL(string: artworkUrlString)
     else {
-      triggerErrorEvent("Invalid track data")
+      onError("Invalid track data")
       stop()
+      return
+    }
+
+    do {
+      try AVAudioSession.sharedInstance().setCategory(
+        .playback,
+        mode: .spokenAudio,
+        options: [.duckOthers, .allowBluetooth, .allowAirPlay, .defaultToSpeaker]
+      )
+      try AVAudioSession.sharedInstance().setActive(true)
+    } catch {
+      onError("Audio session setup failed: \(error.localizedDescription)")
       return
     }
 
@@ -166,6 +175,7 @@ class AudioPro: RCTEventEmitter {
       ]
       sendEvent(withName: STATE_EVENT_NAME, body: body)
     }
+    shouldBePlaying = true
 
     let album = track["album"] as? String
     let artist = track["artist"] as? String
@@ -182,7 +192,6 @@ class AudioPro: RCTEventEmitter {
 
     let item = AVPlayerItem(url: url)
     player = AVPlayer(playerItem: item)
-
     NotificationCenter.default.addObserver(
       self,
       selector: #selector(playerItemDidPlayToEndTime(_:)),
@@ -190,9 +199,10 @@ class AudioPro: RCTEventEmitter {
       object: item
     )
 
-    player?.play()
+    item.addObserver(self, forKeyPath: "status", options: [.new], context: nil)
 
-    // Emit playing state once the audio starts playing
+    player?.play()
+    player?.addObserver(self, forKeyPath: "rate", options: [.new], context: nil)
     DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
       if self.player?.rate != 0 && self.hasListeners {
         let info = self.getPlaybackInfo()
@@ -202,9 +212,8 @@ class AudioPro: RCTEventEmitter {
           "duration": info.duration
         ]
         self.sendEvent(withName: self.STATE_EVENT_NAME, body: body)
+        self.startProgressTimer()
       }
-      // Start the progress timer
-      startProgressTimer()
     }
 
     // Fetch artwork asynchronously
@@ -222,7 +231,7 @@ class AudioPro: RCTEventEmitter {
         }
       } catch {
         DispatchQueue.main.async {
-          self.triggerErrorEvent(error.localizedDescription)
+          self.onError(error.localizedDescription)
         }
         self.stop()
       }
@@ -231,6 +240,7 @@ class AudioPro: RCTEventEmitter {
 
   @objc(pause)
   func pause() {
+    shouldBePlaying = false
     player?.pause()
     stopTimer()
     sendPausedEvent()
@@ -238,28 +248,42 @@ class AudioPro: RCTEventEmitter {
 
   @objc(resume)
   func resume() {
+    shouldBePlaying = true
     player?.play()
-    startProgressTimer()
-    sendPlayingEvent()
+    // The rate observer will handle sending the playing event and starting the progress timer
   }
 
-  @objc(stop)
-  func stop() {
+  @objc func stop() {
+    shouldBePlaying = false
+
+    // Clean up NotificationCenter observers
+    NotificationCenter.default.removeObserver(self)
+
+    // Clean up KVO observers
+    if let player = player {
+      player.removeObserver(self, forKeyPath: "rate")
+      player.currentItem?.removeObserver(self, forKeyPath: "status")
+    }
+
+    // Stop playback and release
     player?.pause()
     player = nil
+
+    // Clear timers and system UI
     stopTimer()
     sendStoppedEvent()
+    MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
   }
 
   @objc(seekTo:)
   func seekTo(position: Double) {
     guard let player = player else {
-      triggerErrorEvent("Cannot seek: no track is playing")
+      onError("Cannot seek: no track is playing")
       return
     }
 
     guard let currentItem = player.currentItem else {
-      triggerErrorEvent("Cannot seek: no item loaded")
+      onError("Cannot seek: no item loaded")
       return
     }
 
@@ -267,7 +291,7 @@ class AudioPro: RCTEventEmitter {
     let duration = currentItem.duration.seconds
 
     if duration.isNaN || duration.isInfinite {
-      triggerErrorEvent("Cannot seek: invalid track duration")
+      onError("Cannot seek: invalid track duration")
       return
     }
 
@@ -295,12 +319,12 @@ class AudioPro: RCTEventEmitter {
   @objc(seekForward:)
   func seekForward(amount: Double) {
     guard let player = player else {
-      triggerErrorEvent("Cannot seek: no track is playing")
+      onError("Cannot seek: no track is playing")
       return
     }
 
     guard let currentItem = player.currentItem else {
-      triggerErrorEvent("Cannot seek: no item loaded")
+      onError("Cannot seek: no item loaded")
       return
     }
 
@@ -309,7 +333,7 @@ class AudioPro: RCTEventEmitter {
     let duration = currentItem.duration.seconds
 
     if currentTime.isNaN || currentTime.isInfinite || duration.isNaN || duration.isInfinite {
-      triggerErrorEvent("Cannot seek: invalid track position or duration")
+      onError("Cannot seek: invalid track position or duration")
       return
     }
 
@@ -336,12 +360,12 @@ class AudioPro: RCTEventEmitter {
   @objc(seekBack:)
   func seekBack(amount: Double) {
     guard let player = player else {
-      triggerErrorEvent("Cannot seek: no track is playing")
+      onError("Cannot seek: no track is playing")
       return
     }
 
     guard let currentItem = player.currentItem else {
-      triggerErrorEvent("Cannot seek: no item loaded")
+      onError("Cannot seek: no item loaded")
       return
     }
 
@@ -349,7 +373,7 @@ class AudioPro: RCTEventEmitter {
     let currentTime = player.currentTime().seconds
 
     if currentTime.isNaN || currentTime.isInfinite {
-      triggerErrorEvent("Cannot seek: invalid track position")
+      onError("Cannot seek: invalid track position")
       return
     }
 
@@ -385,7 +409,7 @@ class AudioPro: RCTEventEmitter {
     MPNowPlayingInfoCenter.default().nowPlayingInfo = nowPlayingInfo
   }
 
-  func triggerErrorEvent(_ errorMessage: String) {
+  func onError(_ errorMessage: String) {
     if hasListeners {
       sendEvent(withName: NOTICE_EVENT_NAME, body: [
         "notice": NOTICE_PLAYBACK_ERROR,
@@ -393,6 +417,7 @@ class AudioPro: RCTEventEmitter {
         "errorCode": GENERIC_ERROR_CODE
       ])
     }
+    stop()
   }
 
   @objc private func playerItemDidPlayToEndTime(_ notification: Notification) {
@@ -412,6 +437,41 @@ class AudioPro: RCTEventEmitter {
     }
 
     stop()
+  }
+
+  override func observeValue(forKeyPath keyPath: String?, of object: Any?, change: [NSKeyValueChangeKey : Any]?, context: UnsafeMutableRawPointer?) {
+    if keyPath == "rate" {
+      if let newRate = change?[.newKey] as? Float {
+        if newRate == 0 {
+          if shouldBePlaying && hasListeners {
+            // Player should be playing but isn't (buffering/loading)
+            let body: [String: Any] = ["state": STATE_LOADING]
+            sendEvent(withName: STATE_EVENT_NAME, body: body)
+            stopTimer()
+          }
+        } else {
+          if shouldBePlaying && hasListeners {
+            let info = getPlaybackInfo()
+            let body: [String: Any] = [
+              "state": STATE_PLAYING,
+              "position": info.position,
+              "duration": info.duration
+            ]
+            sendEvent(withName: STATE_EVENT_NAME, body: body)
+            startProgressTimer()
+          }
+        }
+      }
+    } else if keyPath == "status" {
+      if let item = object as? AVPlayerItem {
+        if item.status == .failed {
+          let errorMessage = item.error?.localizedDescription ?? "Playback failed for unknown reason"
+          onError(errorMessage)
+        }
+      }
+    } else {
+      super.observeValue(forKeyPath: keyPath, of: object, change: change, context: context)
+    }
   }
 
   override static func requiresMainQueueSetup() -> Bool {
