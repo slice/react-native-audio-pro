@@ -1,18 +1,22 @@
-import { NativeEventEmitter, NativeModules, Platform } from 'react-native';
+import { NativeEventEmitter, NativeModules } from 'react-native';
+import {
+  type AudioProNoticeCallback,
+  type AudioProNoticePayload,
+  type AudioProStateCallback,
+  type AudioProStatePayload,
+  type AudioProTrack,
+} from './types';
 
 const DEFAULT_SEEK_SECONDS = 30;
 const DEFAULT_SEEK_MILLISECONDS = DEFAULT_SEEK_SECONDS * 1000;
 
-// Player States
 export enum AudioProState {
   STOPPED = 'STOPPED',
   LOADING = 'LOADING',
-  BUFFERING = 'BUFFERING',
   PLAYING = 'PLAYING',
   PAUSED = 'PAUSED',
 }
 
-// Notice types (used for instantaneous events)
 export enum AudioProNotice {
   TRACK_ENDED = 'TRACK_ENDED',
   PLAYBACK_ERROR = 'PLAYBACK_ERROR',
@@ -22,255 +26,77 @@ export enum AudioProNotice {
   REMOTE_PREV = 'REMOTE_PREV',
 }
 
-// ==============================
-// State Payloads
-// ==============================
-export interface BaseAudioProStatePayload {
-  state: AudioProState;
-}
-
-export interface AudioProPlayingStatePayload extends BaseAudioProStatePayload {
-  state: AudioProState.PLAYING;
-  position: number;
-  duration: number;
-}
-
-export interface AudioProPausedStatePayload extends BaseAudioProStatePayload {
-  state: AudioProState.PAUSED;
-  position: number;
-  duration: number;
-}
-
-export interface AudioProStoppedStatePayload extends BaseAudioProStatePayload {
-  state: AudioProState.STOPPED;
-  position: number;
-  duration: number;
-}
-
-export interface AudioProLoadingStatePayload extends BaseAudioProStatePayload {
-  state: AudioProState.LOADING;
-}
-
-export interface AudioProBufferingStatePayload
-  extends BaseAudioProStatePayload {
-  state: AudioProState.BUFFERING;
-}
-
-export type AudioProStatePayload =
-  | AudioProPlayingStatePayload
-  | AudioProPausedStatePayload
-  | AudioProStoppedStatePayload
-  | AudioProLoadingStatePayload
-  | AudioProBufferingStatePayload;
-
-// ==============================
-// Notice Payloads
-// ==============================
-export interface BaseAudioProNoticePayload {
-  notice: AudioProNotice;
-}
-
-export interface AudioProTrackEndedNoticePayload
-  extends BaseAudioProNoticePayload {
-  notice: AudioProNotice.TRACK_ENDED;
-  position: number;
-  duration: number;
-}
-
-export interface AudioProPlaybackErrorNoticePayload
-  extends BaseAudioProNoticePayload {
-  notice: AudioProNotice.PLAYBACK_ERROR;
-  error: string;
-  errorCode?: number;
-}
-
-export interface AudioProProgressNoticePayload
-  extends BaseAudioProNoticePayload {
-  notice: AudioProNotice.PROGRESS;
-  position: number;
-  duration: number;
-}
-
-export interface AudioProSeekCompleteNoticePayload
-  extends BaseAudioProNoticePayload {
-  notice: AudioProNotice.SEEK_COMPLETE;
-  position: number;
-  duration: number;
-}
-
-export interface AudioProRemoteNextNoticePayload
-  extends BaseAudioProNoticePayload {
-  notice: AudioProNotice.REMOTE_NEXT;
-}
-
-export interface AudioProRemotePrevNoticePayload
-  extends BaseAudioProNoticePayload {
-  notice: AudioProNotice.REMOTE_PREV;
-}
-
-export type AudioProNoticePayload =
-  | AudioProTrackEndedNoticePayload
-  | AudioProPlaybackErrorNoticePayload
-  | AudioProProgressNoticePayload
-  | AudioProSeekCompleteNoticePayload
-  | AudioProRemoteNextNoticePayload
-  | AudioProRemotePrevNoticePayload;
-
-// ==============================
-// Track definition
-// ==============================
-export type AudioProTrack = {
-  url: string;
-  artwork: string;
-  title: string;
-  album?: string;
-  artist?: string;
-};
-
-const LINKING_ERROR =
-  `The package 'react-native-audio-pro' doesn't seem to be linked. Make sure: \n\n` +
-  Platform.select({ ios: "- You have run 'pod install'\n", default: '' }) +
-  '- You rebuilt the app after installing the package\n' +
-  '- You are not using Expo Go\n';
-
-const AudioPro = NativeModules.AudioPro
+const NativeAudioPro = NativeModules.AudioPro
   ? NativeModules.AudioPro
   : new Proxy(
       {},
       {
         get() {
-          throw new Error(LINKING_ERROR);
+          throw new Error(
+            'react-native-audio-pro: Native module is not linked properly.'
+          );
         },
       }
     );
 
-// ==============================
-// Exposed Methods
-// ==============================
-export function play(track: AudioProTrack): void {
-  console.log('~~~ play', track);
-  AudioPro.play(track);
-}
+const emitter = new NativeEventEmitter(NativeAudioPro);
 
-export function pause(): void {
-  AudioPro.pause();
-}
+const AudioPro = {
+  play(track: AudioProTrack): void {
+    NativeAudioPro.play(track);
+  },
 
-export function resume(): void {
-  AudioPro.resume();
-}
+  pause(): void {
+    NativeAudioPro.pause();
+  },
 
-export function stop(): void {
-  AudioPro.stop();
-}
+  resume(): void {
+    NativeAudioPro.resume();
+  },
 
-export function seekTo(position: number): void {
-  AudioPro.seekTo(position);
-}
+  stop(): void {
+    NativeAudioPro.stop();
+  },
 
-export function seekForward(amount: number = DEFAULT_SEEK_MILLISECONDS): void {
-  AudioPro.seekForward(amount);
-}
+  seekTo(position: number): void {
+    NativeAudioPro.seekTo(position);
+  },
 
-export function seekBack(amount: number = DEFAULT_SEEK_MILLISECONDS): void {
-  AudioPro.seekBack(amount);
-}
+  seekForward(amount: number = DEFAULT_SEEK_MILLISECONDS): void {
+    NativeAudioPro.seekForward(amount);
+  },
 
-const emitter = new NativeEventEmitter(AudioPro);
+  seekBack(amount: number = DEFAULT_SEEK_MILLISECONDS): void {
+    NativeAudioPro.seekBack(amount);
+  },
 
-// ==============================
-// Listener Callback Types
-// ==============================
-export type AudioProStateCallback = (payload: AudioProStatePayload) => void;
-export type AudioProNoticeCallback = (payload: AudioProNoticePayload) => void;
+  addStateListener(callback: AudioProStateCallback) {
+    return emitter.addListener(
+      'AudioProStateEvent',
+      (event: AudioProStatePayload) => {
+        console.log('~~~ AudioProState', event);
+        callback(event);
+      }
+    );
+  },
 
-// ==============================
-// State Listener
-// ==============================
-export function addAudioProStateListener(callback: AudioProStateCallback) {
-  return emitter.addListener('AudioProStateEvent', (event: any) => {
-    console.log('~~~ AudioProStateEvent', event);
-    switch (event.state) {
-      case AudioProState.PLAYING:
-        callback({
-          state: AudioProState.PLAYING,
-          position: event.position,
-          duration: event.duration,
-        });
-        break;
-      case AudioProState.PAUSED:
-        callback({
-          state: AudioProState.PAUSED,
-          position: event.position,
-          duration: event.duration,
-        });
-        break;
-      case AudioProState.STOPPED:
-        callback({
-          state: AudioProState.STOPPED,
-          position: event.position,
-          duration: event.duration,
-        });
-        break;
-      case AudioProState.LOADING:
-        callback({ state: AudioProState.LOADING });
-        break;
-      case AudioProState.BUFFERING:
-        callback({ state: AudioProState.BUFFERING });
-        break;
-      default:
-        break;
-    }
-  });
-}
+  addNoticeListener(callback: AudioProNoticeCallback) {
+    return emitter.addListener(
+      'AudioProNoticeEvent',
+      (event: AudioProNoticePayload) => {
+        console.log('~~~ AudioProNotice', event);
+        callback(event);
+      }
+    );
+  },
+};
 
-// ==============================
-// Notice Listener
-// ==============================
-export function addAudioProNoticeListener(callback: AudioProNoticeCallback) {
-  return emitter.addListener('AudioProNoticeEvent', (event: any) => {
-    console.log('~~~ AudioProNoticeEvent', event);
-    switch (event.notice) {
-      case AudioProNotice.TRACK_ENDED:
-        callback({
-          notice: AudioProNotice.TRACK_ENDED,
-          position: event.position,
-          duration: event.duration,
-        });
-        break;
-      case AudioProNotice.PLAYBACK_ERROR:
-        callback({
-          notice: AudioProNotice.PLAYBACK_ERROR,
-          error: event.error,
-          errorCode: event.errorCode,
-        });
-        break;
-      case AudioProNotice.PROGRESS:
-        callback({
-          notice: AudioProNotice.PROGRESS,
-          position: event.position,
-          duration: event.duration,
-        });
-        break;
-      case AudioProNotice.SEEK_COMPLETE:
-        callback({
-          notice: AudioProNotice.SEEK_COMPLETE,
-          position: event.position,
-          duration: event.duration,
-        });
-        break;
-      case AudioProNotice.REMOTE_NEXT:
-        callback({
-          notice: AudioProNotice.REMOTE_NEXT,
-        });
-        break;
-      case AudioProNotice.REMOTE_PREV:
-        callback({
-          notice: AudioProNotice.REMOTE_PREV,
-        });
-        break;
-      default:
-        break;
-    }
-  });
-}
+export default AudioPro;
+
+export type {
+  AudioProTrack,
+  AudioProStatePayload,
+  AudioProNoticePayload,
+  AudioProStateCallback,
+  AudioProNoticeCallback,
+};
