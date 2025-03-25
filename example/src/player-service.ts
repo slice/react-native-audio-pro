@@ -1,6 +1,4 @@
-import {
-  addAudioProStateListener,
-  addAudioProNoticeListener,
+import AudioPro, {
   AudioProState,
   AudioProNotice,
   type AudioProStatePayload,
@@ -10,7 +8,7 @@ import { usePlayerStore } from './player-store';
 
 export function registerAudioProListeners() {
   // Register state listener
-  addAudioProStateListener((event: AudioProStatePayload) => {
+  AudioPro.addStateListener((event: AudioProStatePayload) => {
     const store = usePlayerStore.getState();
     switch (event.state) {
       case AudioProState.PLAYING:
@@ -31,16 +29,13 @@ export function registerAudioProListeners() {
       case AudioProState.LOADING:
         store.setState(AudioProState.LOADING);
         break;
-      case AudioProState.BUFFERING:
-        store.setState(AudioProState.BUFFERING);
-        break;
       default:
         break;
     }
   });
 
   // Register notice listener
-  addAudioProNoticeListener((notice: AudioProNoticePayload) => {
+  AudioPro.addNoticeListener((notice: AudioProNoticePayload) => {
     const store = usePlayerStore.getState();
     switch (notice.notice) {
       case AudioProNotice.TRACK_ENDED:

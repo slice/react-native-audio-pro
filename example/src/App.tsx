@@ -1,14 +1,14 @@
-import { Image, Text, TouchableOpacity, View } from 'react-native';
-import Slider from '@react-native-community/slider';
 import {
+  ActivityIndicator,
+  Image,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import Slider from '@react-native-community/slider';
+import AudioPro, {
   AudioProState,
-  pause,
-  play,
-  resume,
-  seekBack,
-  seekForward,
-  seekTo,
-  stop,
+  type AudioProTrack,
 } from 'react-native-audio-pro';
 import { usePlayerStore } from './player-store';
 import { useState } from 'react';
@@ -29,46 +29,54 @@ export default function App() {
 
   const handlePlayPause = () => {
     if (playerState === AudioProState.PLAYING) {
-      pause();
+      AudioPro.pause();
     } else if (playerState === AudioProState.PAUSED) {
-      resume();
+      AudioPro.resume();
     } else {
-      play(currentTrack);
+      AudioPro.play(currentTrack);
     }
   };
 
   const handleStop = () => {
-    stop();
+    AudioPro.stop();
   };
 
   const handleSeek = (value: number) => {
-    seekTo(value);
+    AudioPro.seekTo(value);
   };
 
   const handleSeekBack = () => {
-    seekBack(); // Use default 30s
+    AudioPro.seekBack(); // Use default 30s
   };
 
   const handleSeekForward = () => {
-    seekForward(); // Use default 30s
+    AudioPro.seekForward(); // Use default 30s
   };
 
   const handlePrevious = () => {
-    // If position > 5 seconds, restart current track
     if (position > 5000) {
-      seekTo(0);
-    } else if (currentIndex > 0) {
-      // Otherwise, go to previous track if possible
-      setCurrentIndex(currentIndex - 1);
+      AudioPro.seekTo(0);
+      return;
+    }
+
+    const newIndex = currentIndex > 0 ? currentIndex - 1 : playlist.length - 1;
+    setCurrentIndex(newIndex);
+
+    if (playerState === AudioProState.PLAYING) {
+      AudioPro.play(playlist[newIndex] as AudioProTrack);
     } else {
-      // If at first track, just restart
-      seekTo(0);
+      AudioPro.seekTo(0);
     }
   };
 
   const handleNext = () => {
-    if (currentIndex < playlist.length - 1) {
-      setCurrentIndex(currentIndex + 1);
+    const newIndex = (currentIndex + 1) % playlist.length;
+    setCurrentIndex(newIndex);
+
+    if (playerState === AudioProState.PLAYING) {
+      AudioPro.play(playlist[newIndex] as AudioProTrack);
+    } else {
+      AudioPro.seekTo(0);
     }
   };
 
@@ -89,9 +97,6 @@ export default function App() {
           minimumTrackTintColor="#1EB1FC"
           maximumTrackTintColor="#8E8E93"
           thumbTintColor="#1EB1FC"
-          onValueChange={(value) => {
-            console.log('~~~ Slider', value);
-          }}
           onSlidingComplete={handleSeek}
         />
         <Text style={styles.timeText}>
@@ -102,23 +107,17 @@ export default function App() {
         <TouchableOpacity onPress={handlePrevious}>
           <Text style={styles.controlText}>Prev</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={handlePlayPause}>
-          <Text style={[styles.controlText, styles.playPauseText]}>
-            {playerState === AudioProState.PLAYING ? 'Pause' : 'Play'}
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          onPress={handleNext}
-          disabled={currentIndex >= playlist.length - 1}
-        >
-          <Text
-            style={[
-              styles.controlText,
-              currentIndex >= playlist.length - 1 && styles.disabledText,
-            ]}
-          >
-            Next
-          </Text>
+        {playerState === AudioProState.LOADING ? (
+          <ActivityIndicator size="large" color="#fff" />
+        ) : (
+          <TouchableOpacity onPress={handlePlayPause}>
+            <Text style={[styles.controlText, styles.playPauseText]}>
+              {playerState === AudioProState.PLAYING ? 'Pause' : 'Play'}
+            </Text>
+          </TouchableOpacity>
+        )}
+        <TouchableOpacity onPress={handleNext}>
+          <Text style={styles.controlText}>Next</Text>
         </TouchableOpacity>
       </View>
       <View style={styles.seekRow}>
