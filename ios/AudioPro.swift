@@ -93,6 +93,12 @@ class AudioPro: RCTEventEmitter {
 
     @objc(play:)
     func play(track: NSDictionary) {
+        if player != nil {
+            DispatchQueue.main.sync {
+                stop()
+            }
+        }
+
         guard
             let urlString = track["url"] as? String,
             let url = URL(string: urlString),
@@ -225,10 +231,14 @@ class AudioPro: RCTEventEmitter {
         NotificationCenter.default.removeObserver(self)
 
         // Clean up KVO observers
-        if let player = player {
-            player.removeObserver(self, forKeyPath: "rate")
-            player.currentItem?.removeObserver(self, forKeyPath: "status")
-        }
+        do {
+            if let player = player {
+                player.removeObserver(self, forKeyPath: "rate")
+                if let currentItem = player.currentItem {
+                    currentItem.removeObserver(self, forKeyPath: "status")
+                }
+            }
+        } catch {}
 
         // Stop playback and release
         player?.pause()
@@ -238,19 +248,11 @@ class AudioPro: RCTEventEmitter {
         stopTimer()
         sendStoppedEvent()
         DispatchQueue.main.async {
-            MPNowPlayingInfoCenter.default().nowPlayingInfo = [
-                MPMediaItemPropertyTitle: "Test Track",
-                MPMediaItemPropertyArtist: "Test Artist",
-                MPMediaItemPropertyAlbumTitle: "Test Album",
-                MPNowPlayingInfoPropertyElapsedPlaybackTime: 0,
-                MPNowPlayingInfoPropertyPlaybackRate: 0,
-                MPMediaItemPropertyPlaybackDuration: 300
-            ]
-        }
-        DispatchQueue.main.async {
+            MPNowPlayingInfoCenter.default().nowPlayingInfo = [:]
             UIApplication.shared.endReceivingRemoteControlEvents()
         }
         self.removeRemoteTransportControls()
+        isRemoteCommandCenterSetup = false
     }
 
     ////////////////////////////////////////////////////////////
@@ -594,6 +596,5 @@ class AudioPro: RCTEventEmitter {
         commandCenter.pauseCommand.removeTarget(nil)
         commandCenter.nextTrackCommand.removeTarget(nil)
         commandCenter.previousTrackCommand.removeTarget(nil)
-        isRemoteCommandCenterSetup = false
     }
 }
