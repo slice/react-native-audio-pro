@@ -122,11 +122,9 @@
       "@release-it/conventional-changelog": {
         "preset": {
           "name": "angular"
-        }
+        },
+        "disableBump": true
       }
-    },
-    "prompt": {
-      "version": true
     }
   },
   "eslintConfig": {
