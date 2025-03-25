@@ -94,7 +94,7 @@ We use [release-it](https://github.com/release-it/release-it) to make it easier 
 To publish new versions, run the following:
 
 ```sh
-yarn release
+npx release-it 3.0.0
 ```
 
 ### Scripts

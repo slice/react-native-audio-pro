@@ -181,6 +181,7 @@ npm run example start
 # In a new terminal:
 cd example
 npm run ios     # or npm run android
+```
 
 ## Contributing
 
