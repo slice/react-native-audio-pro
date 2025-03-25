@@ -1,18 +1,61 @@
 # react-native-audio-pro
 
-A React Native module for audio playback from remote URLs. Ideal for audiobook and podcast apps, it supports background playback and lock screen notification controls on both Android and iOS.
+A React Native module for audio playback from remote URLs. Ideal for audiobook and podcast apps, it supports background playback and lock screen controls on both Android and iOS.
+
+[![npm version](https://img.shields.io/npm/v/react-native-audio-pro)](https://www.npmjs.com/package/react-native-audio-pro)
+[![Website](https://img.shields.io/badge/Website-rnap.dev-blue?logo=react)](https://rnap.dev)
+
+## Table of Contents
+
+- [Installation](#installation)
+- [Requirements](#requirements)
+- [Platform-Specific Setup](#platform-specific-setup)
+  - [iOS](#ios)
+  - [Android](#android)
+- [API Overview](#api-overview)
+  - [Methods](#methods)
+  - [Event Listeners](#event-listeners)
+  - [Enums](#enums)
+  - [Types](#types)
+- [Basic Usage Example](#basic-usage-example)
+- [📱 Example App](#-example-app)
+- [Contributing](#contributing)
+- [License](#license)
+
+## Installation
+
+Install via npm:
+
+```bash
+npm install react-native-audio-pro
+```
+
+Or using yarn:
+
+```bash
+yarn add react-native-audio-pro
+```
 
 ## Requirements
 
 - **React Native:** 0.60 or higher
-- **Android:** Android 13 (API Level 33) or higher
 - **iOS:** iOS 15.0 or higher
+- **Android:** Android 13 (API Level 33) or higher
 
 ## Platform-Specific Setup
 
+### iOS
+
+#### Enable Background Modes
+
+1. Open your project settings in Xcode.
+2. Go to **Signing & Capabilities**.
+3. Add **Background Modes** and enable **Audio, AirPlay, and Picture in Picture**.
+
 ### Android
 
-**Gradle Configuration:**
+#### Gradle Configuration
+
 ```gradle
 // File: android/build.gradle
 buildscript {
@@ -25,182 +68,123 @@ buildscript {
 }
 ```
 
-**Permissions:**
+#### Permissions
+
 ```xml
 <!-- File: android/app/src/main/AndroidManifest.xml -->
 <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
 <uses-permission android:name="android.permission.WAKE_LOCK" />
 ```
 
-**ProGuard Rules (if using ProGuard):**
-```proguard
-# File: android/app/proguard-rules.pro
--keep class com.google.android.exoplayer2.** { *; }
--dontwarn com.google.android.exoplayer2.**
-```
+#### Deployment Target
 
-### iOS
+- Set the deployment target to iOS 15.0 or higher.
 
-**Enable Background Modes:**
-1. In Xcode, open your project settings.
-2. Go to Signing & Capabilities.
-3. Add *Background Modes* and enable *Audio, AirPlay, and Picture in Picture*.
+## API Overview
 
-**Swift Compatibility:**
-- Create an empty `.swift` file and accept the bridging header prompt if needed.
+### Methods
 
-**iOS Deployment Target:**
-- Set to iOS 15.0 or higher in project settings.
-
-## Features
-
-- **Remote Audio Streaming:** Play audio directly from remote URLs.
-- **Background Playback:** Continue playing audio even when the app is in the background.
-- **Lock Screen Controls:** Manage playback using lock screen controls on iOS and Android.
-- **Comprehensive API:** Control playback (play, pause, resume, stop, seek) and handle events.
-- **Event Listeners:** Listen to state changes and playback notices including:
-  - **State Events:** PLAYING, PAUSED, STOPPED, LOADING, BUFFERING
-  - **Notice Events:** TRACK_ENDED, PLAYBACK_ERROR, PROGRESS, SEEK_COMPLETE, REMOTE_NEXT, REMOTE_PREV
-
-## Installation
-
-Install via npm:
-
-```sh
-npm install react-native-audio-pro
-```
-
-## API
-
-### Playback Controls
-
-- **play(track: AudioTrack):** Start playback of the given track.
-- **pause():** Pause the current playback.
-- **resume():** Resume paused playback.
-- **stop():** Stop the playback.
-- **seekTo(position: number):** Seek to a specific position (in milliseconds).
-- **seekBack():** Seek backwards by a default duration (e.g., 30 seconds).
-- **seekForward():** Seek forwards by a default duration (e.g., 30 seconds).
+- **play(track: AudioProTrack): void**
+  - Starts playing the specified track.
+- **pause(): void**
+  - Pauses the current playback.
+- **resume(): void**
+  - Resumes playback if paused.
+- **stop(): void**
+  - Stops the playback.
+- **seekTo(position: number): void**
+  - Seeks to a specific position (in milliseconds).
+- **seekForward(amount?: number): void**
+  - Seeks forward by a given amount (default is 30 seconds).
+- **seekBack(amount?: number): void**
+  - Seeks backward by a given amount (default is 30 seconds).
 
 ### Event Listeners
 
-#### State Listener
+- **addStateListener(callback: AudioProStateCallback): EmitterSubscription**
+  - Listens for playback state changes.
+- **addNoticeListener(callback: AudioProNoticeCallback): EmitterSubscription**
+  - Listens for playback notices (e.g., track ended, errors, progress).
 
-Listen to state changes:
+### Enums
 
-```js
-import { addAudioProStateListener } from 'react-native-audio-pro';
+- **AudioProState:** `STOPPED`, `LOADING`, `PLAYING`, `PAUSED`
+- **AudioProNotice:** `TRACK_ENDED`, `PLAYBACK_ERROR`, `PROGRESS`, `SEEK_COMPLETE`, `REMOTE_NEXT`, `REMOTE_PREV`
 
-addAudioProStateListener((event) => {
-  // event.state is one of: PLAYING, PAUSED, STOPPED, LOADING, BUFFERING
-  console.log('State changed:', event.state);
-});
+### Types
+
+```typescript
+type AudioProTrack = {
+    url: string; // the media url (mp3, m4a)
+    title: string;
+    artwork: string; // the image url (jpg, png)
+    album?: string;
+    artist?: string;
+};
 ```
 
-#### Notice Listener
+## Basic Usage Example
 
-Listen to playback notices such as track ended, errors, progress, seek completion, and remote control events:
+```javascript
+import AudioPro, { AudioProState, AudioProNotice } from 'react-native-audio-pro';
 
-```js
-import { addAudioProNoticeListener, AudioProNotice } from 'react-native-audio-pro';
+// Define an audio track
+const track = {
+  url: 'https://example.com/audio.mp3',
+  title: 'My Track',
+  artwork: 'https://example.com/artwork.jpg',
+  artist: 'Artist Name',
+};
 
-addAudioProNoticeListener((notice) => {
-  switch (notice.notice) {
-    case AudioProNotice.TRACK_ENDED:
-      // Handle track ended
-      break;
-    case AudioProNotice.PLAYBACK_ERROR:
-      // Handle playback error
-      break;
-    case AudioProNotice.PROGRESS:
-      // Update position and duration
-      break;
-    case AudioProNotice.SEEK_COMPLETE:
-      // Handle seek complete
-      break;
-    case AudioProNotice.REMOTE_NEXT:
-      // Handle remote next event
-      break;
-    case AudioProNotice.REMOTE_PREV:
-      // Handle remote previous event
-      break;
-    default:
-      break;
+// Play the track
+AudioPro.play(track);
+
+// Pause playback
+AudioPro.pause();
+
+// Resume playback
+AudioPro.resume();
+
+// Seek to a specific millisecond position (e.g., 60 seconds in)
+AudioPro.seekTo(60000);
+
+// Listen for state changes
+const stateSubscription = AudioPro.addStateListener((event) => {
+  console.log('Playback State:', event.state);
+  if (event.state === AudioProState.PLAYING) {
+    console.log(`Position: ${event.position} / Duration: ${event.duration}`);
   }
 });
+
+// Listen for playback notices
+const noticeSubscription = AudioPro.addNoticeListener((notice) => {
+  console.log('Notice:', notice.notice);
+});
 ```
 
-## Usage Example
+## 📱 Example App
 
-Below is an example that demonstrates how to integrate the module within a React Native app:
+A complete working example is provided in the [`example/`](./example) folder.
 
-```tsx
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Image } from 'react-native';
-import Slider from '@react-native-community/slider';
-import {
-  AudioProState,
-  play,
-  pause,
-  resume,
-  stop,
-  seekTo,
-  seekBack,
-  seekForward,
-  addAudioProStateListener,
-  addAudioProNoticeListener,
-  AudioProNotice
-} from 'react-native-audio-pro';
-import { usePlayerStore } from './player-store';
+It demonstrates how to use `react-native-audio-pro` in a real React Native app, including:
 
-export default function App() {
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const currentTrack = /* get current track from your playlist */ null;
+- Track metadata (title, artist, artwork)
+- Play/Pause/Seek/Skip controls
+- Progress slider
+- Event listeners for playback state and notices
 
-  // Setup listeners (could be done in a useEffect hook)
-  addAudioProStateListener((event) => {
-    const store = usePlayerStore.getState();
-    store.setState(event.state);
-    if (event.position !== undefined) store.setPosition(event.position);
-    if (event.duration !== undefined) store.setDuration(event.duration);
-  });
+### To run the example:
 
-  addAudioProNoticeListener((notice) => {
-    const store = usePlayerStore.getState();
-    store.setNotice(notice.notice);
-    if (notice.position !== undefined) store.setPosition(notice.position);
-    if (notice.duration !== undefined) store.setDuration(notice.duration);
-  });
-
-  // Playback control functions
-  const handlePlayPause = () => {
-    const store = usePlayerStore.getState();
-    if (store.state === AudioProState.PLAYING) {
-      pause();
-    } else if (store.state === AudioProState.PAUSED) {
-      resume();
-    } else {
-      play(currentTrack);
-    }
-  };
-
-  // ... other controls (stop, seek, next, previous)
-
-  return (
-    <View>
-      {/* UI components to display track info, slider, and controls */}
-      <Text>Audio Player</Text>
-      <TouchableOpacity onPress={handlePlayPause}>
-        <Text>{/* Display Play/Pause based on state */}</Text>
-      </TouchableOpacity>
-    </View>
-  );
-}
-```
+```bash
+npm install
+npm run example start
+# In a new terminal:
+cd example
+npm run ios     # or npm run android
 
 ## Contributing
 
-See the [contributing guide](CONTRIBUTING.md) for details on how to contribute to this project.
+See the [CONTRIBUTING.md](CONTRIBUTING.md) for details on how to contribute to this project.
 
 ## License
 

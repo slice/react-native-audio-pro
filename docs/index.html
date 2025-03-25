@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="en" data-theme="dark">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>React Native Audio Pro - Robust Audio Playback for React Native</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>React Native Audio Pro</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" />
   <style>
@@ -35,10 +35,10 @@
       margin-bottom: calc(var(--spacing) * 2);
     }
 
-    .grid {
-      display: grid;
-      gap: var(--spacing);
-      grid-template-columns: 1fr;
+    .badge-container {
+      display: inline-flex;
+      gap: 0.5rem;
+      margin-top: 0.5rem;
     }
 
     pre {
@@ -51,45 +51,52 @@
   </style>
 </head>
 <body>
-  <header>
-    <h1>React Native Audio Pro</h1>
-    <p>A lightweight audio playback library for React Native. Play remote audio files (MP3, AAC, etc.) effortlessly, with support for background playback and lock screen controls.</p>
-  </header>
+<header>
+  <h1>React Native Audio Pro</h1>
+  <p>A React Native module for robust audio playback from remote URLs. Ideal for audiobook and podcast apps.</p>
+  <div class="badge-container">
+    <a href="https://www.npmjs.com/package/react-native-audio-pro">
+      <img src="https://img.shields.io/npm/v/react-native-audio-pro" alt="npm version" />
+    </a>
+    <a href="https://rnap.dev">
+      <img src="https://img.shields.io/badge/Website-rnap.dev-blue?logo=react" alt="Website" />
+    </a>
+  </div>
+</header>
 
-  <main>
-    <section>
-      <h2>🚀 Features</h2>
-      <div class="grid">
-        <article>
-          <h3>Audio Playback</h3>
-          <ul>
-            <li>Stream remote audio files (MP3, AAC, etc.)</li>
-            <li>Background playback</li>
-            <li>Lock screen controls</li>
-          </ul>
-        </article>
-        <article>
-          <h3>Developer Experience</h3>
-          <ul>
-            <li>TypeScript-first API</li>
-            <li>Comprehensive event system</li>
-            <li>Easy installation</li>
-          </ul>
-        </article>
-      </div>
-    </section>
+<main>
+  <section id="overview">
+    <h2>Overview</h2>
+    <p>React Native Audio Pro provides modern audio playback features for React Native apps. Stream remote files, control audio in the background, and access lock screen controls easily on both Android and iOS.</p>
+  </section>
 
-    <article>
-      <h3>Requirements</h3>
-      <ul>
-        <li>React Native 0.60 or higher</li>
-        <li>Android 13 (API Level 33) or higher</li>
-        <li>iOS 15.0 or higher</li>
-      </ul>
-    </article>
-    <article>
-      <h3>Android Setup</h3>
-      <pre><code class="language-gradle">// android/build.gradle
+  <section id="installation">
+    <h2>Installation</h2>
+    <pre><code class="language-bash">npm install react-native-audio-pro
+# or
+yarn add react-native-audio-pro</code></pre>
+  </section>
+
+  <section id="requirements">
+    <h2>Requirements</h2>
+    <ul>
+      <li>React Native 0.60 or higher</li>
+      <li>iOS 15.0 or higher</li>
+      <li>Android 13 (API Level 33) or higher</li>
+    </ul>
+  </section>
+
+  <section id="setup">
+    <h2>Platform Setup</h2>
+
+    <h3>iOS</h3>
+    <ul>
+      <li>Enable <strong>Background Modes</strong> > <em>Audio, AirPlay, and Picture in Picture</em></li>
+      <li>Set iOS Deployment Target to <strong>15.0+</strong></li>
+    </ul>
+
+    <h3>Android</h3>
+    <pre><code class="language-gradle">// android/build.gradle
 buildscript {
   ext {
     minSdkVersion = 33
@@ -97,126 +104,94 @@ buildscript {
     targetSdkVersion = 33
   }
 }</code></pre>
-      <pre><code class="language-xml">&lt;!-- AndroidManifest.xml --&gt;
+    <pre><code class="language-xml">&lt;!-- AndroidManifest.xml --&gt;
 &lt;uses-permission android:name="android.permission.FOREGROUND_SERVICE" /&gt;
-&lt;uses-permission android:name="android.permission.WAKE_LOCK" /&gt;
+&lt;uses-permission android:name="android.permission.WAKE_LOCK" /&gt;</code></pre>
+  </section>
+
+  <section id="api">
+    <h2>API Overview</h2>
+    <h3>Methods</h3>
+    <ul>
+      <li><code>play(track)</code></li>
+      <li><code>pause()</code></li>
+      <li><code>resume()</code></li>
+      <li><code>stop()</code></li>
+      <li><code>seekTo(ms)</code></li>
+      <li><code>seekForward(seconds?)</code></li>
+      <li><code>seekBack(seconds?)</code></li>
+    </ul>
+
+    <h3>Events</h3>
+    <ul>
+      <li><code>addStateListener(callback)</code></li>
+      <li><code>addNoticeListener(callback)</code></li>
+    </ul>
+
+    <h3>Track Type</h3>
+    <pre><code class="language-ts">type AudioProTrack = {
+  url: string;
+  title: string;
+  artwork: string;
+  album?: string;
+  artist?: string;
+}</code></pre>
+  </section>
+
+  <section id="usage">
+    <h2>Basic Usage</h2>
+    <pre><code class="language-js">import AudioPro from 'react-native-audio-pro';
+
+const track = {
+  url: 'https://example.com/audio.mp3',
+  title: 'Example Track',
+  artwork: 'https://example.com/art.jpg',
+  artist: 'Artist Name'
+};
+
+AudioPro.play(track);
+
+AudioPro.addStateListener((state) => {
+  console.log('State:', state);
+});
+
+AudioPro.addNoticeListener((notice) => {
+  console.log('Notice:', notice);
+});</code></pre>
+  </section>
+
+  <section id="example-app">
+    <h2>📱 Example App</h2>
+    <p>
+      A full working example app is available in the <code>example/</code> folder of the repository.
+      It shows how to build a complete audio player in React Native using <code>react-native-audio-pro</code>.
+    </p>
+    <ul>
+      <li>Track metadata (title, artist, artwork)</li>
+      <li>Playback controls (play, pause, seek, skip)</li>
+      <li>Slider for progress</li>
+      <li>Event listeners for playback state and notices</li>
+    </ul>
+    <p>To run the example:</p>
+    <pre><code class="language-bash">npm install
+npm run example start
+# In a new terminal:
+cd example
+npm run ios   # or npm run android
 </code></pre>
-      <pre><code class="language-proguard"># android/app/proguard-rules.pro
--keep class com.google.android.exoplayer2.** { *; }
--dontwarn com.google.android.exoplayer2.**</code></pre>
-    </article>
-    <article>
-      <h3>iOS Setup</h3>
-      <p>Enable <strong>Background Modes</strong> in Xcode under Signing & Capabilities:</p>
-      <ul>
-        <li>Audio, AirPlay, and Picture in Picture</li>
-      </ul>
-      <p>Set deployment target to <strong>iOS 15.0+</strong>.</p>
-      <p>If using Objective-C only, add a blank Swift file and bridging header.</p>
-    </article>
+  </section>
+</main>
 
-    <section>
-      <h2>📦 Installation</h2>
-      <pre><code class="language-bash">npm install react-native-audio-pro</code></pre>
-    </section>
+<footer>
+  <small>
+    <a href="https://github.com/evergrace-co/react-native-audio-pro">GitHub</a> •
+    <a href="https://www.npmjs.com/package/react-native-audio-pro">NPM</a> •
+    <a href="https://rnap.dev">rnap.dev</a>
+  </small>
+</footer>
 
-    <section>
-      <h2>🔧 Basic Usage</h2>
-      <pre><code class="language-tsx">import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
-import Slider from '@react-native-community/slider';
-import {
-  AudioProState,
-  play,
-  pause,
-  resume,
-  stop,
-  seekTo,
-  seekBack,
-  seekForward,
-  addAudioProStateListener,
-  addAudioProNoticeListener,
-  AudioProNotice
-} from 'react-native-audio-pro';
-import { usePlayerStore } from './player-store';
-
-export default function App() {
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const currentTrack = /* get current track from your playlist */ null;
-
-  // Setup listeners (could be done in a useEffect hook)
-  useEffect(() => {
-    addAudioProStateListener((event) => {
-      const store = usePlayerStore.getState();
-      store.setState(event.state);
-      if (event.position !== undefined) store.setPosition(event.position);
-      if (event.duration !== undefined) store.setDuration(event.duration);
-    });
-
-    addAudioProNoticeListener((notice) => {
-      const store = usePlayerStore.getState();
-      store.setNotice(notice.notice);
-      if (notice.position !== undefined) store.setPosition(notice.position);
-      if (notice.duration !== undefined) store.setDuration(notice.duration);
-    });
-  }, []);
-
-  // Playback control functions
-  const handlePlayPause = () => {
-    const store = usePlayerStore.getState();
-    if (store.state === AudioProState.PLAYING) {
-      pause();
-    } else if (store.state === AudioProState.PAUSED) {
-      resume();
-    } else {
-      play(currentTrack);
-    }
-  };
-
-  // ... other controls (stop, seek, next, previous)
-
-  return (
-    <View>
-      {/* UI components to display track info, slider, and controls */}
-      <Text>Audio Player</Text>
-      <TouchableOpacity onPress={handlePlayPause}>
-        <Text>{/* Display Play/Pause based on state */}</Text>
-      </TouchableOpacity>
-    </View>
-  );
-}
-      </code></pre>
-    </section>
-
-    <section>
-      <h2>📚 Documentation</h2>
-      <article>
-        <h3>Platform Setup Guides</h3>
-        <details>
-          <summary>Android Configuration</summary>
-          <pre><code class="language-gradle">// build.gradle
-minSdkVersion = 33
-compileSdkVersion = 33</code></pre>
-        </details>
-        <details>
-          <summary>iOS Configuration</summary>
-          <pre><code class="language-markdown">1. Enable Background Modes > Audio
-2. Set iOS Deployment Target ≥ 15.0</code></pre>
-        </details>
-      </article>
-    </section>
-  </main>
-
-  <footer>
-    <small>
-      <a href="https://github.com/evergrace-co/react-native-audio-pro" target="_blank">GitHub</a> •
-      <a href="CONTRIBUTING.md">Contributing Guide</a> •
-      <a href="https://www.npmjs.com/package/react-native-audio-pro" target="_blank">NPM</a>
-    </small>
-  </footer>
-
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-typescript.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-typescript.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
 </body>
 </html>
