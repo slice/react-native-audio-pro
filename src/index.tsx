@@ -18,6 +18,8 @@ export enum AudioProNotice {
   PLAYBACK_ERROR = 'PLAYBACK_ERROR',
   PROGRESS = 'PROGRESS',
   SEEK_COMPLETE = 'SEEK_COMPLETE',
+  REMOTE_NEXT = 'REMOTE_NEXT',
+  REMOTE_PREV = 'REMOTE_PREV',
 }
 
 // ==============================
@@ -96,11 +98,23 @@ export interface AudioProSeekCompleteNoticePayload
   duration: number;
 }
 
+export interface AudioProRemoteNextNoticePayload
+  extends BaseAudioProNoticePayload {
+  notice: AudioProNotice.REMOTE_NEXT;
+}
+
+export interface AudioProRemotePrevNoticePayload
+  extends BaseAudioProNoticePayload {
+  notice: AudioProNotice.REMOTE_PREV;
+}
+
 export type AudioProNoticePayload =
   | AudioProTrackEndedNoticePayload
   | AudioProPlaybackErrorNoticePayload
   | AudioProProgressNoticePayload
-  | AudioProSeekCompleteNoticePayload;
+  | AudioProSeekCompleteNoticePayload
+  | AudioProRemoteNextNoticePayload
+  | AudioProRemotePrevNoticePayload;
 
 // ==============================
 // Track definition
@@ -243,6 +257,16 @@ export function addAudioProNoticeListener(callback: AudioProNoticeCallback) {
           notice: AudioProNotice.SEEK_COMPLETE,
           position: event.position,
           duration: event.duration,
+        });
+        break;
+      case AudioProNotice.REMOTE_NEXT:
+        callback({
+          notice: AudioProNotice.REMOTE_NEXT,
+        });
+        break;
+      case AudioProNotice.REMOTE_PREV:
+        callback({
+          notice: AudioProNotice.REMOTE_PREV,
         });
         break;
       default:

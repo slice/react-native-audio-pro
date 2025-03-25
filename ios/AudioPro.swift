@@ -26,10 +26,13 @@ class AudioPro: RCTEventEmitter {
     private let NOTICE_PLAYBACK_ERROR = "PLAYBACK_ERROR"
     private let NOTICE_PROGRESS = "PROGRESS"
     private let NOTICE_SEEK_COMPLETE = "SEEK_COMPLETE"
+    private let NOTICE_REMOTE_NEXT = "REMOTE_NEXT"
+    private let NOTICE_REMOTE_PREV = "REMOTE_PREV"
 
     private let GENERIC_ERROR_CODE = 1000
     private let progressInterval: TimeInterval = 1.0
     private var shouldBePlaying = false
+    private var isRemoteCommandCenterSetup = false
 
     ////////////////////////////////////////////////////////////
     // MARK: - React Native Event Emitter Overrides
@@ -105,8 +108,7 @@ class AudioPro: RCTEventEmitter {
         do {
             try AVAudioSession.sharedInstance().setCategory(
                 .playback,
-                mode: .default,
-                options: [.duckOthers]
+                mode: .default
             )
             try AVAudioSession.sharedInstance().setActive(true)
         } catch {
@@ -134,9 +136,19 @@ class AudioPro: RCTEventEmitter {
             nowPlayingInfo[MPMediaItemPropertyArtist] = artist
         }
         MPNowPlayingInfoCenter.default().nowPlayingInfo = nowPlayingInfo
+        DispatchQueue.main.async {
+            UIApplication.shared.endReceivingRemoteControlEvents()
+            UIApplication.shared.beginReceivingRemoteControlEvents()
+        }
+        self.setupRemoteTransportControls()
 
         let item = AVPlayerItem(url: url)
         player = AVPlayer(playerItem: item)
+        nowPlayingInfo = MPNowPlayingInfoCenter.default().nowPlayingInfo ?? [:]
+        nowPlayingInfo[MPNowPlayingInfoPropertyElapsedPlaybackTime] = 0
+        nowPlayingInfo[MPNowPlayingInfoPropertyPlaybackRate] = 1.0
+        nowPlayingInfo[MPMediaItemPropertyPlaybackDuration] = item.asset.duration.seconds
+        MPNowPlayingInfoCenter.default().nowPlayingInfo = nowPlayingInfo
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(playerItemDidPlayToEndTime(_:)),
@@ -177,8 +189,8 @@ class AudioPro: RCTEventEmitter {
             } catch {
                 DispatchQueue.main.async {
                     self.onError(error.localizedDescription)
+                    self.stop()
                 }
-                self.stop()
             }
         }
     }
@@ -189,6 +201,10 @@ class AudioPro: RCTEventEmitter {
         player?.pause()
         stopTimer()
         sendPausedEvent()
+        var info = MPNowPlayingInfoCenter.default().nowPlayingInfo ?? [:]
+        info[MPNowPlayingInfoPropertyPlaybackRate] = 0
+        info[MPNowPlayingInfoPropertyElapsedPlaybackTime] = player?.currentTime().seconds ?? 0
+        MPNowPlayingInfoCenter.default().nowPlayingInfo = info
     }
 
     @objc(resume)
@@ -196,6 +212,10 @@ class AudioPro: RCTEventEmitter {
         shouldBePlaying = true
         player?.play()
         // The rate observer will handle sending the playing event and starting the progress timer
+        var info = MPNowPlayingInfoCenter.default().nowPlayingInfo ?? [:]
+        info[MPNowPlayingInfoPropertyPlaybackRate] = 1.0
+        info[MPNowPlayingInfoPropertyElapsedPlaybackTime] = player?.currentTime().seconds ?? 0
+        MPNowPlayingInfoCenter.default().nowPlayingInfo = info
     }
 
     @objc func stop() {
@@ -217,7 +237,20 @@ class AudioPro: RCTEventEmitter {
         // Clear timers and system UI
         stopTimer()
         sendStoppedEvent()
-        MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
+        DispatchQueue.main.async {
+            MPNowPlayingInfoCenter.default().nowPlayingInfo = [
+                MPMediaItemPropertyTitle: "Test Track",
+                MPMediaItemPropertyArtist: "Test Artist",
+                MPMediaItemPropertyAlbumTitle: "Test Album",
+                MPNowPlayingInfoPropertyElapsedPlaybackTime: 0,
+                MPNowPlayingInfoPropertyPlaybackRate: 0,
+                MPMediaItemPropertyPlaybackDuration: 300
+            ]
+        }
+        DispatchQueue.main.async {
+            UIApplication.shared.endReceivingRemoteControlEvents()
+        }
+        self.removeRemoteTransportControls()
     }
 
     ////////////////////////////////////////////////////////////
@@ -502,5 +535,65 @@ class AudioPro: RCTEventEmitter {
             ])
         }
         stop()
+    }
+
+    private func setupRemoteTransportControls() {
+        if isRemoteCommandCenterSetup { return }
+        let commandCenter = MPRemoteCommandCenter.shared()
+
+        commandCenter.playCommand.isEnabled = true
+        commandCenter.pauseCommand.isEnabled = true
+        commandCenter.nextTrackCommand.isEnabled = true
+        commandCenter.previousTrackCommand.isEnabled = true
+
+        commandCenter.playCommand.addTarget { [weak self] event in
+            guard let self = self else { return .commandFailed }
+            if self.player?.rate == 0 {
+                self.resume()
+                return .success
+            }
+            return .commandFailed
+        }
+
+        commandCenter.pauseCommand.addTarget { [weak self] event in
+            guard let self = self else { return .commandFailed }
+            if self.player?.rate != 0 {
+                self.pause()
+                return .success
+            }
+            return .commandFailed
+        }
+
+        commandCenter.nextTrackCommand.addTarget { [weak self] event in
+            guard let self = self else { return .commandFailed }
+            self.sendEvent(withName: self.NOTICE_EVENT_NAME, body: ["notice": self.NOTICE_REMOTE_NEXT])
+            return .success
+        }
+
+        commandCenter.previousTrackCommand.addTarget { [weak self] event in
+            guard let self = self else { return .commandFailed }
+            self.sendEvent(withName: self.NOTICE_EVENT_NAME, body: ["notice": self.NOTICE_REMOTE_PREV])
+            return .success
+        }
+
+        commandCenter.changePlaybackPositionCommand.isEnabled = true
+        commandCenter.changePlaybackPositionCommand.addTarget { [weak self] event in
+            guard let self = self, let positionEvent = event as? MPChangePlaybackPositionCommandEvent else {
+                return .commandFailed
+            }
+            self.seekTo(position: positionEvent.positionTime * 1000)
+            return .success
+        }
+
+        isRemoteCommandCenterSetup = true
+    }
+
+    private func removeRemoteTransportControls() {
+        let commandCenter = MPRemoteCommandCenter.shared()
+        commandCenter.playCommand.removeTarget(nil)
+        commandCenter.pauseCommand.removeTarget(nil)
+        commandCenter.nextTrackCommand.removeTarget(nil)
+        commandCenter.previousTrackCommand.removeTarget(nil)
+        isRemoteCommandCenterSetup = false
     }
 }
