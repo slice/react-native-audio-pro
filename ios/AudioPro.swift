@@ -24,6 +24,7 @@ class AudioPro: RCTEventEmitter {
   private let NOTICE_SEEK_COMPLETE = "SEEK_COMPLETE"
 
   private let GENERIC_ERROR_CODE = 1000
+  private let progressInterval: TimeInterval = 1.0
 
   override func supportedEvents() -> [String]! {
     return [STATE_EVENT_NAME, NOTICE_EVENT_NAME]
@@ -45,14 +46,16 @@ class AudioPro: RCTEventEmitter {
     return (position: positionMs, duration: durationMs)
   }
 
-  private func startTimer() {
+  private func startProgressTimer() {
     DispatchQueue.main.async {
       self.timer?.invalidate()
-      self.timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
-        self?.sendTimingEvent()
+      self.sendProgressEvent()
+      self.timer = Timer.scheduledTimer(withTimeInterval: self.progressInterval, repeats: true) { [weak self] _ in
+        self?.sendProgressEvent()
       }
     }
   }
+
 
   private func stopTimer() {
     DispatchQueue.main.async {
@@ -61,8 +64,9 @@ class AudioPro: RCTEventEmitter {
     }
   }
 
-  private func sendTimingEvent() {
-    guard let _ = player, let _ = player?.currentItem else { return }
+  private func sendProgressEvent() {
+    // Only emit progress if the player is playing
+    guard let player = player, let _ = player.currentItem, player.rate != 0 else { return }
     let info = getPlaybackInfo()
     let body: [String: Any] = [
       "notice": NOTICE_PROGRESS,
@@ -72,13 +76,51 @@ class AudioPro: RCTEventEmitter {
     sendEvent(withName: NOTICE_EVENT_NAME, body: body)
   }
 
+  private func sendStoppedEvent() {
+    if hasListeners {
+      let body: [String: Any] = [
+        "state": STATE_STOPPED,
+        "position": 0,
+        "duration": 0
+      ]
+      sendEvent(withName: STATE_EVENT_NAME, body: body)
+    }
+  }
+
+  private func sendPlayingEvent() {
+    if hasListeners {
+      let info = getPlaybackInfo()
+      let body: [String: Any] = [
+        "state": STATE_PLAYING,
+        "position": info.position,
+        "duration": info.duration
+      ]
+      sendEvent(withName: STATE_EVENT_NAME, body: body)
+    }
+  }
+
+  private func sendPausedEvent() {
+    if hasListeners {
+      let info = getPlaybackInfo()
+      let body: [String: Any] = [
+        "state": STATE_PAUSED,
+        "position": info.position,
+        "duration": info.duration
+      ]
+      sendEvent(withName: STATE_EVENT_NAME, body: body)
+    }
+  }
+
+
+
+
   private func beginSeeking() {
     stopTimer()
   }
 
   private func completeSeeking(newPosition: Double) {
     if hasListeners {
-      let info = getPlaybackInfo()  // Although the new position is provided, we rely on the helper for consistency
+      let info = getPlaybackInfo()  // Rely on the helper for consistency
       let body: [String: Any] = [
         "notice": NOTICE_SEEK_COMPLETE,
         "position": info.position,
@@ -86,10 +128,9 @@ class AudioPro: RCTEventEmitter {
       ]
       sendEvent(withName: NOTICE_EVENT_NAME, body: body)
     }
-
-    // Only restart timer if player is currently playing
+    // Restart the progress timer only if the player is playing
     if player?.rate != 0 {
-      startTimer()
+      startProgressTimer()
     }
   }
 
@@ -105,6 +146,7 @@ class AudioPro: RCTEventEmitter {
 
   @objc(play:)
   func play(track: NSDictionary) {
+    // Validation check
     guard
       let urlString = track["url"] as? String,
       let url = URL(string: urlString),
@@ -115,6 +157,14 @@ class AudioPro: RCTEventEmitter {
       triggerErrorEvent("Invalid track data")
       stop()
       return
+    }
+
+    // Emit loading state as early as possible after validation
+    if hasListeners {
+      let body: [String: Any] = [
+        "state": STATE_LOADING
+      ]
+      sendEvent(withName: STATE_EVENT_NAME, body: body)
     }
 
     let album = track["album"] as? String
@@ -140,16 +190,22 @@ class AudioPro: RCTEventEmitter {
       object: item
     )
 
-    // Emit loading state without position or duration
-    if hasListeners {
-      let body: [String: Any] = [
-        "state": STATE_LOADING
-      ]
-      sendEvent(withName: STATE_EVENT_NAME, body: body)
-    }
-
     player?.play()
-    startTimer()
+
+    // Emit playing state once the audio starts playing
+    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+      if self.player?.rate != 0 && self.hasListeners {
+        let info = self.getPlaybackInfo()
+        let body: [String: Any] = [
+          "state": self.STATE_PLAYING,
+          "position": info.position,
+          "duration": info.duration
+        ]
+        self.sendEvent(withName: self.STATE_EVENT_NAME, body: body)
+      }
+      // Start the progress timer
+      startProgressTimer()
+    }
 
     // Fetch artwork asynchronously
     DispatchQueue.global().async {
@@ -176,43 +232,23 @@ class AudioPro: RCTEventEmitter {
   @objc(pause)
   func pause() {
     player?.pause()
-    if hasListeners {
-      let info = getPlaybackInfo()
-      let body: [String: Any] = [
-        "state": STATE_PAUSED,
-        "position": info.position,
-        "duration": info.duration
-      ]
-      sendEvent(withName: STATE_EVENT_NAME, body: body)
-    }
     stopTimer()
+    sendPausedEvent()
   }
 
   @objc(resume)
   func resume() {
     player?.play()
-    if hasListeners {
-      let info = getPlaybackInfo()
-      let body: [String: Any] = [
-        "state": STATE_PLAYING,
-        "position": info.position,
-        "duration": info.duration
-      ]
-      sendEvent(withName: STATE_EVENT_NAME, body: body)
-    }
-    startTimer()
+    startProgressTimer()
+    sendPlayingEvent()
   }
 
   @objc(stop)
   func stop() {
     player?.pause()
     player = nil
-    MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
-    if hasListeners {
-      let body: [String: Any] = ["state": STATE_STOPPED]
-      sendEvent(withName: STATE_EVENT_NAME, body: body)
-    }
     stopTimer()
+    sendStoppedEvent()
   }
 
   @objc(seekTo:)
@@ -250,7 +286,7 @@ class AudioPro: RCTEventEmitter {
       } else {
         // Only restart timer if we were playing before the seek
         if player.rate != 0 {
-          self.startTimer()
+          self.startProgressTimer()
         }
       }
     }
@@ -291,7 +327,7 @@ class AudioPro: RCTEventEmitter {
       } else {
         // Only restart timer if we were playing before the seek
         if player.rate != 0 {
-          self.startTimer()
+          self.startProgressTimer()
         }
       }
     }
@@ -331,7 +367,7 @@ class AudioPro: RCTEventEmitter {
       } else {
         // Only restart timer if we were playing before the seek
         if player.rate != 0 {
-          self.startTimer()
+          self.startProgressTimer()
         }
       }
     }
@@ -360,22 +396,19 @@ class AudioPro: RCTEventEmitter {
   }
 
   @objc private func playerItemDidPlayToEndTime(_ notification: Notification) {
-    guard let currentItem = player?.currentItem else { return }
-    let durationSec = currentItem.duration.seconds
-    let validDurationSec = (durationSec.isNaN || durationSec.isInfinite) ? 0 : durationSec
-    let durationMs = Int(round(validDurationSec * 1000))
-    let positionMs = durationMs
+    guard let _ = player?.currentItem else { return }
+    let info = getPlaybackInfo()
 
     if hasListeners {
       let trackEndedBody: [String: Any] = [
         "notice": NOTICE_TRACK_ENDED,
-        "position": positionMs,
-        "duration": durationMs
+        "position": info.duration,
+        "duration": info.duration
       ]
       sendEvent(withName: NOTICE_EVENT_NAME, body: trackEndedBody)
 
-      let stoppedBody: [String: Any] = ["state": STATE_STOPPED]
-      sendEvent(withName: STATE_EVENT_NAME, body: stoppedBody)
+      // Send stopped event with explicit position and duration set to 0
+      sendStoppedEvent()
     }
 
     stop()

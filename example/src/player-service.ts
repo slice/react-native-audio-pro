@@ -15,12 +15,18 @@ export function registerAudioProListeners() {
     switch (event.state) {
       case AudioProState.PLAYING:
         store.setState(AudioProState.PLAYING);
+        store.setPosition(event.position);
+        store.setDuration(event.duration);
         break;
       case AudioProState.PAUSED:
         store.setState(AudioProState.PAUSED);
+        store.setPosition(event.position);
+        store.setDuration(event.duration);
         break;
       case AudioProState.STOPPED:
         store.setState(AudioProState.STOPPED);
+        store.setPosition(event.position);
+        store.setDuration(event.duration);
         break;
       case AudioProState.LOADING:
         store.setState(AudioProState.LOADING);

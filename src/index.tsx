@@ -29,14 +29,20 @@ export interface BaseAudioProStatePayload {
 
 export interface AudioProPlayingStatePayload extends BaseAudioProStatePayload {
   state: AudioProState.PLAYING;
+  position: number;
+  duration: number;
 }
 
 export interface AudioProPausedStatePayload extends BaseAudioProStatePayload {
   state: AudioProState.PAUSED;
+  position: number;
+  duration: number;
 }
 
 export interface AudioProStoppedStatePayload extends BaseAudioProStatePayload {
   state: AudioProState.STOPPED;
+  position: number;
+  duration: number;
 }
 
 export interface AudioProLoadingStatePayload extends BaseAudioProStatePayload {
@@ -171,13 +177,25 @@ export function addAudioProStateListener(callback: AudioProStateCallback) {
     console.log('~~~ AudioProStateEvent', event);
     switch (event.state) {
       case AudioProState.PLAYING:
-        callback({ state: AudioProState.PLAYING });
+        callback({
+          state: AudioProState.PLAYING,
+          position: event.position,
+          duration: event.duration,
+        });
         break;
       case AudioProState.PAUSED:
-        callback({ state: AudioProState.PAUSED });
+        callback({
+          state: AudioProState.PAUSED,
+          position: event.position,
+          duration: event.duration,
+        });
         break;
       case AudioProState.STOPPED:
-        callback({ state: AudioProState.STOPPED });
+        callback({
+          state: AudioProState.STOPPED,
+          position: event.position,
+          duration: event.duration,
+        });
         break;
       case AudioProState.LOADING:
         callback({ state: AudioProState.LOADING });

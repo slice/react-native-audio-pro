@@ -91,7 +91,7 @@ export default function App() {
           maximumTrackTintColor="#8E8E93"
           thumbTintColor="#1EB1FC"
           onValueChange={(value) => {
-            console.log('~~~ value', value);
+            console.log('~~~ Slider', value);
           }}
           onSlidingComplete={handleSeek}
         />
