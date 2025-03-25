@@ -6,32 +6,35 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: 20,
+    backgroundColor: '#222',
   },
   artwork: {
     width: 300,
     height: 300,
-    marginBottom: 20,
+    marginBottom: 15,
+    borderRadius: 15,
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
+    color: '#fff',
     marginBottom: 4,
   },
   artist: {
     fontSize: 18,
-    color: '#666',
-    marginBottom: 20,
+    color: '#ccc',
+    marginBottom: 15,
   },
   trackPosition: {
     fontSize: 14,
-    color: '#666',
+    color: '#ccc',
     marginBottom: 10,
   },
   sliderContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     width: '100%',
-    marginBottom: 20,
+    marginBottom: 15,
   },
   slider: {
     flex: 1,
@@ -39,7 +42,7 @@ export const styles = StyleSheet.create({
   },
   timeText: {
     fontSize: 12,
-    color: '#666',
+    color: '#ccc',
     width: 40,
     textAlign: 'center',
   },
@@ -47,31 +50,30 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-around',
     width: '100%',
-    marginBottom: 20,
+    marginBottom: 15,
   },
   seekRow: {
     flexDirection: 'row',
     justifyContent: 'space-around',
     width: '60%',
-    marginBottom: 20,
+    marginBottom: 15,
   },
   stopRow: {
-    marginBottom: 20,
+    marginBottom: 15,
   },
   controlText: {
     fontSize: 18,
     padding: 10,
+    color: '#fff',
   },
   playPauseText: {
     fontSize: 22,
     fontWeight: 'bold',
+    color: '#fff',
   },
   stateText: {
     fontSize: 12,
-    color: '#666',
+    color: '#ccc',
     marginBottom: 4,
-  },
-  disabledText: {
-    color: '#cccccc',
   },
 });
