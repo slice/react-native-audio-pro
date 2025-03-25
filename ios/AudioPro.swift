@@ -9,16 +9,40 @@ class AudioPro: RCTEventEmitter {
   private var player: AVPlayer?
   private var timer: Timer?
   private var hasListeners = false
-  private let EVENT_NAME = "AudioProEvent"
-  private let EVENT_STATE_PLAYING = "PLAYING"
-  private let EVENT_STATE_PAUSED = "PAUSED"
-  private let EVENT_STATE_STOPPED = "STOPPED"
-  private let EVENT_STATE_ERROR = "ERROR"
-  private let EVENT_STATE_SEEK_START = "SEEK_START"
-  private let EVENT_STATE_SEEK_COMPLETE = "SEEK_COMPLETE"
+  private let STATE_EVENT_NAME = "AudioProStateEvent"
+  private let NOTICE_EVENT_NAME = "AudioProNoticeEvent"
+
+  private let STATE_STOPPED = "STOPPED"
+  private let STATE_LOADING = "LOADING"
+  private let STATE_BUFFERING = "BUFFERING"
+  private let STATE_PLAYING = "PLAYING"
+  private let STATE_PAUSED = "PAUSED"
+
+  private let NOTICE_TRACK_ENDED = "TRACK_ENDED"
+  private let NOTICE_PLAYBACK_ERROR = "PLAYBACK_ERROR"
+  private let NOTICE_PROGRESS = "PROGRESS"
+  private let NOTICE_SEEK_COMPLETE = "SEEK_COMPLETE"
+
+  private let GENERIC_ERROR_CODE = 1000
 
   override func supportedEvents() -> [String]! {
-    return [EVENT_NAME]
+    return [STATE_EVENT_NAME, NOTICE_EVENT_NAME]
+  }
+
+  // MARK: - Helper Methods
+
+  /// Returns the current playback position and duration (in milliseconds)
+  private func getPlaybackInfo() -> (position: Int, duration: Int) {
+    guard let player = player, let currentItem = player.currentItem else {
+      return (0, 0)
+    }
+    let currentTimeSec = player.currentTime().seconds
+    let durationSec = currentItem.duration.seconds
+    let validCurrentTimeSec = (currentTimeSec.isNaN || currentTimeSec.isInfinite) ? 0 : currentTimeSec
+    let validDurationSec = (durationSec.isNaN || durationSec.isInfinite) ? 0 : durationSec
+    let positionMs = Int(round(validCurrentTimeSec * 1000))
+    let durationMs = Int(round(validDurationSec * 1000))
+    return (position: positionMs, duration: durationMs)
   }
 
   private func startTimer() {
@@ -38,53 +62,35 @@ class AudioPro: RCTEventEmitter {
   }
 
   private func sendTimingEvent() {
-    guard let player = player, let currentItem = player.currentItem else { return }
-
-    let currentTimeSec = player.currentTime().seconds
-    let durationSec = currentItem.duration.seconds
-
-    let validCurrentTimeSec = currentTimeSec.isNaN || currentTimeSec.isInfinite ? 0 : currentTimeSec
-    let validDurationSec = durationSec.isNaN || durationSec.isInfinite ? 0 : durationSec
-
-    let currentTimeMs = Int(round(validCurrentTimeSec * 1000))
-    let durationMs = Int(round(validDurationSec * 1000))
-
+    guard let _ = player, let _ = player?.currentItem else { return }
+    let info = getPlaybackInfo()
     let body: [String: Any] = [
-      "state": EVENT_STATE_PLAYING,
-      "position": currentTimeMs,
-      "duration": durationMs
+      "notice": NOTICE_PROGRESS,
+      "position": info.position,
+      "duration": info.duration
     ]
-
-    sendEvent(withName: EVENT_NAME, body: body)
+    sendEvent(withName: NOTICE_EVENT_NAME, body: body)
   }
 
   private func beginSeeking() {
     stopTimer()
-
-    if hasListeners {
-      sendEvent(withName: EVENT_NAME, body: ["state": EVENT_STATE_SEEK_START])
-    }
   }
 
   private func completeSeeking(newPosition: Double) {
     if hasListeners {
-      guard let player = player, let currentItem = player.currentItem else { return }
-
-      let durationSec = currentItem.duration.seconds
-      let validDurationSec = durationSec.isNaN || durationSec.isInfinite ? 0 : durationSec
-      let durationMs = Int(round(validDurationSec * 1000))
-      let positionMs = Int(round(newPosition * 1000))
-
+      let info = getPlaybackInfo()  // Although the new position is provided, we rely on the helper for consistency
       let body: [String: Any] = [
-        "state": EVENT_STATE_SEEK_COMPLETE,
-        "position": positionMs,
-        "duration": durationMs
+        "notice": NOTICE_SEEK_COMPLETE,
+        "position": info.position,
+        "duration": info.duration
       ]
-
-      sendEvent(withName: EVENT_NAME, body: body)
+      sendEvent(withName: NOTICE_EVENT_NAME, body: body)
     }
 
-    startTimer()
+    // Only restart timer if player is currently playing
+    if player?.rate != 0 {
+      startTimer()
+    }
   }
 
   override func startObserving() {
@@ -94,6 +100,8 @@ class AudioPro: RCTEventEmitter {
   override func stopObserving() {
     hasListeners = false
   }
+
+  // MARK: - Exposed Methods
 
   @objc(play:)
   func play(track: NSDictionary) {
@@ -120,34 +128,30 @@ class AudioPro: RCTEventEmitter {
     if let artist = artist {
       nowPlayingInfo[MPMediaItemPropertyArtist] = artist
     }
-
     MPNowPlayingInfoCenter.default().nowPlayingInfo = nowPlayingInfo
 
     let item = AVPlayerItem(url: url)
     player = AVPlayer(playerItem: item)
-    player?.play()
 
+    NotificationCenter.default.addObserver(
+      self,
+      selector: #selector(playerItemDidPlayToEndTime(_:)),
+      name: .AVPlayerItemDidPlayToEndTime,
+      object: item
+    )
+
+    // Emit loading state without position or duration
     if hasListeners {
-      let currentTimeSec = player?.currentTime().seconds ?? 0
-      let durationSec = player?.currentItem?.duration.seconds ?? 0
-
-      let validCurrentTimeSec = currentTimeSec.isNaN || currentTimeSec.isInfinite ? 0 : currentTimeSec
-      let validDurationSec = durationSec.isNaN || durationSec.isInfinite ? 0 : durationSec
-
-      let currentTimeMs = Int(round(validCurrentTimeSec * 1000))
-      let durationMs = Int(round(validDurationSec * 1000))
-
       let body: [String: Any] = [
-        "state": EVENT_STATE_PLAYING,
-        "position": currentTimeMs,
-        "duration": durationMs
+        "state": STATE_LOADING
       ]
-
-      sendEvent(withName: EVENT_NAME, body: body)
+      sendEvent(withName: STATE_EVENT_NAME, body: body)
     }
 
+    player?.play()
     startTimer()
 
+    // Fetch artwork asynchronously
     DispatchQueue.global().async {
       do {
         let data = try Data(contentsOf: artworkUrl)
@@ -173,7 +177,13 @@ class AudioPro: RCTEventEmitter {
   func pause() {
     player?.pause()
     if hasListeners {
-      sendEvent(withName: EVENT_NAME, body: ["state": EVENT_STATE_PAUSED])
+      let info = getPlaybackInfo()
+      let body: [String: Any] = [
+        "state": STATE_PAUSED,
+        "position": info.position,
+        "duration": info.duration
+      ]
+      sendEvent(withName: STATE_EVENT_NAME, body: body)
     }
     stopTimer()
   }
@@ -182,7 +192,13 @@ class AudioPro: RCTEventEmitter {
   func resume() {
     player?.play()
     if hasListeners {
-      sendEvent(withName: EVENT_NAME, body: ["state": EVENT_STATE_PLAYING])
+      let info = getPlaybackInfo()
+      let body: [String: Any] = [
+        "state": STATE_PLAYING,
+        "position": info.position,
+        "duration": info.duration
+      ]
+      sendEvent(withName: STATE_EVENT_NAME, body: body)
     }
     startTimer()
   }
@@ -193,15 +209,21 @@ class AudioPro: RCTEventEmitter {
     player = nil
     MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
     if hasListeners {
-      sendEvent(withName: EVENT_NAME, body: ["state": EVENT_STATE_STOPPED])
+      let body: [String: Any] = ["state": STATE_STOPPED]
+      sendEvent(withName: STATE_EVENT_NAME, body: body)
     }
     stopTimer()
   }
 
   @objc(seekTo:)
   func seekTo(position: Double) {
-    guard let player = player, let currentItem = player.currentItem else {
+    guard let player = player else {
       triggerErrorEvent("Cannot seek: no track is playing")
+      return
+    }
+
+    guard let currentItem = player.currentItem else {
+      triggerErrorEvent("Cannot seek: no item loaded")
       return
     }
 
@@ -218,22 +240,31 @@ class AudioPro: RCTEventEmitter {
 
     beginSeeking()
 
-    player.seek(to: time) { [weak self] completed in
+    // The key fix - AVPlayer seeking works in both playing and paused states
+    player.seek(to: time, toleranceBefore: .zero, toleranceAfter: .zero) { [weak self] completed in
       guard let self = self else { return }
 
       if completed {
         self.updateNowPlayingInfoWithCurrentTime(validPosition)
-        self.completeSeeking(newPosition: validPosition)
+        self.completeSeeking(newPosition: validPosition * 1000)
       } else {
-        self.startTimer()
+        // Only restart timer if we were playing before the seek
+        if player.rate != 0 {
+          self.startTimer()
+        }
       }
     }
   }
 
   @objc(seekForward:)
   func seekForward(amount: Double) {
-    guard let player = player, let currentItem = player.currentItem else {
+    guard let player = player else {
       triggerErrorEvent("Cannot seek: no track is playing")
+      return
+    }
+
+    guard let currentItem = player.currentItem else {
+      triggerErrorEvent("Cannot seek: no item loaded")
       return
     }
 
@@ -251,14 +282,17 @@ class AudioPro: RCTEventEmitter {
 
     beginSeeking()
 
-    player.seek(to: time) { [weak self] completed in
+    player.seek(to: time, toleranceBefore: .zero, toleranceAfter: .zero) { [weak self] completed in
       guard let self = self else { return }
 
       if completed {
         self.updateNowPlayingInfoWithCurrentTime(newPosition)
-        self.completeSeeking(newPosition: newPosition)
+        self.completeSeeking(newPosition: newPosition * 1000)
       } else {
-        self.startTimer()
+        // Only restart timer if we were playing before the seek
+        if player.rate != 0 {
+          self.startTimer()
+        }
       }
     }
   }
@@ -267,6 +301,11 @@ class AudioPro: RCTEventEmitter {
   func seekBack(amount: Double) {
     guard let player = player else {
       triggerErrorEvent("Cannot seek: no track is playing")
+      return
+    }
+
+    guard let currentItem = player.currentItem else {
+      triggerErrorEvent("Cannot seek: no item loaded")
       return
     }
 
@@ -283,14 +322,17 @@ class AudioPro: RCTEventEmitter {
 
     beginSeeking()
 
-    player.seek(to: time) { [weak self] completed in
+    player.seek(to: time, toleranceBefore: .zero, toleranceAfter: .zero) { [weak self] completed in
       guard let self = self else { return }
 
       if completed {
         self.updateNowPlayingInfoWithCurrentTime(newPosition)
-        self.completeSeeking(newPosition: newPosition)
+        self.completeSeeking(newPosition: newPosition * 1000)
       } else {
-        self.startTimer()
+        // Only restart timer if we were playing before the seek
+        if player.rate != 0 {
+          self.startTimer()
+        }
       }
     }
   }
@@ -298,21 +340,45 @@ class AudioPro: RCTEventEmitter {
   private func updateNowPlayingInfoWithCurrentTime(_ time: Double) {
     var nowPlayingInfo = MPNowPlayingInfoCenter.default().nowPlayingInfo ?? [String: Any]()
     nowPlayingInfo[MPNowPlayingInfoPropertyElapsedPlaybackTime] = time
-
     if let currentItem = player?.currentItem {
       let duration = currentItem.duration.seconds
       if !duration.isNaN && !duration.isInfinite {
         nowPlayingInfo[MPMediaItemPropertyPlaybackDuration] = duration
       }
     }
-
     MPNowPlayingInfoCenter.default().nowPlayingInfo = nowPlayingInfo
   }
 
   func triggerErrorEvent(_ errorMessage: String) {
     if hasListeners {
-      sendEvent(withName: EVENT_NAME, body: ["state": EVENT_STATE_ERROR, "error": errorMessage])
+      sendEvent(withName: NOTICE_EVENT_NAME, body: [
+        "notice": NOTICE_PLAYBACK_ERROR,
+        "error": errorMessage,
+        "errorCode": GENERIC_ERROR_CODE
+      ])
     }
+  }
+
+  @objc private func playerItemDidPlayToEndTime(_ notification: Notification) {
+    guard let currentItem = player?.currentItem else { return }
+    let durationSec = currentItem.duration.seconds
+    let validDurationSec = (durationSec.isNaN || durationSec.isInfinite) ? 0 : durationSec
+    let durationMs = Int(round(validDurationSec * 1000))
+    let positionMs = durationMs
+
+    if hasListeners {
+      let trackEndedBody: [String: Any] = [
+        "notice": NOTICE_TRACK_ENDED,
+        "position": positionMs,
+        "duration": durationMs
+      ]
+      sendEvent(withName: NOTICE_EVENT_NAME, body: trackEndedBody)
+
+      let stoppedBody: [String: Any] = ["state": STATE_STOPPED]
+      sendEvent(withName: STATE_EVENT_NAME, body: stoppedBody)
+    }
+
+    stop()
   }
 
   override static func requiresMainQueueSetup() -> Bool {

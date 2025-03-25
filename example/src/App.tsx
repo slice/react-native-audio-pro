@@ -1,19 +1,20 @@
-import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Image, Text, TouchableOpacity, View } from 'react-native';
 import Slider from '@react-native-community/slider';
 import {
+  AudioProState,
   pause,
   play,
   resume,
-  stop,
-  AudioProState,
-  seekTo,
   seekBack,
   seekForward,
+  seekTo,
+  stop,
 } from 'react-native-audio-pro';
 import { usePlayerStore } from './usePlayerStore';
 import { useState } from 'react';
 import { formatTime } from './utils';
 import { playlist } from './playlist';
+import { styles } from './styles';
 
 export default function App() {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -22,6 +23,7 @@ export default function App() {
   const playerState = usePlayerStore((state) => state.state);
   const position = usePlayerStore((state) => state.position);
   const duration = usePlayerStore((state) => state.duration);
+  const lastNotice = usePlayerStore((state) => state.lastNotice);
 
   if (!currentTrack) return null;
 
@@ -43,8 +45,38 @@ export default function App() {
     seekTo(value);
   };
 
+  const handleSeekBack = () => {
+    seekBack(); // Use default 30s
+  };
+
+  const handleSeekForward = () => {
+    seekForward(); // Use default 30s
+  };
+
+  const handlePrevious = () => {
+    // If position > 5 seconds, restart current track
+    if (position > 5000) {
+      seekTo(0);
+    } else if (currentIndex > 0) {
+      // Otherwise, go to previous track if possible
+      setCurrentIndex(currentIndex - 1);
+    } else {
+      // If at first track, just restart
+      seekTo(0);
+    }
+  };
+
+  const handleNext = () => {
+    if (currentIndex < playlist.length - 1) {
+      setCurrentIndex(currentIndex + 1);
+    }
+  };
+
+  const trackDisplay = `${currentIndex + 1}/${playlist.length}`;
+
   return (
     <View style={styles.container}>
+      <Text>{trackDisplay}</Text>
       <Image source={{ uri: currentTrack.artwork }} style={styles.artwork} />
       <Text style={styles.title}>{currentTrack.title}</Text>
       <Text style={styles.artist}>{currentTrack.artist}</Text>
@@ -68,11 +100,7 @@ export default function App() {
         </Text>
       </View>
       <View style={styles.controlsRow}>
-        <TouchableOpacity
-          onPress={() => {
-            if (currentIndex > 0) setCurrentIndex(currentIndex - 1);
-          }}
-        >
+        <TouchableOpacity onPress={handlePrevious}>
           <Text style={styles.controlText}>Prev</Text>
         </TouchableOpacity>
         <TouchableOpacity onPress={handlePlayPause}>
@@ -81,27 +109,24 @@ export default function App() {
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          onPress={() => {
-            if (currentIndex < playlist.length - 1)
-              setCurrentIndex(currentIndex + 1);
-          }}
+          onPress={handleNext}
+          disabled={currentIndex >= playlist.length - 1}
         >
-          <Text style={styles.controlText}>Next</Text>
+          <Text
+            style={[
+              styles.controlText,
+              currentIndex >= playlist.length - 1 && styles.disabledText,
+            ]}
+          >
+            Next
+          </Text>
         </TouchableOpacity>
       </View>
       <View style={styles.seekRow}>
-        <TouchableOpacity
-          onPress={() => {
-            seekBack(); // Use default 30s
-          }}
-        >
+        <TouchableOpacity onPress={handleSeekBack}>
           <Text style={styles.controlText}>-30s</Text>
         </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() => {
-            seekForward(); // Use default 30s
-          }}
-        >
+        <TouchableOpacity onPress={handleSeekForward}>
           <Text style={styles.controlText}>+30s</Text>
         </TouchableOpacity>
       </View>
@@ -111,75 +136,7 @@ export default function App() {
         </TouchableOpacity>
       </View>
       <Text style={styles.stateText}>State: {playerState}</Text>
-      <Text style={styles.stateText}>Duration: {duration}</Text>
-      <Text style={styles.stateText}>Position: {position}</Text>
+      <Text style={styles.stateText}>Last Notice: {lastNotice}</Text>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 20,
-  },
-  artwork: {
-    width: 300,
-    height: 300,
-    marginBottom: 20,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 4,
-  },
-  artist: {
-    fontSize: 18,
-    color: '#666',
-    marginBottom: 20,
-  },
-  sliderContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    width: '100%',
-    marginBottom: 20,
-  },
-  slider: {
-    flex: 1,
-    marginHorizontal: 10,
-  },
-  timeText: {
-    width: 50,
-    textAlign: 'center',
-  },
-  controlsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-around',
-    width: '80%',
-    marginBottom: 20,
-  },
-  controlText: {
-    fontSize: 18,
-  },
-  playPauseText: {
-    fontWeight: 'bold',
-  },
-  seekRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-around',
-    width: '40%',
-    marginBottom: 20,
-  },
-  stopRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginVertical: 20,
-  },
-  stateText: {
-    fontSize: 16,
-    marginTop: 20,
-  },
-});
