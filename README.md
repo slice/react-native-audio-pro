@@ -2,6 +2,56 @@
 
 A React Native module for audio playback from remote URLs. Ideal for audiobook and podcast apps, it supports background playback and lock screen notification controls on both Android and iOS.
 
+## Requirements
+
+- **React Native:** 0.60 or higher
+- **Android:** Android 13 (API Level 33) or higher
+- **iOS:** iOS 15.0 or higher
+
+## Platform-Specific Setup
+
+### Android
+
+**Gradle Configuration:**
+```gradle
+// File: android/build.gradle
+buildscript {
+    ext {
+        minSdkVersion = 33
+        compileSdkVersion = 33
+        targetSdkVersion = 33
+        // ...
+    }
+}
+```
+
+**Permissions:**
+```xml
+<!-- File: android/app/src/main/AndroidManifest.xml -->
+<uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+<uses-permission android:name="android.permission.WAKE_LOCK" />
+```
+
+**ProGuard Rules (if using ProGuard):**
+```proguard
+# File: android/app/proguard-rules.pro
+-keep class com.google.android.exoplayer2.** { *; }
+-dontwarn com.google.android.exoplayer2.**
+```
+
+### iOS
+
+**Enable Background Modes:**
+1. In Xcode, open your project settings.
+2. Go to Signing & Capabilities.
+3. Add *Background Modes* and enable *Audio, AirPlay, and Picture in Picture*.
+
+**Swift Compatibility:**
+- Create an empty `.swift` file and accept the bridging header prompt if needed.
+
+**iOS Deployment Target:**
+- Set to iOS 15.0 or higher in project settings.
+
 ## Features
 
 - **Remote Audio Streaming:** Play audio directly from remote URLs.
