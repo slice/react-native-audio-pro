@@ -74,7 +74,7 @@ object AudioProPlayer {
   fun getDuration(callback: (Long) -> Unit) {
     mainHandler.post {
       val duration = exoPlayer?.duration ?: 0
-      callback(duration)
+      callback(if (duration < 0) 0 else duration)
     }
   }
 
