@@ -8,18 +8,19 @@ import com.facebook.react.modules.core.DeviceEventManagerModule
 import com.facebook.react.bridge.WritableMap
 import com.facebook.react.bridge.Arguments
 
-
 class AudioProModule(reactContext: ReactApplicationContext) :
   ReactContextBaseJavaModule(reactContext) {
 
   companion object {
     lateinit var reactContext: ReactApplicationContext
-    const val STATE_EVENT_NAME = "AudioProStateEvent" // Event name
 
-    // Define constants for state values
+    const val STATE_EVENT_NAME = "AudioProStateEvent"
     const val STATE_PLAYING = "PLAYING"
     const val STATE_PAUSED = "PAUSED"
     const val STATE_STOPPED = "STOPPED"
+
+    const val NOTICE_EVENT_NAME = "AudioProNoticeEvent"
+    const val NOTICE_SEEK_COMPLETE = "SEEK_COMPLETE"
   }
 
   init {
@@ -46,10 +47,23 @@ class AudioProModule(reactContext: ReactApplicationContext) :
     sendEvent(STATE_EVENT_NAME, eventBody)
   }
 
+  private fun sendNoticeEvent(notice: String, position: Long, duration: Long) {
+    val eventBody: WritableMap = Arguments.createMap()
+    eventBody.putString("notice", notice)
+    eventBody.putDouble("position", position.toDouble())
+    eventBody.putDouble("duration", duration.toDouble())
+
+    sendEvent(NOTICE_EVENT_NAME, eventBody)
+  }
+
   @ReactMethod
   fun play(track: ReadableMap) {
     AudioProPlayer.play(track)
-    sendStateEvent(STATE_PLAYING, 0, 0) // Replace position and duration with actual values
+    sendStateEvent(
+      STATE_PLAYING,
+      0,
+      0
+    )
   }
 
   @ReactMethod
@@ -77,6 +91,36 @@ class AudioProModule(reactContext: ReactApplicationContext) :
     AudioProPlayer.stop()
     AudioProPlayer.getDuration { duration ->
       sendStateEvent(STATE_STOPPED, 0L, duration)
+    }
+  }
+
+  @ReactMethod
+  fun seekTo(position: Double) {
+    AudioProPlayer.seekTo(position.toLong())
+    AudioProPlayer.getCurrentPosition { pos ->
+      AudioProPlayer.getDuration { dur ->
+        sendNoticeEvent(NOTICE_SEEK_COMPLETE, pos, dur)
+      }
+    }
+  }
+
+  @ReactMethod
+  fun seekForward(amount: Double) {
+    AudioProPlayer.seekForward(amount.toLong())
+    AudioProPlayer.getCurrentPosition { pos ->
+      AudioProPlayer.getDuration { dur ->
+        sendNoticeEvent(NOTICE_SEEK_COMPLETE, pos, dur)
+      }
+    }
+  }
+
+  @ReactMethod
+  fun seekBack(amount: Double) {
+    AudioProPlayer.seekBack(amount.toLong())
+    AudioProPlayer.getCurrentPosition { pos ->
+      AudioProPlayer.getDuration { dur ->
+        sendNoticeEvent(NOTICE_SEEK_COMPLETE, pos, dur)
+      }
     }
   }
 }

@@ -65,9 +65,9 @@ class AudioPro: RCTEventEmitter {
     private func startProgressTimer() {
         DispatchQueue.main.async {
             self.timer?.invalidate()
-            self.sendProgressEvent()
+            self.sendProgressNoticeEvent()
             self.timer = Timer.scheduledTimer(withTimeInterval: self.progressInterval, repeats: true) { [weak self] _ in
-                self?.sendProgressEvent()
+                self?.sendProgressNoticeEvent()
             }
         }
     }
@@ -79,7 +79,7 @@ class AudioPro: RCTEventEmitter {
         }
     }
 
-    private func sendProgressEvent() {
+    private func sendProgressNoticeEvent() {
         // Only emit progress if the player is playing
         guard let player = player, let _ = player.currentItem, player.rate != 0 else { return }
         let info = getPlaybackInfo()
@@ -219,7 +219,7 @@ class AudioPro: RCTEventEmitter {
         shouldBePlaying = false
         player?.pause()
         stopTimer()
-        sendPausedEvent()
+        sendPausedStateEvent()
         var info = MPNowPlayingInfoCenter.default().nowPlayingInfo ?? [:]
         info[MPNowPlayingInfoPropertyPlaybackRate] = 0
         info[MPNowPlayingInfoPropertyElapsedPlaybackTime] = player?.currentTime().seconds ?? 0
@@ -246,7 +246,7 @@ class AudioPro: RCTEventEmitter {
         player?.pause()
         player?.seek(to: .zero)
         stopTimer()
-        sendStoppedEvent()
+        sendStoppedStateEvent()
 
         // Update now playing info to reflect a stopped state but keep the artwork intact.
         var info = MPNowPlayingInfoCenter.default().nowPlayingInfo ?? [:]
@@ -277,7 +277,7 @@ class AudioPro: RCTEventEmitter {
         player = nil
 
         stopTimer()
-        sendStoppedEvent()
+        sendStoppedStateEvent()
 
         // Unlike stop, cleanup clears the now playing info and remote control events.
         DispatchQueue.main.async {
@@ -321,7 +321,7 @@ class AudioPro: RCTEventEmitter {
             guard let self = self else { return }
             if completed {
                 self.updateNowPlayingInfoWithCurrentTime(validPosition)
-                self.completeSeeking(newPosition: validPosition * 1000)
+                self.completeSeekingAndSendSeekCompleteNoticeEvent(newPosition: validPosition * 1000)
             } else {
                 if player.rate != 0 {
                     self.startProgressTimer()
@@ -360,7 +360,7 @@ class AudioPro: RCTEventEmitter {
             guard let self = self else { return }
             if completed {
                 self.updateNowPlayingInfoWithCurrentTime(newPosition)
-                self.completeSeeking(newPosition: newPosition * 1000)
+                self.completeSeekingAndSendSeekCompleteNoticeEvent(newPosition: newPosition * 1000)
             } else {
                 if player.rate != 0 {
                     self.startProgressTimer()
@@ -398,7 +398,7 @@ class AudioPro: RCTEventEmitter {
             guard let self = self else { return }
             if completed {
                 self.updateNowPlayingInfoWithCurrentTime(newPosition)
-                self.completeSeeking(newPosition: newPosition * 1000)
+                self.completeSeekingAndSendSeekCompleteNoticeEvent(newPosition: newPosition * 1000)
             } else {
                 if player.rate != 0 {
                     self.startProgressTimer()
@@ -411,7 +411,7 @@ class AudioPro: RCTEventEmitter {
         stopTimer()
     }
 
-    private func completeSeeking(newPosition: Double) {
+    private func completeSeekingAndSendSeekCompleteNoticeEvent(newPosition: Double) {
         if hasListeners {
             let info = getPlaybackInfo()
             let body: [String: Any] = [
@@ -443,7 +443,6 @@ class AudioPro: RCTEventEmitter {
             sendEvent(withName: NOTICE_EVENT_NAME, body: trackEndedBody)
             // When a track naturally finishes, call stop (not cleanup)
             // so that Now Playing info (artwork, track details) remains visible.
-            sendStoppedEvent()
         }
         stop()
     }
@@ -504,7 +503,7 @@ class AudioPro: RCTEventEmitter {
         return (position: positionMs, duration: durationMs)
     }
 
-    private func sendStoppedEvent() {
+    private func sendStoppedStateEvent() {
         if hasListeners {
             let body: [String: Any] = [
                 "state": STATE_STOPPED,
@@ -515,7 +514,7 @@ class AudioPro: RCTEventEmitter {
         }
     }
 
-    private func sendPlayingEvent() {
+    private func sendPlayingStateEvent() {
         if hasListeners {
             let info = getPlaybackInfo()
             let body: [String: Any] = [
@@ -527,7 +526,7 @@ class AudioPro: RCTEventEmitter {
         }
     }
 
-    private func sendPausedEvent() {
+    private func sendPausedStateEvent() {
         if hasListeners {
             let info = getPlaybackInfo()
             let body: [String: Any] = [
