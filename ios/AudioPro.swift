@@ -34,6 +34,10 @@ class AudioPro: RCTEventEmitter {
     private var shouldBePlaying = false
     private var isRemoteCommandCenterSetup = false
 
+    // Flags to track observer registration
+    private var isRateObserverAdded = false
+    private var isStatusObserverAdded = false
+
     ////////////////////////////////////////////////////////////
     // MARK: - React Native Event Emitter Overrides
     ////////////////////////////////////////////////////////////
@@ -93,9 +97,10 @@ class AudioPro: RCTEventEmitter {
 
     @objc(play:)
     func play(track: NSDictionary) {
+        // If an existing player exists, fully teardown its per-track state
         if player != nil {
             DispatchQueue.main.sync {
-                stop()
+                cleanup()
             }
         }
 
@@ -107,7 +112,7 @@ class AudioPro: RCTEventEmitter {
             let artworkUrl = URL(string: artworkUrlString)
         else {
             onError("Invalid track data")
-            stop()
+            cleanup()
             return
         }
 
@@ -142,19 +147,29 @@ class AudioPro: RCTEventEmitter {
             nowPlayingInfo[MPMediaItemPropertyArtist] = artist
         }
         MPNowPlayingInfoCenter.default().nowPlayingInfo = nowPlayingInfo
+
         DispatchQueue.main.async {
             UIApplication.shared.endReceivingRemoteControlEvents()
             UIApplication.shared.beginReceivingRemoteControlEvents()
         }
         self.setupRemoteTransportControls()
 
+        // Create new player item and attach observer
         let item = AVPlayerItem(url: url)
+        item.addObserver(self, forKeyPath: "status", options: [.new], context: nil)
+        isStatusObserverAdded = true
+
+        // Create a new AVPlayer instance for this track
         player = AVPlayer(playerItem: item)
+        player?.addObserver(self, forKeyPath: "rate", options: [.new], context: nil)
+        isRateObserverAdded = true
+
         nowPlayingInfo = MPNowPlayingInfoCenter.default().nowPlayingInfo ?? [:]
         nowPlayingInfo[MPNowPlayingInfoPropertyElapsedPlaybackTime] = 0
         nowPlayingInfo[MPNowPlayingInfoPropertyPlaybackRate] = 1.0
         nowPlayingInfo[MPMediaItemPropertyPlaybackDuration] = item.asset.duration.seconds
         MPNowPlayingInfoCenter.default().nowPlayingInfo = nowPlayingInfo
+
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(playerItemDidPlayToEndTime(_:)),
@@ -162,10 +177,7 @@ class AudioPro: RCTEventEmitter {
             object: item
         )
 
-        item.addObserver(self, forKeyPath: "status", options: [.new], context: nil)
-
         player?.play()
-        player?.addObserver(self, forKeyPath: "rate", options: [.new], context: nil)
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
             if self.player?.rate != 0 && self.hasListeners {
                 let info = self.getPlaybackInfo()
@@ -179,7 +191,7 @@ class AudioPro: RCTEventEmitter {
             }
         }
 
-        // Fetch artwork
+        // Fetch artwork asynchronously and update Now Playing info
         DispatchQueue.global().async {
             do {
                 let data = try Data(contentsOf: artworkUrl)
@@ -195,7 +207,8 @@ class AudioPro: RCTEventEmitter {
             } catch {
                 DispatchQueue.main.async {
                     self.onError(error.localizedDescription)
-                    self.stop()
+                    // In error scenarios, we want to fully clean up.
+                    self.cleanup()
                 }
             }
         }
@@ -217,41 +230,61 @@ class AudioPro: RCTEventEmitter {
     func resume() {
         shouldBePlaying = true
         player?.play()
-        // The rate observer will handle sending the playing event and starting the progress timer
         var info = MPNowPlayingInfoCenter.default().nowPlayingInfo ?? [:]
         info[MPNowPlayingInfoPropertyPlaybackRate] = 1.0
         info[MPNowPlayingInfoPropertyElapsedPlaybackTime] = player?.currentTime().seconds ?? 0
         MPNowPlayingInfoCenter.default().nowPlayingInfo = info
     }
 
+    /// stop is meant to halt playback and update the state without destroying persistent info
+    /// such as artwork and remote control settings. This allows the lock screen/Control Center
+    /// to continue displaying the track details for a potential resume.
     @objc func stop() {
         shouldBePlaying = false
 
-        // Clean up NotificationCenter observers
+        // Pause and reset playback without tearing down the now playing info.
+        player?.pause()
+        player?.seek(to: .zero)
+        stopTimer()
+        sendStoppedEvent()
+
+        // Update now playing info to reflect a stopped state but keep the artwork intact.
+        var info = MPNowPlayingInfoCenter.default().nowPlayingInfo ?? [:]
+        info[MPNowPlayingInfoPropertyPlaybackRate] = 0
+        info[MPNowPlayingInfoPropertyElapsedPlaybackTime] = 0
+        MPNowPlayingInfoCenter.default().nowPlayingInfo = info
+    }
+
+    /// cleanup fully tears down the player instance and removes observers and remote controls.
+    /// This is used when switching tracks or recovering from an error.
+    @objc func cleanup() {
+        shouldBePlaying = false
+
         NotificationCenter.default.removeObserver(self)
 
-        // Clean up KVO observers
-        do {
-            if let player = player {
+        if let player = player {
+            if isRateObserverAdded {
                 player.removeObserver(self, forKeyPath: "rate")
-                if let currentItem = player.currentItem {
-                    currentItem.removeObserver(self, forKeyPath: "status")
-                }
+                isRateObserverAdded = false
             }
-        } catch {}
+            if let currentItem = player.currentItem, isStatusObserverAdded {
+                currentItem.removeObserver(self, forKeyPath: "status")
+                isStatusObserverAdded = false
+            }
+        }
 
-        // Stop playback and release
         player?.pause()
         player = nil
 
-        // Clear timers and system UI
         stopTimer()
         sendStoppedEvent()
+
+        // Unlike stop, cleanup clears the now playing info and remote control events.
         DispatchQueue.main.async {
             MPNowPlayingInfoCenter.default().nowPlayingInfo = [:]
             UIApplication.shared.endReceivingRemoteControlEvents()
         }
-        self.removeRemoteTransportControls()
+        removeRemoteTransportControls()
         isRemoteCommandCenterSetup = false
     }
 
@@ -284,15 +317,12 @@ class AudioPro: RCTEventEmitter {
 
         beginSeeking()
 
-        // The key fix - AVPlayer seeking works in both playing and paused states
         player.seek(to: time, toleranceBefore: .zero, toleranceAfter: .zero) { [weak self] completed in
             guard let self = self else { return }
-
             if completed {
                 self.updateNowPlayingInfoWithCurrentTime(validPosition)
                 self.completeSeeking(newPosition: validPosition * 1000)
             } else {
-                // Only restart timer if we were playing before the seek
                 if player.rate != 0 {
                     self.startProgressTimer()
                 }
@@ -328,12 +358,10 @@ class AudioPro: RCTEventEmitter {
 
         player.seek(to: time, toleranceBefore: .zero, toleranceAfter: .zero) { [weak self] completed in
             guard let self = self else { return }
-
             if completed {
                 self.updateNowPlayingInfoWithCurrentTime(newPosition)
                 self.completeSeeking(newPosition: newPosition * 1000)
             } else {
-                // Only restart timer if we were playing before the seek
                 if player.rate != 0 {
                     self.startProgressTimer()
                 }
@@ -368,12 +396,10 @@ class AudioPro: RCTEventEmitter {
 
         player.seek(to: time, toleranceBefore: .zero, toleranceAfter: .zero) { [weak self] completed in
             guard let self = self else { return }
-
             if completed {
                 self.updateNowPlayingInfoWithCurrentTime(newPosition)
                 self.completeSeeking(newPosition: newPosition * 1000)
             } else {
-                // Only restart timer if we were playing before the seek
                 if player.rate != 0 {
                     self.startProgressTimer()
                 }
@@ -387,7 +413,7 @@ class AudioPro: RCTEventEmitter {
 
     private func completeSeeking(newPosition: Double) {
         if hasListeners {
-            let info = getPlaybackInfo()  // Rely on the helper for consistency
+            let info = getPlaybackInfo()
             let body: [String: Any] = [
                 "notice": NOTICE_SEEK_COMPLETE,
                 "position": info.position,
@@ -395,7 +421,6 @@ class AudioPro: RCTEventEmitter {
             ]
             sendEvent(withName: NOTICE_EVENT_NAME, body: body)
         }
-        // Restart the progress timer only if the player is playing
         if player?.rate != 0 {
             startProgressTimer()
         }
@@ -416,11 +441,10 @@ class AudioPro: RCTEventEmitter {
                 "duration": info.duration
             ]
             sendEvent(withName: NOTICE_EVENT_NAME, body: trackEndedBody)
-
-            // Send stopped event with explicit position and duration set to 0
+            // When a track naturally finishes, call stop (not cleanup)
+            // so that Now Playing info (artwork, track details) remains visible.
             sendStoppedEvent()
         }
-
         stop()
     }
 
@@ -434,7 +458,6 @@ class AudioPro: RCTEventEmitter {
             if let newRate = change?[.newKey] as? Float {
                 if newRate == 0 {
                     if shouldBePlaying && hasListeners {
-                        // Player should be playing but isn't (buffering/loading)
                         let body: [String: Any] = ["state": STATE_LOADING]
                         sendEvent(withName: STATE_EVENT_NAME, body: body)
                         stopTimer()
@@ -528,6 +551,7 @@ class AudioPro: RCTEventEmitter {
         MPNowPlayingInfoCenter.default().nowPlayingInfo = nowPlayingInfo
     }
 
+    /// onError now solely reports errors and then performs a full cleanup.
     func onError(_ errorMessage: String) {
         if hasListeners {
             sendEvent(withName: NOTICE_EVENT_NAME, body: [
@@ -536,7 +560,7 @@ class AudioPro: RCTEventEmitter {
                 "errorCode": GENERIC_ERROR_CODE
             ])
         }
-        stop()
+        cleanup()
     }
 
     private func setupRemoteTransportControls() {

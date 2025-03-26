@@ -4,62 +4,79 @@ import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
 import com.facebook.react.bridge.ReadableMap
+import com.facebook.react.modules.core.DeviceEventManagerModule
+import com.facebook.react.bridge.WritableMap
+import com.facebook.react.bridge.Arguments
 
-class AudioProModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaModule(reactContext) {
 
-    init {
-        AudioPlayer.initialize(reactContext, reactContext)
+class AudioProModule(reactContext: ReactApplicationContext) :
+  ReactContextBaseJavaModule(reactContext) {
+
+  companion object {
+    lateinit var reactContext: ReactApplicationContext
+    const val STATE_EVENT_NAME = "AudioProStateEvent" // Event name
+
+    // Define constants for state values
+    const val STATE_PLAYING = "PLAYING"
+    const val STATE_PAUSED = "PAUSED"
+    const val STATE_STOPPED = "STOPPED"
+  }
+
+  init {
+    AudioProModule.reactContext = reactContext
+    AudioProPlayer.initialize(reactContext)
+  }
+
+  override fun getName(): String {
+    return "AudioPro"
+  }
+
+  private fun sendEvent(eventName: String, params: WritableMap?) {
+    reactContext
+      .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
+      .emit(eventName, params)
+  }
+
+  private fun sendStateEvent(state: String, position: Long, duration: Long) {
+    val eventBody: WritableMap = Arguments.createMap()
+    eventBody.putString("state", state)
+    eventBody.putDouble("position", position.toDouble())
+    eventBody.putDouble("duration", duration.toDouble())
+
+    sendEvent(STATE_EVENT_NAME, eventBody)
+  }
+
+  @ReactMethod
+  fun play(track: ReadableMap) {
+    AudioProPlayer.play(track)
+    sendStateEvent(STATE_PLAYING, 0, 0) // Replace position and duration with actual values
+  }
+
+  @ReactMethod
+  fun pause() {
+    AudioProPlayer.pause()
+    AudioProPlayer.getCurrentPosition { position ->
+      AudioProPlayer.getDuration { duration ->
+        sendStateEvent(STATE_PAUSED, position, duration)
+      }
     }
+  }
 
-    override fun getName(): String {
-        return "AudioPro"
+  @ReactMethod
+  fun resume() {
+    AudioProPlayer.resume()
+    AudioProPlayer.getCurrentPosition { position ->
+      AudioProPlayer.getDuration { duration ->
+        sendStateEvent(STATE_PLAYING, position, duration)
+      }
     }
+  }
 
-    @ReactMethod
-    fun play(track: ReadableMap) {
-        val url = track.getString("url") ?: return
-        val title = track.getString("title") ?: ""
-        val artwork = track.getString("artwork") ?: ""
-        val album = if (track.hasKey("album")) track.getString("album") else null
-        val artist = if (track.hasKey("artist")) track.getString("artist") else null
-
-        val audioTrack = AudioProTrack(
-            url = url,
-            title = title,
-            artwork = artwork,
-            album = album,
-            artist = artist
-        )
-        AudioPlayer.play(audioTrack)
+  @ReactMethod
+  fun stop() {
+    AudioProPlayer.stop()
+    AudioProPlayer.getDuration { duration ->
+      sendStateEvent(STATE_STOPPED, 0L, duration)
     }
-
-    @ReactMethod
-    fun pause() {
-        AudioPlayer.pause()
-    }
-
-    @ReactMethod
-    fun resume() {
-        AudioPlayer.resume()
-    }
-
-    @ReactMethod
-    fun stop() {
-        AudioPlayer.stop()
-    }
-
-    @ReactMethod
-    fun seekTo(position: Double) {
-        AudioPlayer.seekTo(position.toLong())
-    }
-
-    @ReactMethod
-    fun seekForward(amount: Double) {
-        AudioPlayer.seekForward(amount.toLong())
-    }
-
-    @ReactMethod
-    fun seekBack(amount: Double) {
-        AudioPlayer.seekBack(amount.toLong())
-    }
+  }
 }
