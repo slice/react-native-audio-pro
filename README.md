@@ -60,7 +60,7 @@ yarn add react-native-audio-pro
 // File: android/build.gradle
 buildscript {
     ext {
-        minSdkVersion = 33
+        minSdkVersion = 31
         compileSdkVersion = 33
         targetSdkVersion = 33
         // ...
