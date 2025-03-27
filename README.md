@@ -68,14 +68,6 @@ buildscript {
 }
 ```
 
-#### Permissions
-
-```xml
-<!-- File: android/app/src/main/AndroidManifest.xml -->
-<uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-<uses-permission android:name="android.permission.WAKE_LOCK" />
-```
-
 #### Deployment Target
 
 - Set the deployment target to iOS 15.0 or higher.
