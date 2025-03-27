@@ -9,7 +9,9 @@ import com.facebook.react.bridge.WritableMap
 import com.facebook.react.bridge.Arguments
 import android.os.Handler
 import android.os.Looper
+import androidx.media3.common.util.UnstableApi
 
+@UnstableApi
 class AudioProModule(reactContext: ReactApplicationContext) :
   ReactContextBaseJavaModule(reactContext) {
 
@@ -20,11 +22,14 @@ class AudioProModule(reactContext: ReactApplicationContext) :
     const val STATE_PLAYING = "PLAYING"
     const val STATE_PAUSED = "PAUSED"
     const val STATE_STOPPED = "STOPPED"
+    const val STATE_LOADING = "LOADING"
 
     const val NOTICE_EVENT_NAME = "AudioProNoticeEvent"
     const val NOTICE_SEEK_COMPLETE = "SEEK_COMPLETE"
     const val NOTICE_TRACK_ENDED = "TRACK_ENDED"
     const val NOTICE_PROGRESS = "PROGRESS"
+    const val NOTICE_PLAYBACK_ERROR = "PLAYBACK_ERROR"
+    const val GENERIC_ERROR_CODE = 1000
   }
 
   private var progressHandler: Handler? = null
@@ -38,6 +43,36 @@ class AudioProModule(reactContext: ReactApplicationContext) :
         sendNoticeEvent(NOTICE_TRACK_ENDED, duration, duration)
         stop()
       }
+    }
+    AudioProPlayer.playbackStateChangedCallback = { state, playWhenReady ->
+      AudioProPlayer.getCurrentPosition { position ->
+        AudioProPlayer.getDuration { duration ->
+          when (state) {
+            androidx.media3.common.Player.STATE_BUFFERING -> {
+              sendStateEvent(STATE_LOADING, position, duration)
+            }
+
+            androidx.media3.common.Player.STATE_READY -> {
+              if (playWhenReady) {
+                sendStateEvent(STATE_PLAYING, position, duration)
+                startProgressTimer()
+              } else {
+                sendStateEvent(STATE_PAUSED, position, duration)
+                stopProgressTimer()
+              }
+            }
+
+            androidx.media3.common.Player.STATE_IDLE -> {
+              sendStateEvent(STATE_STOPPED, position, duration)
+              stopProgressTimer()
+            }
+          }
+        }
+      }
+    }
+    AudioProPlayer.playbackErrorCallback = { errorMessage, errorCode ->
+      sendErrorEvent(errorMessage, errorCode)
+      cleanup()
     }
   }
 
@@ -67,8 +102,16 @@ class AudioProModule(reactContext: ReactApplicationContext) :
     sendEvent(NOTICE_EVENT_NAME, eventBody)
   }
 
+  private fun sendErrorEvent(errorMessage: String, errorCode: Int) {
+    val eventBody: WritableMap = Arguments.createMap()
+    eventBody.putString("notice", NOTICE_PLAYBACK_ERROR)
+    eventBody.putString("error", errorMessage)
+    eventBody.putInt("errorCode", errorCode)
+    sendEvent(NOTICE_EVENT_NAME, eventBody)
+  }
+
   private fun startProgressTimer() {
-    stopProgressTimer() // Ensure any existing timer is stopped
+    stopProgressTimer()
     progressHandler = Handler(Looper.getMainLooper())
     progressRunnable = object : Runnable {
       override fun run() {
@@ -92,11 +135,15 @@ class AudioProModule(reactContext: ReactApplicationContext) :
     progressRunnable = null
   }
 
+  private fun cleanup() {
+    AudioProPlayer.stop()
+    stopProgressTimer()
+    sendStateEvent(STATE_STOPPED, 0L, 0L)
+  }
+
   @ReactMethod
   fun play(track: ReadableMap) {
     AudioProPlayer.play(track)
-    sendStateEvent(STATE_PLAYING, 0, 0)
-    startProgressTimer()
   }
 
   @ReactMethod
