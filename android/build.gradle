@@ -78,8 +78,5 @@ dependencies {
   implementation "com.facebook.react:react-android"
   implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
 
-  implementation 'androidx.media3:media3-common-ktx:1.6.0-rc02'
-  implementation 'androidx.media3:media3-exoplayer:1.6.0-rc02'
-  implementation 'androidx.media3:media3-session:1.6.0-rc02'
-  implementation 'androidx.media3:media3-ui:1.6.0-rc02'
+  implementation "androidx.media3:media3-exoplayer:1.6.0"
 }
