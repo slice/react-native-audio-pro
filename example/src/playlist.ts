@@ -19,4 +19,10 @@ export const playlist: AudioProTrack[] = [
     artwork: 'https://rnap.dev/artwork-usgs-8tfu4320oxI-unsplash.jpg',
     artist: 'T. Schurger',
   },
+  {
+    url: 'https://error',
+    title: 'This track should error',
+    artwork: 'https://error',
+    artist: 'For test purposes',
+  },
 ];
