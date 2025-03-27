@@ -1,6 +1,6 @@
 {
   "name": "react-native-audio-pro",
-  "version": "2.0.0",
+  "version": "3.0.0",
   "description": "A React Native module for audio playback from remote URLs, ideal for audiobook and podcast apps, with background playback, lock screen notification controls on Android and iOS.",
   "source": "./src/index.tsx",
   "main": "./lib/commonjs/index.js",
