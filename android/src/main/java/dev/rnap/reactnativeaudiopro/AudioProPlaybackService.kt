@@ -6,15 +6,12 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.pm.PackageManager
 import android.os.Build
-import android.util.Log
 import androidx.annotation.OptIn
 import androidx.annotation.RequiresPermission
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.os.bundleOf
 import androidx.media3.common.AudioAttributes
-import androidx.media3.common.MediaItem
-import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.util.EventLogger
@@ -23,7 +20,7 @@ import androidx.media3.session.MediaLibraryService
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSession.ControllerInfo
 
-open class DemoPlaybackService : MediaLibraryService() {
+open class AudioProPlaybackService : MediaLibraryService() {
 
   private lateinit var mediaLibrarySession: MediaLibrarySession
 
@@ -60,13 +57,13 @@ open class DemoPlaybackService : MediaLibraryService() {
 
   /**
    * Creates the library session callback to implement the domain logic. Can be overridden to return
-   * an alternative callback, for example a subclass of [DemoMediaLibrarySessionCallback].
+   * an alternative callback, for example a subclass of [AudioProMediaLibrarySessionCallback].
    *
-   * This method is called when the session is built by the [DemoPlaybackService].
+   * This method is called when the session is built by the [AudioProPlaybackService].
    */
   @OptIn(UnstableApi::class)
   protected open fun createLibrarySessionCallback(): MediaLibrarySession.Callback {
-    return DemoMediaLibrarySessionCallback(this)
+    return AudioProMediaLibrarySessionCallback(this)
   }
 
   @OptIn(UnstableApi::class) // MediaSessionService.setListener
@@ -97,14 +94,6 @@ open class DemoPlaybackService : MediaLibraryService() {
         .setAudioAttributes(AudioAttributes.DEFAULT, /* handleAudioFocus= */ true)
         .build()
     player.addAnalyticsListener(EventLogger())
-
-    player.addListener(object : Player.Listener {
-      override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
-        Log.d("PlaybackService", "Now playing mediaItem: $mediaItem")
-        Log.d("PlaybackService", "  - uri: ${mediaItem?.localConfiguration?.uri}")
-        Log.d("PlaybackService", "  - mediaId: ${mediaItem?.mediaId}")
-      }
-    })
 
     mediaLibrarySession =
       MediaLibrarySession.Builder(this, player, createLibrarySessionCallback())
@@ -141,10 +130,10 @@ open class DemoPlaybackService : MediaLibraryService() {
         // Notification permission is required but not granted
         return
       }
-      val notificationManagerCompat = NotificationManagerCompat.from(this@DemoPlaybackService)
+      val notificationManagerCompat = NotificationManagerCompat.from(this@AudioProPlaybackService)
       ensureNotificationChannel(notificationManagerCompat)
       val builder =
-        NotificationCompat.Builder(this@DemoPlaybackService, CHANNEL_ID)
+        NotificationCompat.Builder(this@AudioProPlaybackService, CHANNEL_ID)
 //          .setSmallIcon(R.drawable.media3_notification_small_icon)
 //          .setContentTitle(getString(R.string.notification_content_title))
 //          .setStyle(

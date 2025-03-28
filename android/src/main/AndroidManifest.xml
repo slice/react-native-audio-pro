@@ -8,7 +8,7 @@
   <application>
 
     <service
-      android:name=".PlaybackService"
+      android:name=".AudioProPlaybackService"
       android:exported="true"
       android:foregroundServiceType="mediaPlayback">
       <intent-filter>

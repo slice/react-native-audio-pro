@@ -16,7 +16,8 @@ object AudioProController {
   private var browser: MediaBrowser? = null
 
   fun init(context: Context) {
-    val sessionToken = SessionToken(context, ComponentName(context, PlaybackService::class.java))
+    val sessionToken =
+      SessionToken(context, ComponentName(context, AudioProPlaybackService::class.java))
     browserFuture = MediaBrowser.Builder(context, sessionToken).buildAsync()
     browserFuture.addListener({
       browser = browserFuture.get()

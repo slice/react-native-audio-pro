@@ -1,8 +1,5 @@
 package dev.rnap.reactnativeaudiopro
 
-import android.content.Intent
-import androidx.annotation.OptIn
-import androidx.media3.common.util.UnstableApi
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
