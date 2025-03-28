@@ -43,7 +43,7 @@ const emitter = new NativeEventEmitter(NativeAudioPro);
 
 const AudioPro = {
   play(track: AudioProTrack): void {
-    NativeAudioPro.play(track);
+    NativeAudioPro.play(track.url);
   },
 
   pause(): void {
