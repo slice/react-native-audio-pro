@@ -2,11 +2,14 @@ package dev.rnap.reactnativeaudiopro
 
 import android.content.ComponentName
 import android.content.Context
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
+import androidx.media3.common.Player
 import androidx.media3.session.MediaBrowser
 import androidx.media3.session.SessionToken
 import com.facebook.react.bridge.Arguments
@@ -26,8 +29,11 @@ object AudioProController {
     browserFuture = MediaBrowser.Builder(context, sessionToken).buildAsync()
     browserFuture.addListener({
       browser = browserFuture.get()
-      Log.d("AudioProController", "MediaBrowser ready")
     }, ContextCompat.getMainExecutor(context))
+  }
+
+  private fun runOnUiThread(block: () -> Unit) {
+    Handler(Looper.getMainLooper()).post(block)
   }
 
   suspend fun play(
@@ -43,6 +49,7 @@ object AudioProController {
     }
 
     browser = browserFuture.await()
+    attachPlayerListener(context)
 
     val mediaItem = MediaItem.Builder()
       .setUri(url)
@@ -56,32 +63,38 @@ object AudioProController {
       )
       .build()
 
-    browser?.let {
-      val pos = it.currentPosition
-      val dur = it.duration.takeIf { d -> d > 0 } ?: 0L
-      emitState(context, AudioProModule.STATE_LOADING, pos, dur)
+    runOnUiThread {
+      browser?.let {
+        val pos = it.currentPosition
+        val dur = it.duration.takeIf { d -> d > 0 } ?: 0L
+        emitState(context, AudioProModule.STATE_LOADING, pos, dur)
 
-      it.setMediaItem(mediaItem)
-      it.prepare()
-      it.play()
-    } ?: Log.w("AudioProController", "MediaBrowser not ready yet")
+        it.setMediaItem(mediaItem)
+        it.prepare()
+        it.play()
+      } ?: Log.w("AudioProController", "MediaBrowser not ready yet")
+    }
   }
 
   fun pause(context: Context) {
-    browser?.pause()
-    browser?.let {
-      val pos = it.currentPosition
-      val dur = it.duration.takeIf { d -> d > 0 } ?: 0L
-      emitState(context, AudioProModule.STATE_PAUSED, pos, dur)
+    runOnUiThread {
+      browser?.pause()
+      browser?.let {
+        val pos = it.currentPosition
+        val dur = it.duration.takeIf { d -> d > 0 } ?: 0L
+        emitState(context, AudioProModule.STATE_PAUSED, pos, dur)
+      }
     }
   }
 
   fun resume(context: Context) {
-    browser?.play()
-    browser?.let {
-      val pos = it.currentPosition
-      val dur = it.duration.takeIf { d -> d > 0 } ?: 0L
-      emitState(context, AudioProModule.STATE_PLAYING, pos, dur)
+    runOnUiThread {
+      browser?.play()
+      browser?.let {
+        val pos = it.currentPosition
+        val dur = it.duration.takeIf { d -> d > 0 } ?: 0L
+        emitState(context, AudioProModule.STATE_PLAYING, pos, dur)
+      }
     }
   }
 
@@ -90,6 +103,29 @@ object AudioProController {
       MediaBrowser.releaseFuture(browserFuture)
     }
     browser = null
+  }
+
+  fun attachPlayerListener(context: Context) {
+    browser?.addListener(object : Player.Listener {
+
+      override fun onIsPlayingChanged(isPlaying: Boolean) {
+        val pos = browser?.currentPosition ?: 0L
+        val dur = browser?.duration ?: 0L
+
+        if (isPlaying) {
+          emitState(context, AudioProModule.STATE_PLAYING, pos, dur)
+        } else {
+          emitState(context, AudioProModule.STATE_PAUSED, pos, dur)
+        }
+      }
+
+      override fun onPlaybackStateChanged(state: Int) {
+        if (state == Player.STATE_ENDED) {
+          val pos = browser?.duration ?: 0L
+          emitState(context, AudioProModule.STATE_STOPPED, pos, pos)
+        }
+      }
+    })
   }
 
   private fun emitEvent(context: Context, eventName: String, params: WritableMap) {
