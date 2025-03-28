@@ -25,8 +25,8 @@ open class AudioProPlaybackService : MediaLibraryService() {
   private lateinit var mediaLibrarySession: MediaLibrarySession
 
   companion object {
-    private const val NOTIFICATION_ID = 123
-    private const val CHANNEL_ID = "demo_session_notification_channel_id"
+    private const val NOTIFICATION_ID = 789
+    private const val CHANNEL_ID = "audio_pro_notification_channel_id"
   }
 
   /**
