@@ -3,6 +3,7 @@ package dev.rnap.reactnativeaudiopro
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
+import com.facebook.react.bridge.ReadableMap
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -32,9 +33,9 @@ class AudioProModule(private val reactContext: ReactApplicationContext) :
   }
 
   @ReactMethod
-  fun play(url: String) {
+  fun play(track: ReadableMap) {
     CoroutineScope(Dispatchers.Main).launch {
-      AudioProController.play(reactApplicationContext, url, "Unknown", "Unknown")
+      AudioProController.play(reactApplicationContext, track)
     }
   }
 
@@ -46,6 +47,21 @@ class AudioProModule(private val reactContext: ReactApplicationContext) :
   @ReactMethod
   fun resume() {
     AudioProController.resume(reactApplicationContext)
+  }
+
+  @ReactMethod
+  fun seekTo(position: Double) {
+    AudioProController.seekTo(reactApplicationContext, position.toLong())
+  }
+
+  @ReactMethod
+  fun seekForward(amount: Double) {
+    AudioProController.seekForward(reactApplicationContext, amount.toLong())
+  }
+
+  @ReactMethod
+  fun seekBack(amount: Double) {
+    AudioProController.seekBack(reactApplicationContext, amount.toLong())
   }
 
   @ReactMethod
