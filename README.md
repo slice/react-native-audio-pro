@@ -1,6 +1,6 @@
 # react-native-audio-pro
 
-A React Native module for audio playback from remote URLs. Ideal for audiobook and podcast apps, it supports background playback and lock screen controls on both Android and iOS.
+A React Native module for audio playback from remote URLs. Ideal for audiobook and podcast apps, it supports background playback and lock screen controls on both Android and iOS. Built from the ground up with Media3, our Android integration uses the latest playback engine — no legacy ExoPlayer dependencies. It supports background playback, lock screen controls, and seamless React Native integration using modern service-based architecture. This isn't just compatible — it's best-in-class Android audio.
 
 [![npm version](https://img.shields.io/npm/v/react-native-audio-pro)](https://www.npmjs.com/package/react-native-audio-pro)
 [![Website](https://img.shields.io/badge/Website-rnap.dev-blue?logo=react)](https://rnap.dev)
