@@ -2,6 +2,7 @@ import { NativeEventEmitter, NativeModules } from 'react-native';
 import {
   type AudioProNoticeCallback,
   type AudioProNoticePayload,
+  type AudioProSetupOptions,
   type AudioProStateCallback,
   type AudioProStatePayload,
   type AudioProTrack,
@@ -41,32 +42,85 @@ const NativeAudioPro = NativeModules.AudioPro
 
 const emitter = new NativeEventEmitter(NativeAudioPro);
 
+let isSetup = false;
+let setupOptions: AudioProSetupOptions | null = null;
+let debug = false;
+
+function logDebug(...args: any[]) {
+  if (debug) {
+    console.log('~~~', ...args);
+  }
+}
+
+function ensureSetup(): boolean {
+  if (!isSetup) {
+    if (!setupOptions) {
+      emitter.emit('AudioProNoticeEvent', {
+        notice: AudioProNotice.PLAYBACK_ERROR,
+        error: 'AudioPro: setup() must be called before using this method.',
+        errorCode: 1001,
+      });
+      return false;
+    }
+    logDebug('AudioPro: calling NativeAudioPro.setup()', setupOptions);
+    NativeAudioPro.setup(setupOptions);
+    isSetup = true;
+  }
+  return true;
+}
+
 const AudioPro = {
-  play(track: AudioProTrack): void {
+  setup(options: AudioProSetupOptions): void {
+    logDebug('AudioPro: setup()', options);
+    if (isSetup) {
+      console.warn(
+        '[AudioPro] setup() already called. Ignoring duplicate call.'
+      );
+      return;
+    }
+    setupOptions = options;
+    debug = !!options.debug;
+  },
+
+  async play(track: AudioProTrack): Promise<void> {
+    if (!ensureSetup()) return;
+    logDebug('AudioPro: play()', track);
     NativeAudioPro.play(track);
   },
 
-  pause(): void {
+  async pause(): Promise<void> {
+    if (!ensureSetup()) return;
+    logDebug('AudioPro: pause()');
     NativeAudioPro.pause();
   },
 
-  resume(): void {
+  async resume(): Promise<void> {
+    if (!ensureSetup()) return;
+    logDebug('AudioPro: resume()');
     NativeAudioPro.resume();
   },
 
-  stop(): void {
+  async stop(): Promise<void> {
+    if (!ensureSetup()) return;
+    logDebug('AudioPro: stop()');
     NativeAudioPro.stop();
   },
 
-  seekTo(position: number): void {
+  async seekTo(position: number): Promise<void> {
+    if (!ensureSetup()) return;
+    logDebug('AudioPro: seekTo()', position);
     NativeAudioPro.seekTo(position);
   },
 
-  seekForward(amount: number = DEFAULT_SEEK_MILLISECONDS): void {
+  async seekForward(amount: number = DEFAULT_SEEK_MILLISECONDS): Promise<void> {
+    if (!ensureSetup()) return;
+    logDebug('AudioPro: seekForward()', amount);
     NativeAudioPro.seekForward(amount);
   },
 
-  seekBack(amount: number = DEFAULT_SEEK_MILLISECONDS): void {
+  async seekBack(amount: number = DEFAULT_SEEK_MILLISECONDS): Promise<void> {
+    if (!ensureSetup()) return;
+    logDebug('AudioPro: seekBack()', amount);
     NativeAudioPro.seekBack(amount);
   },
 
@@ -74,7 +128,7 @@ const AudioPro = {
     return emitter.addListener(
       'AudioProStateEvent',
       (event: AudioProStatePayload) => {
-        console.log('~~~ AudioProState', event);
+        logDebug('AudioProState', event);
         callback(event);
       }
     );
@@ -84,7 +138,7 @@ const AudioPro = {
     return emitter.addListener(
       'AudioProNoticeEvent',
       (event: AudioProNoticePayload) => {
-        console.log('~~~ AudioProNotice', event);
+        logDebug('AudioProNotice', event);
         callback(event);
       }
     );

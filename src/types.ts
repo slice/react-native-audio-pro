@@ -99,6 +99,11 @@ export type AudioProNoticePayload =
   | AudioProRemoteNextNoticePayload
   | AudioProRemotePrevNoticePayload;
 
+export type AudioProSetupOptions = {
+  contentType?: 'music' | 'speech';
+  debug?: boolean;
+};
+
 // ==============================
 // Listener Callback Types
 // ==============================

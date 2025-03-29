@@ -6,7 +6,9 @@ import AudioPro, {
 } from 'react-native-audio-pro';
 import { usePlayerStore } from './player-store';
 
-export function registerAudioProListeners() {
+export function setupAudioPro() {
+  AudioPro.setup({ contentType: 'music' });
+
   // Register state listener
   AudioPro.addStateListener((event: AudioProStatePayload) => {
     const store = usePlayerStore.getState();
