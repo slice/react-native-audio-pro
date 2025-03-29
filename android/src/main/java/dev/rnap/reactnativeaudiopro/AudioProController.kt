@@ -7,10 +7,12 @@ import android.os.Looper
 import android.util.Log
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
+import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
+import androidx.media3.common.util.UnstableApi
 import androidx.media3.session.MediaBrowser
 import androidx.media3.session.SessionToken
 import com.facebook.react.bridge.Arguments
@@ -26,6 +28,8 @@ object AudioProController {
   private var browser: MediaBrowser? = null
   private var progressHandler: Handler? = null
   private var progressRunnable: Runnable? = null
+  private var isSetup = false
+  var audioContentType: Int = C.AUDIO_CONTENT_TYPE_MUSIC
 
   fun init(context: Context) {
     val sessionToken =
@@ -40,7 +44,18 @@ object AudioProController {
     Handler(Looper.getMainLooper()).post(block)
   }
 
+  fun setup(context: Context, contentType: String) {
+    audioContentType = when (contentType.lowercase()) {
+      "speech" -> C.AUDIO_CONTENT_TYPE_SPEECH
+      else -> C.AUDIO_CONTENT_TYPE_MUSIC
+    }
+    isSetup = true
+
+    init(context)
+  }
+
   suspend fun play(context: Context, track: ReadableMap) {
+    if (!guardSetup(context)) return
     if (!::browserFuture.isInitialized) {
       val sessionToken =
         SessionToken(context, ComponentName(context, AudioProPlaybackService::class.java))
@@ -88,6 +103,7 @@ object AudioProController {
   }
 
   fun pause(context: Context) {
+    if (!guardSetup(context)) return
     runOnUiThread {
       browser?.pause()
       browser?.let {
@@ -99,6 +115,7 @@ object AudioProController {
   }
 
   fun resume(context: Context) {
+    if (!guardSetup(context)) return
     runOnUiThread {
       browser?.play()
       browser?.let {
@@ -117,6 +134,7 @@ object AudioProController {
   }
 
   fun seekTo(context: Context, position: Long) {
+    if (!guardSetup(context)) return
     runOnUiThread {
       val dur = browser?.duration ?: 0L
       val validPosition = when {
@@ -130,6 +148,7 @@ object AudioProController {
   }
 
   fun seekForward(context: Context, amount: Long) {
+    if (!guardSetup(context)) return
     runOnUiThread {
       val current = browser?.currentPosition ?: 0L
       val dur = browser?.duration ?: 0L
@@ -140,6 +159,7 @@ object AudioProController {
   }
 
   fun seekBack(context: Context, amount: Long) {
+    if (!guardSetup(context)) return
     runOnUiThread {
       val current = browser?.currentPosition ?: 0L
       val newPos = (current - amount).coerceAtLeast(0L)
@@ -209,6 +229,18 @@ object AudioProController {
         emitState(context, AudioProModule.STATE_STOPPED, 0L, 0L)
       }
     })
+  }
+
+  private fun guardSetup(context: Context): Boolean {
+    if (!isSetup) {
+      emitError(
+        context,
+        "ReactNativeAudioPro not setup. Call setup() before using playback methods.",
+        AudioProModule.GENERIC_ERROR_CODE
+      )
+      return false
+    }
+    return true
   }
 
   private fun startProgressTimer(context: Context) {

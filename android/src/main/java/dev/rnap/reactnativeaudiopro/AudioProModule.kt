@@ -12,6 +12,7 @@ class AudioProModule(private val reactContext: ReactApplicationContext) :
   ReactContextBaseJavaModule(reactContext) {
 
   companion object {
+    const val GENERIC_ERROR_CODE: Int = 1000;
     const val NAME = "AudioPro"
 
     const val STATE_EVENT_NAME = "AudioProStateEvent"
@@ -28,8 +29,14 @@ class AudioProModule(private val reactContext: ReactApplicationContext) :
   }
 
   @ReactMethod
-  fun init() {
-    AudioProController.init(reactApplicationContext)
+  fun setup(options: ReadableMap) {
+    val contentType = if (options.hasKey("contentType")) {
+      options.getString("contentType") ?: "music"
+    } else {
+      "music"
+    }
+
+    AudioProController.setup(reactApplicationContext, contentType)
   }
 
   @ReactMethod

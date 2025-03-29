@@ -12,6 +12,7 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.os.bundleOf
 import androidx.media3.common.AudioAttributes
+import androidx.media3.common.C
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.util.EventLogger
@@ -91,8 +92,15 @@ open class AudioProPlaybackService : MediaLibraryService() {
   private fun initializeSessionAndPlayer() {
     val player =
       ExoPlayer.Builder(this)
-        .setAudioAttributes(AudioAttributes.DEFAULT, /* handleAudioFocus= */ true)
+        .setAudioAttributes(
+          AudioAttributes.Builder()
+            .setUsage(C.USAGE_MEDIA)
+            .setContentType(AudioProController.audioContentType)
+            .build(),
+          /* handleAudioFocus = */ true
+        )
         .build()
+    player.setHandleAudioBecomingNoisy(true)
     player.addAnalyticsListener(EventLogger())
 
     mediaLibrarySession =
@@ -147,13 +155,6 @@ open class AudioProPlaybackService : MediaLibraryService() {
   }
 
   private fun ensureNotificationChannel(notificationManagerCompat: NotificationManagerCompat) {
-    if (
-      Build.VERSION.SDK_INT < 26 ||
-      notificationManagerCompat.getNotificationChannel(CHANNEL_ID) != null
-    ) {
-      return
-    }
-
     val channel =
       NotificationChannel(
         CHANNEL_ID,
