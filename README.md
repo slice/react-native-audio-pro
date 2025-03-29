@@ -90,6 +90,8 @@ buildscript {
   - Seeks forward by a given amount (default is 30 seconds).
 - **seekBack(amount?: number): void**
   - Seeks backward by a given amount (default is 30 seconds).
+- **setup(options: AudioProSetupOptions): void**
+  - Must be called before any playback methods. Sets up internal configuration like audio content type.
 
 ### Event Listeners
 
@@ -113,12 +115,17 @@ type AudioProTrack = {
     album?: string;
     artist?: string;
 };
+
+type AudioProSetupOptions = {
+    contentType?: 'music' | 'speech';
+};
 ```
 
 ## Basic Usage Example
 
 ```javascript
-import AudioPro, { AudioProState, AudioProNotice } from 'react-native-audio-pro';
+// Set up the audio engine (must be called first)
+AudioPro.setup({ contentType: 'music' });
 
 // Define an audio track
 const track = {

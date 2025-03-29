@@ -121,6 +121,7 @@ buildscript {
       <li><code>seekTo(ms)</code></li>
       <li><code>seekForward(seconds?)</code></li>
       <li><code>seekBack(seconds?)</code></li>
+      <li><code>setup(options)</code> – must be called before using other methods</li>
     </ul>
 
     <h3>Events</h3>
@@ -137,11 +138,16 @@ buildscript {
   album?: string;
   artist?: string;
 }</code></pre>
+    <h3>Setup Options</h3>
+    <pre><code class="language-ts">type AudioProSetupOptions = {
+    contentType?: 'music' | 'speech';
+  }</code></pre>
   </section>
 
   <section id="usage">
     <h2>Basic Usage</h2>
-    <pre><code class="language-js">import AudioPro from 'react-native-audio-pro';
+    <pre><code class="language-js">AudioPro.setup({ contentType: 'music' }); // must be called first
+import AudioPro from 'react-native-audio-pro';
 
 const track = {
   url: 'https://example.com/audio.mp3',
