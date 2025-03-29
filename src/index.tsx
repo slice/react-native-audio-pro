@@ -11,6 +11,10 @@ import {
 const DEFAULT_SEEK_SECONDS = 30;
 const DEFAULT_SEEK_MILLISECONDS = DEFAULT_SEEK_SECONDS * 1000;
 
+const DEFAULT_CONFIG: AudioProSetupOptions = {
+  contentType: 'music',
+};
+
 export enum AudioProState {
   STOPPED = 'STOPPED',
   LOADING = 'LOADING',
@@ -42,8 +46,7 @@ const NativeAudioPro = NativeModules.AudioPro
 
 const emitter = new NativeEventEmitter(NativeAudioPro);
 
-let isSetup = false;
-let setupOptions: AudioProSetupOptions | null = null;
+let configureOptions: AudioProSetupOptions = { ...DEFAULT_CONFIG };
 let debug = false;
 
 function logDebug(...args: any[]) {
@@ -52,74 +55,44 @@ function logDebug(...args: any[]) {
   }
 }
 
-function ensureSetup(): boolean {
-  if (!isSetup) {
-    if (!setupOptions) {
-      emitter.emit('AudioProNoticeEvent', {
-        notice: AudioProNotice.PLAYBACK_ERROR,
-        error: 'AudioPro: setup() must be called before using this method.',
-        errorCode: 1001,
-      });
-      return false;
-    }
-    logDebug('AudioPro: calling NativeAudioPro.setup()', setupOptions);
-    NativeAudioPro.setup(setupOptions);
-    isSetup = true;
-  }
-  return true;
-}
-
 const AudioPro = {
-  setup(options: AudioProSetupOptions): void {
-    logDebug('AudioPro: setup()', options);
-    if (isSetup) {
-      console.warn(
-        '[AudioPro] setup() already called. Ignoring duplicate call.'
-      );
-      return;
-    }
-    setupOptions = options;
+  configure(options: AudioProSetupOptions): void {
+    logDebug('AudioPro: configure()', options);
+    configureOptions = { ...DEFAULT_CONFIG, ...options };
     debug = !!options.debug;
   },
 
   async play(track: AudioProTrack): Promise<void> {
-    if (!ensureSetup()) return;
     logDebug('AudioPro: play()', track);
-    NativeAudioPro.play(track);
+    NativeAudioPro.play(track, configureOptions);
   },
 
   async pause(): Promise<void> {
-    if (!ensureSetup()) return;
     logDebug('AudioPro: pause()');
     NativeAudioPro.pause();
   },
 
   async resume(): Promise<void> {
-    if (!ensureSetup()) return;
     logDebug('AudioPro: resume()');
     NativeAudioPro.resume();
   },
 
   async stop(): Promise<void> {
-    if (!ensureSetup()) return;
     logDebug('AudioPro: stop()');
     NativeAudioPro.stop();
   },
 
   async seekTo(position: number): Promise<void> {
-    if (!ensureSetup()) return;
     logDebug('AudioPro: seekTo()', position);
     NativeAudioPro.seekTo(position);
   },
 
   async seekForward(amount: number = DEFAULT_SEEK_MILLISECONDS): Promise<void> {
-    if (!ensureSetup()) return;
     logDebug('AudioPro: seekForward()', amount);
     NativeAudioPro.seekForward(amount);
   },
 
   async seekBack(amount: number = DEFAULT_SEEK_MILLISECONDS): Promise<void> {
-    if (!ensureSetup()) return;
     logDebug('AudioPro: seekBack()', amount);
     NativeAudioPro.seekBack(amount);
   },

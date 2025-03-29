@@ -7,7 +7,7 @@ import AudioPro, {
 import { usePlayerStore } from './player-store';
 
 export function setupAudioPro() {
-  AudioPro.setup({ contentType: 'music' });
+  AudioPro.configure({ contentType: 'music' });
 
   // Register state listener
   AudioPro.addStateListener((event: AudioProStatePayload) => {

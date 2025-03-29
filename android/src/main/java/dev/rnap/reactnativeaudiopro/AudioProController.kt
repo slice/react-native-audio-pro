@@ -5,14 +5,12 @@ import android.content.Context
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
-import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
-import androidx.media3.common.util.UnstableApi
 import androidx.media3.session.MediaBrowser
 import androidx.media3.session.SessionToken
 import com.facebook.react.bridge.Arguments
@@ -21,6 +19,9 @@ import com.facebook.react.bridge.ReadableMap
 import com.facebook.react.bridge.WritableMap
 import com.facebook.react.modules.core.DeviceEventManagerModule
 import com.google.common.util.concurrent.ListenableFuture
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.guava.await
 
 object AudioProController {
@@ -28,43 +29,38 @@ object AudioProController {
   private var browser: MediaBrowser? = null
   private var progressHandler: Handler? = null
   private var progressRunnable: Runnable? = null
-  private var isSetup = false
   var audioContentType: Int = C.AUDIO_CONTENT_TYPE_MUSIC
 
-  fun init(context: Context) {
-    val sessionToken =
-      SessionToken(context, ComponentName(context, AudioProPlaybackService::class.java))
-    browserFuture = MediaBrowser.Builder(context, sessionToken).buildAsync()
-    browserFuture.addListener({
-      browser = browserFuture.get()
-    }, ContextCompat.getMainExecutor(context))
+  private fun ensureSession(context: Context) {
+    if (!::browserFuture.isInitialized || browser == null) {
+      CoroutineScope(Dispatchers.Main).launch {
+        internalPrepareSession(context)
+      }
+    }
+  }
+
+  private suspend fun internalPrepareSession(context: Context) {
+    Log.d("AudioProController", "~~~ Preparing MediaBrowser session")
+    val token = SessionToken(context, ComponentName(context, AudioProPlaybackService::class.java))
+    browserFuture = MediaBrowser.Builder(context, token).buildAsync()
+    browser = browserFuture.await()
+    attachPlayerListener(context)
+    Log.d("AudioProController", "~~~ MediaBrowser is ready")
   }
 
   private fun runOnUiThread(block: () -> Unit) {
     Handler(Looper.getMainLooper()).post(block)
   }
 
-  fun setup(context: Context, contentType: String) {
+  fun configure(contentType: String) {
     audioContentType = when (contentType.lowercase()) {
       "speech" -> C.AUDIO_CONTENT_TYPE_SPEECH
       else -> C.AUDIO_CONTENT_TYPE_MUSIC
     }
-    isSetup = true
-
-    init(context)
   }
 
   suspend fun play(context: Context, track: ReadableMap) {
-    if (!guardSetup(context)) return
-    if (!::browserFuture.isInitialized) {
-      val sessionToken =
-        SessionToken(context, ComponentName(context, AudioProPlaybackService::class.java))
-      browserFuture = MediaBrowser.Builder(context, sessionToken).buildAsync()
-    }
-
-    browser = browserFuture.await()
-    attachPlayerListener(context)
-
+    internalPrepareSession(context)
     val url = track.getString("url") ?: run {
       Log.w("AudioPro", "Missing track URL")
       return
@@ -90,11 +86,9 @@ object AudioProController {
       .build()
 
     runOnUiThread {
-      browser?.let {
-        val pos = it.currentPosition
-        val dur = it.duration.takeIf { d -> d > 0 } ?: 0L
-        emitState(context, AudioProModule.STATE_LOADING, pos, dur)
+      emitState(context, AudioProModule.STATE_LOADING, 0L, 0L)
 
+      browser?.let {
         it.setMediaItem(mediaItem)
         it.prepare()
         it.play()
@@ -103,7 +97,7 @@ object AudioProController {
   }
 
   fun pause(context: Context) {
-    if (!guardSetup(context)) return
+    ensureSession(context)
     runOnUiThread {
       browser?.pause()
       browser?.let {
@@ -115,7 +109,7 @@ object AudioProController {
   }
 
   fun resume(context: Context) {
-    if (!guardSetup(context)) return
+    ensureSession(context)
     runOnUiThread {
       browser?.play()
       browser?.let {
@@ -134,7 +128,7 @@ object AudioProController {
   }
 
   fun seekTo(context: Context, position: Long) {
-    if (!guardSetup(context)) return
+    ensureSession(context)
     runOnUiThread {
       val dur = browser?.duration ?: 0L
       val validPosition = when {
@@ -148,7 +142,7 @@ object AudioProController {
   }
 
   fun seekForward(context: Context, amount: Long) {
-    if (!guardSetup(context)) return
+    ensureSession(context)
     runOnUiThread {
       val current = browser?.currentPosition ?: 0L
       val dur = browser?.duration ?: 0L
@@ -159,7 +153,7 @@ object AudioProController {
   }
 
   fun seekBack(context: Context, amount: Long) {
-    if (!guardSetup(context)) return
+    ensureSession(context)
     runOnUiThread {
       val current = browser?.currentPosition ?: 0L
       val newPos = (current - amount).coerceAtLeast(0L)
@@ -229,18 +223,6 @@ object AudioProController {
         emitState(context, AudioProModule.STATE_STOPPED, 0L, 0L)
       }
     })
-  }
-
-  private fun guardSetup(context: Context): Boolean {
-    if (!isSetup) {
-      emitError(
-        context,
-        "ReactNativeAudioPro not setup. Call setup() before using playback methods.",
-        AudioProModule.GENERIC_ERROR_CODE
-      )
-      return false
-    }
-    return true
   }
 
   private fun startProgressTimer(context: Context) {

@@ -28,20 +28,17 @@ class AudioProModule(private val reactContext: ReactApplicationContext) :
     const val NOTICE_PLAYBACK_ERROR = "PLAYBACK_ERROR"
   }
 
-  @ReactMethod
-  fun setup(options: ReadableMap) {
-    val contentType = if (options.hasKey("contentType")) {
-      options.getString("contentType") ?: "music"
-    } else {
-      "music"
-    }
-
-    AudioProController.setup(reactApplicationContext, contentType)
-  }
 
   @ReactMethod
-  fun play(track: ReadableMap) {
+  fun play(track: ReadableMap, options: ReadableMap) {
     CoroutineScope(Dispatchers.Main).launch {
+      val contentType = if (options.hasKey("contentType")) {
+        options.getString("contentType") ?: "music"
+      } else {
+        "music"
+      }
+
+      AudioProController.configure(contentType)
       AudioProController.play(reactApplicationContext, track)
     }
   }

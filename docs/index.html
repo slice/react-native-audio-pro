@@ -121,7 +121,7 @@ buildscript {
       <li><code>seekTo(ms)</code></li>
       <li><code>seekForward(seconds?)</code></li>
       <li><code>seekBack(seconds?)</code></li>
-      <li><code>setup(options)</code> – must be called before using other methods</li>
+      <li><code>configure(options: AudioProSetupOptions): void</code> – Optional. Sets playback options like content type (`'music'` or `'speech'`). Takes effect the next time <code>play()</code> is called.</li>
     </ul>
 
     <h3>Events</h3>
@@ -142,11 +142,12 @@ buildscript {
     <pre><code class="language-ts">type AudioProSetupOptions = {
     contentType?: 'music' | 'speech';
   }</code></pre>
+    <p><strong>About <code>contentType</code>:</strong> Use <code>'speech'</code> for voice-based audio like stories or podcasts, and <code>'music'</code> for music tracks. It helps the OS optimize routing and handling. This option is optional and defaults to <code>'music'</code>. Changes take effect the next time <code>play()</code> is called.</p>
   </section>
 
   <section id="usage">
     <h2>Basic Usage</h2>
-    <pre><code class="language-js">AudioPro.setup({ contentType: 'music' }); // must be called first
+    <pre><code class="language-js">AudioPro.configure({ contentType: 'speech' }); // Optional: Set playback config before calling play
 import AudioPro from 'react-native-audio-pro';
 
 const track = {

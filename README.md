@@ -90,8 +90,8 @@ buildscript {
   - Seeks forward by a given amount (default is 30 seconds).
 - **seekBack(amount?: number): void**
   - Seeks backward by a given amount (default is 30 seconds).
-- **setup(options: AudioProSetupOptions): void**
-  - Must be called before any playback methods. Sets up internal configuration like audio content type.
+- **configure(options: AudioProSetupOptions): void**
+  - Optional. Sets playback options like content type (`'music'` or `'speech'`). Takes effect the next time `play()` is called.
 
 ### Event Listeners
 
@@ -121,9 +121,16 @@ type AudioProSetupOptions = {
 };
 ```
 
+### About contentType
+
+The `contentType` option informs the underlying audio engine how to optimize playback. Use `'speech'` for voice-based audio (e.g., stories, podcasts) and `'music'` for music-heavy tracks. This helps the OS route audio appropriately and manage interruptions. This setting is optional and defaults to `'music'`. Changes apply on the next `play()` call.
+
 ## Basic Usage Example
 
 ```javascript
+// Optional: Set playback config before calling play
+AudioPro.configure({ contentType: 'speech' });
+
 // Set up the audio engine (must be called first)
 AudioPro.setup({ contentType: 'music' });
 
