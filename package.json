@@ -186,5 +186,8 @@
     "type": "legacy-module",
     "languages": "kotlin-swift",
     "version": "0.48.5"
+  },
+  "dependencies": {
+    "zustand": "^5.0.3"
   }
 }

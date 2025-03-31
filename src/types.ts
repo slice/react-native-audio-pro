@@ -1,4 +1,4 @@
-import { AudioProNotice, AudioProState } from './index';
+import { AudioProEventName, AudioProState } from './values';
 
 // ==============================
 // Track definition
@@ -50,48 +50,48 @@ export type AudioProStatePayload =
 // Notice Payloads
 // ==============================
 export interface BaseAudioProNoticePayload {
-  notice: AudioProNotice;
+  name: AudioProEventName;
 }
 
 export interface AudioProTrackEndedNoticePayload
   extends BaseAudioProNoticePayload {
-  notice: AudioProNotice.TRACK_ENDED;
+  name: AudioProEventName.TRACK_ENDED;
   position: number;
   duration: number;
 }
 
 export interface AudioProPlaybackErrorNoticePayload
   extends BaseAudioProNoticePayload {
-  notice: AudioProNotice.PLAYBACK_ERROR;
+  name: AudioProEventName.PLAYBACK_ERROR;
   error: string;
   errorCode?: number;
 }
 
 export interface AudioProProgressNoticePayload
   extends BaseAudioProNoticePayload {
-  notice: AudioProNotice.PROGRESS;
+  name: AudioProEventName.PROGRESS;
   position: number;
   duration: number;
 }
 
 export interface AudioProSeekCompleteNoticePayload
   extends BaseAudioProNoticePayload {
-  notice: AudioProNotice.SEEK_COMPLETE;
+  name: AudioProEventName.SEEK_COMPLETE;
   position: number;
   duration: number;
 }
 
 export interface AudioProRemoteNextNoticePayload
   extends BaseAudioProNoticePayload {
-  notice: AudioProNotice.REMOTE_NEXT;
+  name: AudioProEventName.REMOTE_NEXT;
 }
 
 export interface AudioProRemotePrevNoticePayload
   extends BaseAudioProNoticePayload {
-  notice: AudioProNotice.REMOTE_PREV;
+  name: AudioProEventName.REMOTE_PREV;
 }
 
-export type AudioProNoticePayload =
+export type AudioProEventPayload =
   | AudioProTrackEndedNoticePayload
   | AudioProPlaybackErrorNoticePayload
   | AudioProProgressNoticePayload
@@ -99,7 +99,7 @@ export type AudioProNoticePayload =
   | AudioProRemoteNextNoticePayload
   | AudioProRemotePrevNoticePayload;
 
-export type AudioProSetupOptions = {
+export type AudioProConfigureOptions = {
   contentType?: 'music' | 'speech';
   debug?: boolean;
 };
@@ -107,5 +107,4 @@ export type AudioProSetupOptions = {
 // ==============================
 // Listener Callback Types
 // ==============================
-export type AudioProStateCallback = (payload: AudioProStatePayload) => void;
-export type AudioProNoticeCallback = (payload: AudioProNoticePayload) => void;
+export type AudioProEventCallback = (payload: AudioProEventPayload) => void;

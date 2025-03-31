@@ -163,7 +163,7 @@ const stateSubscription = AudioPro.addStateListener((event) => {
 });
 
 // Listen for playback notices
-const noticeSubscription = AudioPro.addNoticeListener((notice) => {
+const noticeSubscription = AudioPro.addListener((notice) => {
   console.log('Notice:', notice.notice);
 });
 ```

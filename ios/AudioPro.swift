@@ -15,7 +15,7 @@ class AudioPro: RCTEventEmitter {
     private var timer: Timer?
     private var hasListeners = false
     private let STATE_EVENT_NAME = "AudioProStateEvent"
-    private let NOTICE_EVENT_NAME = "AudioProNoticeEvent"
+    private let NOTICE_EVENT_NAME = "AudioProEvent"
 
     private let STATE_STOPPED = "STOPPED"
     private let STATE_LOADING = "LOADING"

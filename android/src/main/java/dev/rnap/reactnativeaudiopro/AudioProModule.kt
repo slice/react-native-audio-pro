@@ -20,7 +20,7 @@ class AudioProModule(private val reactContext: ReactApplicationContext) :
     const val STATE_STOPPED = "STOPPED"
     const val STATE_LOADING = "LOADING"
 
-    const val NOTICE_EVENT_NAME = "AudioProNoticeEvent"
+    const val NOTICE_EVENT_NAME = "AudioProEvent"
     const val NOTICE_SEEK_COMPLETE = "SEEK_COMPLETE"
     const val NOTICE_TRACK_ENDED = "TRACK_ENDED"
     const val NOTICE_PROGRESS = "PROGRESS"

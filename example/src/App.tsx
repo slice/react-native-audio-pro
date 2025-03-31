@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
   ActivityIndicator,
   Image,
@@ -6,34 +7,30 @@ import {
   View,
 } from 'react-native';
 import Slider from '@react-native-community/slider';
-import AudioPro, {
-  AudioProState,
-  type AudioProTrack,
-} from 'react-native-audio-pro';
-import { usePlayerStore } from './player-store';
-import { useState } from 'react';
+import { useAudioPro, type AudioProTrack } from 'react-native-audio-pro';
+
 import { formatTime } from './utils';
 import { playlist } from './playlist';
 import { styles } from './styles';
+import { AudioProState } from '../../src/values';
+import { AudioPro } from '../../src/audioPro';
 
 export default function App() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const currentTrack = playlist[currentIndex];
 
-  const playerState = usePlayerStore((state) => state.state);
-  const position = usePlayerStore((state) => state.position);
-  const duration = usePlayerStore((state) => state.duration);
-  const lastNotice = usePlayerStore((state) => state.lastNotice);
+  const { position, duration, state } = useAudioPro();
 
   if (!currentTrack) return null;
 
   const handlePlayPause = () => {
-    if (playerState === AudioProState.PLAYING) {
+    if (state === AudioProState.PLAYING) {
       AudioPro.pause();
-    } else if (playerState === AudioProState.PAUSED) {
+    } else if (state === AudioProState.PAUSED) {
       AudioPro.resume();
     } else {
-      AudioPro.play(currentTrack);
+      AudioPro.load(currentTrack);
+      AudioPro.play();
     }
   };
 
@@ -46,41 +43,35 @@ export default function App() {
   };
 
   const handleSeekBack = () => {
-    AudioPro.seekBack(); // Use default 30s
+    AudioPro.seekBack(30);
   };
 
   const handleSeekForward = () => {
-    AudioPro.seekForward(); // Use default 30s
+    AudioPro.seekForward(30);
   };
 
   const handlePrevious = () => {
     if (position > 5000) {
       AudioPro.seekTo(0);
-      return;
-    }
-
-    const newIndex = currentIndex > 0 ? currentIndex - 1 : playlist.length - 1;
-    setCurrentIndex(newIndex);
-
-    if (playerState === AudioProState.PLAYING) {
-      AudioPro.play(playlist[newIndex] as AudioProTrack);
     } else {
-      AudioPro.seekTo(0);
+      const newIndex =
+        currentIndex > 0 ? currentIndex - 1 : playlist.length - 1;
+      setCurrentIndex(newIndex);
+      AudioPro.load(playlist[newIndex] as AudioProTrack);
+      AudioPro.play();
     }
   };
 
   const handleNext = () => {
     const newIndex = (currentIndex + 1) % playlist.length;
     setCurrentIndex(newIndex);
-
-    if (playerState === AudioProState.PLAYING) {
-      AudioPro.play(playlist[newIndex] as AudioProTrack);
+    if (state === AudioProState.PLAYING) {
+      AudioPro.load(playlist[newIndex] as AudioProTrack);
+      AudioPro.play();
     } else {
       AudioPro.seekTo(0);
     }
   };
-
-  const playlistStatus = `${currentIndex + 1}/${playlist.length}`;
 
   return (
     <View style={styles.container}>
@@ -107,12 +98,12 @@ export default function App() {
         <TouchableOpacity onPress={handlePrevious}>
           <Text style={styles.controlText}>Prev</Text>
         </TouchableOpacity>
-        {playerState === AudioProState.LOADING ? (
+        {state === AudioProState.LOADING ? (
           <ActivityIndicator size="large" color="#fff" />
         ) : (
           <TouchableOpacity onPress={handlePlayPause}>
             <Text style={[styles.controlText, styles.playPauseText]}>
-              {playerState === AudioProState.PLAYING ? 'Pause' : 'Play'}
+              {state === AudioProState.PLAYING ? 'Pause' : 'Play'}
             </Text>
           </TouchableOpacity>
         )}
@@ -133,9 +124,7 @@ export default function App() {
           <Text style={styles.controlText}>Stop</Text>
         </TouchableOpacity>
       </View>
-      <Text style={styles.stateText}>Playlist: {playlistStatus}</Text>
-      <Text style={styles.stateText}>State: {playerState}</Text>
-      <Text style={styles.stateText}>Last Notice: {lastNotice}</Text>
+      <Text style={styles.stateText}>State: {state}</Text>
     </View>
   );
 }
