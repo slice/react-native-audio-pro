@@ -30,6 +30,11 @@ object AudioProController {
   private var progressHandler: Handler? = null
   private var progressRunnable: Runnable? = null
   var audioContentType: Int = C.AUDIO_CONTENT_TYPE_MUSIC
+  private var debug: Boolean = false
+
+  private fun log(vararg args: Any?) {
+    if (debug) Log.d("AudioPro", "~~~ ${args.joinToString(" ")}")
+  }
 
   private fun ensureSession(context: Context) {
     if (!::browserFuture.isInitialized || browser == null) {
@@ -40,29 +45,31 @@ object AudioProController {
   }
 
   private suspend fun internalPrepareSession(context: Context) {
-    Log.d("AudioProController", "~~~ Preparing MediaBrowser session")
+    log("Preparing MediaBrowser session")
     val token = SessionToken(context, ComponentName(context, AudioProPlaybackService::class.java))
     browserFuture = MediaBrowser.Builder(context, token).buildAsync()
     browser = browserFuture.await()
     attachPlayerListener(context)
-    Log.d("AudioProController", "~~~ MediaBrowser is ready")
+    log("MediaBrowser is ready")
   }
 
-  private fun runOnUiThread(block: () -> Unit) {
-    Handler(Looper.getMainLooper()).post(block)
-  }
+  suspend fun play(context: Context, track: ReadableMap, options: ReadableMap) {
+    val contentType = if (options.hasKey("contentType")) {
+      options.getString("contentType") ?: "music"
+    } else "music"
+    val enableDebug = options.hasKey("debug") && options.getBoolean("debug")
 
-  fun configure(contentType: String) {
+    debug = enableDebug
     audioContentType = when (contentType.lowercase()) {
       "speech" -> C.AUDIO_CONTENT_TYPE_SPEECH
       else -> C.AUDIO_CONTENT_TYPE_MUSIC
     }
-  }
 
-  suspend fun play(context: Context, track: ReadableMap) {
+    log("Configured with contentType=$contentType debug=$debug")
+
     internalPrepareSession(context)
     val url = track.getString("url") ?: run {
-      Log.w("AudioPro", "Missing track URL")
+      log("Missing track URL")
       return
     }
     val title = track.getString("title") ?: "Unknown Title"
@@ -86,6 +93,7 @@ object AudioProController {
       .build()
 
     runOnUiThread {
+      log("Play", title, url)
       emitState(context, AudioProModule.STATE_LOADING, 0L, 0L)
 
       browser?.let {
@@ -243,6 +251,10 @@ object AudioProController {
     progressRunnable?.let { progressHandler?.removeCallbacks(it) }
     progressHandler = null
     progressRunnable = null
+  }
+
+  private fun runOnUiThread(block: () -> Unit) {
+    Handler(Looper.getMainLooper()).post(block)
   }
 
   private fun emitEvent(context: Context, eventName: String, params: WritableMap) {

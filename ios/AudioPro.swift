@@ -34,9 +34,10 @@ class AudioPro: RCTEventEmitter {
     private var shouldBePlaying = false
     private var isRemoteCommandCenterSetup = false
 
-    // Flags to track observer registration
     private var isRateObserverAdded = false
     private var isStatusObserverAdded = false
+
+    private var debugLog: Bool = false
 
     ////////////////////////////////////////////////////////////
     // MARK: - React Native Event Emitter Overrides
@@ -57,6 +58,16 @@ class AudioPro: RCTEventEmitter {
     override func stopObserving() {
         hasListeners = false
     }
+
+    ////////////////////////////////////////////////////////////
+    // MARK: - Debug Logging Helper
+    ////////////////////////////////////////////////////////////
+
+    private func log(_ items: Any...) {
+        guard debugLog else { return }
+        print("~~~", items.map { "\($0)" }.joined(separator: " "))
+    }
+
 
     ////////////////////////////////////////////////////////////
     // MARK: - Timers & Progress Updates
@@ -80,7 +91,6 @@ class AudioPro: RCTEventEmitter {
     }
 
     private func sendProgressNoticeEvent() {
-        // Only emit progress if the player is playing
         guard let player = player, let _ = player.currentItem, player.rate != 0 else { return }
         let info = getPlaybackInfo()
         let body: [String: Any] = [
@@ -95,9 +105,11 @@ class AudioPro: RCTEventEmitter {
     // MARK: - Playback Control (Play, Pause, Resume, Stop)
     ////////////////////////////////////////////////////////////
 
-    @objc(play:)
-    func play(track: NSDictionary) {
-        // If an existing player exists, fully teardown its per-track state
+    @objc(play:withOptions:)
+    func play(track: NSDictionary, options: NSDictionary) {
+        debugLog = options["debug"] as? Bool ?? false
+        log("Play", track["title"] ?? "Unknown")
+
         if player != nil {
             DispatchQueue.main.sync {
                 cleanup()
@@ -117,10 +129,9 @@ class AudioPro: RCTEventEmitter {
         }
 
         do {
-            try AVAudioSession.sharedInstance().setCategory(
-                .playback,
-                mode: .default
-            )
+            let contentType = options["contentType"] as? String ?? "music"
+            let mode: AVAudioSession.Mode = (contentType == "speech") ? .spokenAudio : .default
+            try AVAudioSession.sharedInstance().setCategory(.playback, mode: mode)
             try AVAudioSession.sharedInstance().setActive(true)
         } catch {
             onError("Audio session setup failed: \(error.localizedDescription)")
@@ -207,7 +218,6 @@ class AudioPro: RCTEventEmitter {
             } catch {
                 DispatchQueue.main.async {
                     self.onError(error.localizedDescription)
-                    // In error scenarios, we want to fully clean up.
                     self.cleanup()
                 }
             }
@@ -550,7 +560,6 @@ class AudioPro: RCTEventEmitter {
         MPNowPlayingInfoCenter.default().nowPlayingInfo = nowPlayingInfo
     }
 
-    /// onError now solely reports errors and then performs a full cleanup.
     func onError(_ errorMessage: String) {
         if hasListeners {
             sendEvent(withName: NOTICE_EVENT_NAME, body: [

@@ -12,7 +12,6 @@ class AudioProModule(private val reactContext: ReactApplicationContext) :
   ReactContextBaseJavaModule(reactContext) {
 
   companion object {
-    const val GENERIC_ERROR_CODE: Int = 1000;
     const val NAME = "AudioPro"
 
     const val STATE_EVENT_NAME = "AudioProStateEvent"
@@ -28,18 +27,10 @@ class AudioProModule(private val reactContext: ReactApplicationContext) :
     const val NOTICE_PLAYBACK_ERROR = "PLAYBACK_ERROR"
   }
 
-
   @ReactMethod
   fun play(track: ReadableMap, options: ReadableMap) {
     CoroutineScope(Dispatchers.Main).launch {
-      val contentType = if (options.hasKey("contentType")) {
-        options.getString("contentType") ?: "music"
-      } else {
-        "music"
-      }
-
-      AudioProController.configure(contentType)
-      AudioProController.play(reactApplicationContext, track)
+      AudioProController.play(reactApplicationContext, track, options)
     }
   }
 

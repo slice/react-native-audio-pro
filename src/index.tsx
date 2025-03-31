@@ -13,6 +13,7 @@ const DEFAULT_SEEK_MILLISECONDS = DEFAULT_SEEK_SECONDS * 1000;
 
 const DEFAULT_CONFIG: AudioProSetupOptions = {
   contentType: 'music',
+  debug: false,
 };
 
 export enum AudioProState {
