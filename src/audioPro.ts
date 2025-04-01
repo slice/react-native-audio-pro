@@ -5,7 +5,7 @@ import type {
   AudioProTrack,
 } from './types';
 import { guardTrackLoaded, logDebug, validateTrack } from './utils';
-import { useAudioProStore } from './useAudioProStore';
+import { useInternalStore } from './useInternalStore';
 import {
   AudioProEventName,
   DEFAULT_CONFIG,
@@ -17,7 +17,7 @@ import { NativeAudioPro } from './native';
 export const AudioPro = {
   configure(options: AudioProConfigureOptions): void {
     logDebug('AudioPro: configure()', options);
-    const { setConfigureOptions, setDebug } = useAudioProStore.getState();
+    const { setConfigureOptions, setDebug } = useInternalStore.getState();
     setConfigureOptions({ ...DEFAULT_CONFIG, ...options });
     setDebug(!!options.debug);
   },
@@ -34,12 +34,12 @@ export const AudioPro = {
       });
       return;
     }
-    useAudioProStore.getState().setLoadedTrack(track);
+    useInternalStore.getState().setLoadedTrack(track);
   },
 
   play() {
     if (!guardTrackLoaded('play')) return;
-    const { loadedTrack, configureOptions } = useAudioProStore.getState();
+    const { loadedTrack, configureOptions } = useInternalStore.getState();
     logDebug('AudioPro: play()', loadedTrack);
     NativeAudioPro.play(loadedTrack, configureOptions);
   },
@@ -62,20 +62,20 @@ export const AudioPro = {
     NativeAudioPro.stop();
   },
 
-  seekTo(position: number) {
-    logDebug('AudioPro: seekTo()', position);
-    NativeAudioPro.seekTo(position);
+  seekTo(positionMs: number) {
+    logDebug('AudioPro: seekTo()', positionMs);
+    NativeAudioPro.seekTo(positionMs);
   },
 
-  seekForward(seconds: number = DEFAULT_SEEK_SECONDS) {
-    logDebug('AudioPro: seekForward()', seconds);
-    const milliseconds = seconds * 1000;
+  seekForward(amountMs: number = DEFAULT_SEEK_SECONDS) {
+    logDebug('AudioPro: seekForward()', amountMs);
+    const milliseconds = amountMs * 1000;
     NativeAudioPro.seekForward(milliseconds);
   },
 
-  seekBack(seconds: number = DEFAULT_SEEK_SECONDS) {
-    logDebug('AudioPro: seekBack()', seconds);
-    const milliseconds = seconds * 1000;
+  seekBack(amountMs: number = DEFAULT_SEEK_SECONDS) {
+    logDebug('AudioPro: seekBack()', amountMs);
+    const milliseconds = amountMs * 1000;
     NativeAudioPro.seekBack(milliseconds);
   },
 

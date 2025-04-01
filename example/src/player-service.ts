@@ -5,7 +5,7 @@ import {
 import { AudioPro } from '../../src/audioPro';
 
 export function setupAudioPro() {
-  AudioPro.configure({ contentType: 'music', debug: true });
+  AudioPro.configure({ contentType: 'music', debug: __DEV__ });
   AudioPro.addEventListener((event: AudioProEventPayload) => {
     switch (event.name) {
       case AudioProEventName.TRACK_ENDED:

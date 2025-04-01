@@ -1,7 +1,7 @@
-import { useAudioProStore } from './useAudioProStore';
+import { useInternalStore } from './useInternalStore';
 
 export const useAudioPro = () =>
-  useAudioProStore((state) => ({
+  useInternalStore((state) => ({
     state: state.state,
     position: state.position,
     duration: state.duration,

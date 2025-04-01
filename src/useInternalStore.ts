@@ -19,7 +19,7 @@ export interface AudioProStore {
   setConfigureOptions: (options: AudioProConfigureOptions) => void;
 }
 
-export const useAudioProStore = create<AudioProStore>((set) => ({
+export const useInternalStore = create<AudioProStore>((set) => ({
   state: AudioProState.STOPPED,
   position: 0,
   duration: 0,

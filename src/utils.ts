@@ -1,13 +1,8 @@
 import type { AudioProTrack } from './types';
-import { useAudioProStore } from './useAudioProStore';
+import { useInternalStore } from './useInternalStore';
 import { emitter } from './emitter';
 import { AudioProEventName } from './values';
 
-/**
- * Validates a track to ensure it contains all required properties and uses supported formats
- * @param track - The audio track to validate
- * @returns A boolean indicating whether the track is valid
- */
 export function validateTrack(track: AudioProTrack): boolean {
   // noinspection SuspiciousTypeOfGuard
   if (
@@ -66,14 +61,14 @@ export function validateTrack(track: AudioProTrack): boolean {
 }
 
 export function logDebug(...args: any[]) {
-  const { debug } = useAudioProStore.getState();
+  const { debug } = useInternalStore.getState();
   if (debug) {
     console.log('~~~', ...args);
   }
 }
 
 export function guardTrackLoaded(methodName: string): boolean {
-  const { loadedTrack } = useAudioProStore.getState();
+  const { loadedTrack } = useInternalStore.getState();
   if (!loadedTrack) {
     const errorMessage = `~~~ AudioPro: ${methodName} called but no track loaded.`;
     console.error(errorMessage);
