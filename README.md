@@ -104,6 +104,28 @@ buildscript {
 - **AudioProState:** `STOPPED`, `LOADING`, `PLAYING`, `PAUSED`
 - **AudioProEvent:** `TRACK_ENDED`, `PLAYBACK_ERROR`, `PROGRESS`, `SEEK_COMPLETE`, `REMOTE_NEXT`, `REMOTE_PREV`
 
+### Lock Screen Controls
+
+Both iOS and Android support lock screen and notification controls for play/pause, seek, and track navigation (next/previous). To handle next and previous track events:
+
+```typescript
+import { AudioPro, AudioProEventName } from 'react-native-audio-pro';
+
+AudioPro.addEventListener((event) => {
+  if (event.name === AudioProEventName.REMOTE_NEXT) {
+    // Handle next track button press
+    console.log('User pressed Next button');
+    // Load and play next track
+  }
+
+  if (event.name === AudioProEventName.REMOTE_PREV) {
+    // Handle previous track button press
+    console.log('User pressed Previous button');
+    // Load and play previous track
+  }
+});
+```
+
 ### 🧩 Types
 
 ```typescript

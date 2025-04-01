@@ -25,6 +25,8 @@ class AudioProModule(private val reactContext: ReactApplicationContext) :
     const val NOTICE_TRACK_ENDED = "TRACK_ENDED"
     const val NOTICE_PROGRESS = "PROGRESS"
     const val NOTICE_PLAYBACK_ERROR = "PLAYBACK_ERROR"
+    const val NOTICE_REMOTE_NEXT = "REMOTE_NEXT"
+    const val NOTICE_REMOTE_PREV = "REMOTE_PREV"
   }
 
   @ReactMethod

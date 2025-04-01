@@ -5,6 +5,15 @@
   "source": "./src/index.tsx",
   "main": "./lib/commonjs/index.js",
   "module": "./lib/module/index.js",
+  "scripts": {
+    "example": "yarn workspace react-native-audio-pro-example",
+    "test": "jest",
+    "typecheck": "tsc",
+    "lint": "eslint \"**/*.{js,ts,tsx}\"",
+    "clean": "del-cli android/build example/android/build example/android/app/build example/ios/build lib",
+    "prepare": "bob build",
+    "release": "release-it"
+  },
   "exports": {
     ".": {
       "import": {
@@ -36,15 +45,6 @@
     "!**/__mocks__",
     "!**/.*"
   ],
-  "scripts": {
-    "example": "yarn workspace react-native-audio-pro-example",
-    "test": "jest",
-    "typecheck": "tsc",
-    "lint": "eslint \"**/*.{js,ts,tsx}\"",
-    "clean": "del-cli android/build example/android/build example/android/app/build example/ios/build lib",
-    "prepare": "bob build",
-    "release": "release-it"
-  },
   "keywords": [
     "react-native",
     "ios",
@@ -139,9 +139,9 @@
         {
           "quoteProps": "consistent",
           "singleQuote": true,
-          "tabWidth": 2,
+          "tabWidth": 4,
           "trailingComma": "es5",
-          "useTabs": false
+          "useTabs": true
         }
       ]
     }
@@ -153,9 +153,9 @@
   "prettier": {
     "quoteProps": "consistent",
     "singleQuote": true,
-    "tabWidth": 2,
+    "tabWidth": 4,
     "trailingComma": "es5",
-    "useTabs": false
+    "useTabs": true
   },
   "react-native-builder-bob": {
     "source": "src",
