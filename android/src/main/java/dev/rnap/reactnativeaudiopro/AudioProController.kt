@@ -31,30 +31,38 @@ object AudioProController {
 	private var progressRunnable: Runnable? = null
 	var audioContentType: Int = C.AUDIO_CONTENT_TYPE_MUSIC
 	private var debug: Boolean = false
+	private var reactContext: ReactApplicationContext? = null
 
 	private fun log(vararg args: Any?) {
 		if (debug) Log.d("AudioPro", "~~~ ${args.joinToString(" ")}")
 	}
 
-	private fun ensureSession(context: Context) {
+	fun setReactContext(context: ReactApplicationContext) {
+		reactContext = context
+	}
+
+	private fun ensureSession() {
 		if (!::browserFuture.isInitialized || browser == null) {
 			CoroutineScope(Dispatchers.Main).launch {
-				internalPrepareSession(context)
+				internalPrepareSession()
 			}
 		}
 	}
 
-	private suspend fun internalPrepareSession(context: Context) {
+	private suspend fun internalPrepareSession() {
 		log("Preparing MediaBrowser session")
 		val token =
-			SessionToken(context, ComponentName(context, AudioProPlaybackService::class.java))
-		browserFuture = MediaBrowser.Builder(context, token).buildAsync()
+			SessionToken(
+				reactContext!!,
+				ComponentName(reactContext!!, AudioProPlaybackService::class.java)
+			)
+		browserFuture = MediaBrowser.Builder(reactContext!!, token).buildAsync()
 		browser = browserFuture.await()
-		attachPlayerListener(context)
+		attachPlayerListener()
 		log("MediaBrowser is ready")
 	}
 
-	suspend fun play(context: Context, track: ReadableMap, options: ReadableMap) {
+	suspend fun play(track: ReadableMap, options: ReadableMap) {
 		val contentType = if (options.hasKey("contentType")) {
 			options.getString("contentType") ?: "music"
 		} else "music"
@@ -68,7 +76,7 @@ object AudioProController {
 
 		log("Configured with contentType=$contentType debug=$debug")
 
-		internalPrepareSession(context)
+		internalPrepareSession()
 		val url = track.getString("url") ?: run {
 			log("Missing track URL")
 			return
@@ -95,7 +103,7 @@ object AudioProController {
 
 		runOnUiThread {
 			log("Play", title, url)
-			emitState(context, AudioProModule.STATE_LOADING, 0L, 0L)
+			emitState(AudioProModule.STATE_LOADING, 0L, 0L)
 
 			browser?.let {
 				it.setMediaItem(mediaItem)
@@ -105,26 +113,26 @@ object AudioProController {
 		}
 	}
 
-	fun pause(context: Context) {
-		ensureSession(context)
+	fun pause() {
+		ensureSession()
 		runOnUiThread {
 			browser?.pause()
 			browser?.let {
 				val pos = it.currentPosition
 				val dur = it.duration.takeIf { d -> d > 0 } ?: 0L
-				emitState(context, AudioProModule.STATE_PAUSED, pos, dur)
+				emitState(AudioProModule.STATE_PAUSED, pos, dur)
 			}
 		}
 	}
 
-	fun resume(context: Context) {
-		ensureSession(context)
+	fun resume() {
+		ensureSession()
 		runOnUiThread {
 			browser?.play()
 			browser?.let {
 				val pos = it.currentPosition
 				val dur = it.duration.takeIf { d -> d > 0 } ?: 0L
-				emitState(context, AudioProModule.STATE_PLAYING, pos, dur)
+				emitState(AudioProModule.STATE_PLAYING, pos, dur)
 			}
 		}
 	}
@@ -136,8 +144,8 @@ object AudioProController {
 		browser = null
 	}
 
-	fun seekTo(context: Context, position: Long) {
-		ensureSession(context)
+	fun seekTo(position: Long) {
+		ensureSession()
 		runOnUiThread {
 			val dur = browser?.duration ?: 0L
 			val validPosition = when {
@@ -146,33 +154,33 @@ object AudioProController {
 				else -> position
 			}
 			browser?.seekTo(validPosition)
-			emitNotice(context, AudioProModule.NOTICE_SEEK_COMPLETE, validPosition, dur)
+			emitNotice(AudioProModule.NOTICE_SEEK_COMPLETE, validPosition, dur)
 		}
 	}
 
-	fun seekForward(context: Context, amount: Long) {
-		ensureSession(context)
+	fun seekForward(amount: Long) {
+		ensureSession()
 		runOnUiThread {
 			val current = browser?.currentPosition ?: 0L
 			val dur = browser?.duration ?: 0L
 			val newPos = (current + amount).coerceAtMost(dur)
 			browser?.seekTo(newPos)
-			emitNotice(context, AudioProModule.NOTICE_SEEK_COMPLETE, newPos, dur)
+			emitNotice(AudioProModule.NOTICE_SEEK_COMPLETE, newPos, dur)
 		}
 	}
 
-	fun seekBack(context: Context, amount: Long) {
-		ensureSession(context)
+	fun seekBack(amount: Long) {
+		ensureSession()
 		runOnUiThread {
 			val current = browser?.currentPosition ?: 0L
 			val newPos = (current - amount).coerceAtLeast(0L)
 			val dur = browser?.duration ?: 0L
 			browser?.seekTo(newPos)
-			emitNotice(context, AudioProModule.NOTICE_SEEK_COMPLETE, newPos, dur)
+			emitNotice(AudioProModule.NOTICE_SEEK_COMPLETE, newPos, dur)
 		}
 	}
 
-	fun attachPlayerListener(context: Context) {
+	fun attachPlayerListener() {
 		browser?.addListener(object : Player.Listener {
 
 			override fun onIsPlayingChanged(isPlaying: Boolean) {
@@ -180,10 +188,10 @@ object AudioProController {
 				val dur = browser?.duration ?: 0L
 
 				if (isPlaying) {
-					emitState(context, AudioProModule.STATE_PLAYING, pos, dur)
-					startProgressTimer(context)
+					emitState(AudioProModule.STATE_PLAYING, pos, dur)
+					startProgressTimer()
 				} else {
-					emitState(context, AudioProModule.STATE_PAUSED, pos, dur)
+					emitState(AudioProModule.STATE_PAUSED, pos, dur)
 					stopProgressTimer()
 				}
 			}
@@ -197,51 +205,51 @@ object AudioProController {
 				when (state) {
 					Player.STATE_BUFFERING -> {
 						if (isPlayIntended) {
-							emitState(context, AudioProModule.STATE_LOADING, pos, dur)
+							emitState(AudioProModule.STATE_LOADING, pos, dur)
 						} else {
-							emitState(context, AudioProModule.STATE_PAUSED, pos, dur)
+							emitState(AudioProModule.STATE_PAUSED, pos, dur)
 						}
 					}
 
 					Player.STATE_READY -> {
 						if (isActuallyPlaying) {
-							emitState(context, AudioProModule.STATE_PLAYING, pos, dur)
-							startProgressTimer(context)
+							emitState(AudioProModule.STATE_PLAYING, pos, dur)
+							startProgressTimer()
 						} else {
-							emitState(context, AudioProModule.STATE_PAUSED, pos, dur)
+							emitState(AudioProModule.STATE_PAUSED, pos, dur)
 							stopProgressTimer()
 						}
 					}
 
 					Player.STATE_ENDED -> {
 						stopProgressTimer()
-						emitNotice(context, AudioProModule.NOTICE_TRACK_ENDED, dur, dur)
-						emitState(context, AudioProModule.STATE_STOPPED, dur, dur)
+						emitNotice(AudioProModule.NOTICE_TRACK_ENDED, dur, dur)
+						emitState(AudioProModule.STATE_STOPPED, dur, dur)
 					}
 
 					Player.STATE_IDLE -> {
 						stopProgressTimer()
-						emitState(context, AudioProModule.STATE_STOPPED, 0L, 0L)
+						emitState(AudioProModule.STATE_STOPPED, 0L, 0L)
 					}
 				}
 			}
 
 			override fun onPlayerError(error: PlaybackException) {
 				val message = error.message ?: "Unknown error"
-				emitError(context, message, 500)
-				emitState(context, AudioProModule.STATE_STOPPED, 0L, 0L)
+				emitError(message, 500)
+				emitState(AudioProModule.STATE_STOPPED, 0L, 0L)
 			}
 		})
 	}
 
-	private fun startProgressTimer(context: Context) {
+	private fun startProgressTimer() {
 		stopProgressTimer()
 		progressHandler = Handler(Looper.getMainLooper())
 		progressRunnable = object : Runnable {
 			override fun run() {
 				val pos = browser?.currentPosition ?: 0L
 				val dur = browser?.duration ?: 0L
-				emitNotice(context, AudioProModule.NOTICE_PROGRESS, pos, dur)
+				emitNotice(AudioProModule.NOTICE_PROGRESS, pos, dur)
 				progressHandler?.postDelayed(this, 1000)
 			}
 		}
@@ -258,38 +266,54 @@ object AudioProController {
 		Handler(Looper.getMainLooper()).post(block)
 	}
 
-	private fun emitEvent(context: Context, eventName: String, params: WritableMap) {
+	private fun emitEvent(context: Context?, eventName: String, params: WritableMap) {
 		if (context is ReactApplicationContext) {
 			context
 				.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
 				.emit(eventName, params)
+		} else {
+			Log.w("AudioProController", "Context is not an instance of ReactApplicationContext")
 		}
 	}
 
-	private fun emitState(context: Context, state: String, position: Long, duration: Long) {
+	private fun emitState(state: String, position: Long, duration: Long) {
 		val body = Arguments.createMap().apply {
 			putString("state", state)
 			putDouble("position", position.toDouble())
 			putDouble("duration", duration.toDouble())
 		}
-		emitEvent(context, AudioProModule.STATE_EVENT_NAME, body)
+		emitEvent(reactContext, AudioProModule.STATE_EVENT_NAME, body)
 	}
 
-	private fun emitNotice(context: Context, notice: String, position: Long, duration: Long) {
+	private fun emitNotice(notice: String, position: Long, duration: Long) {
 		val body = Arguments.createMap().apply {
 			putString("notice", notice)
 			putDouble("position", position.toDouble())
 			putDouble("duration", duration.toDouble())
 		}
-		emitEvent(context, AudioProModule.NOTICE_EVENT_NAME, body)
+		emitEvent(reactContext, AudioProModule.NOTICE_EVENT_NAME, body)
 	}
 
-	private fun emitError(context: Context, message: String, code: Int) {
+	private fun emitError(message: String, code: Int) {
 		val body = Arguments.createMap().apply {
 			putString("notice", AudioProModule.NOTICE_PLAYBACK_ERROR)
 			putString("error", message)
 			putInt("errorCode", code)
 		}
-		emitEvent(context, AudioProModule.NOTICE_EVENT_NAME, body)
+		emitEvent(reactContext, AudioProModule.NOTICE_EVENT_NAME, body)
+	}
+
+	fun emitNext() {
+		val body = Arguments.createMap().apply {
+			putString("notice", AudioProModule.NOTICE_REMOTE_NEXT)
+		}
+		emitEvent(reactContext, AudioProModule.NOTICE_EVENT_NAME, body)
+	}
+
+	fun emitPrev() {
+		val body = Arguments.createMap().apply {
+			putString("notice", AudioProModule.NOTICE_REMOTE_PREV)
+		}
+		emitEvent(reactContext, AudioProModule.NOTICE_EVENT_NAME, body)
 	}
 }

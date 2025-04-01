@@ -64,7 +64,7 @@ open class AudioProPlaybackService : MediaLibraryService() {
 	 */
 	@OptIn(UnstableApi::class)
 	protected open fun createLibrarySessionCallback(): MediaLibrarySession.Callback {
-		return AudioProMediaLibrarySessionCallback(this)
+		return AudioProMediaLibrarySessionCallback()
 	}
 
 	@OptIn(UnstableApi::class) // MediaSessionService.setListener

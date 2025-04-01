@@ -1,51 +1,89 @@
 package dev.rnap.reactnativeaudiopro
 
 import android.content.Context
+import android.os.Bundle
 import androidx.annotation.OptIn
 import androidx.media3.common.MediaItem
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.session.CommandButton
 import androidx.media3.session.MediaLibraryService
 import androidx.media3.session.MediaSession
+import androidx.media3.session.SessionCommand
+import androidx.media3.session.SessionError
+import androidx.media3.session.SessionResult
+import com.google.common.collect.ImmutableList
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
 
 /** A [MediaLibraryService.MediaLibrarySession.Callback] implementation. */
 @UnstableApi
-open class AudioProMediaLibrarySessionCallback(context: Context) :
-	MediaLibraryService.MediaLibrarySession.Callback {
+open class AudioProMediaLibrarySessionCallback : MediaLibraryService.MediaLibrarySession.Callback {
+
+	private val commandButtons: List<CommandButton> =
+		listOf(
+			CommandButton.Builder(CommandButton.ICON_NEXT)
+				.setDisplayName("Next")
+				.setSessionCommand(
+					SessionCommand(
+						CUSTOM_COMMAND_NEXT,
+						Bundle.EMPTY
+					)
+				)
+				.build(),
+			CommandButton.Builder(CommandButton.ICON_PREVIOUS)
+				.setDisplayName("Previous")
+				.setSessionCommand(
+					SessionCommand(
+						CUSTOM_COMMAND_PREV,
+						Bundle.EMPTY
+					)
+				)
+				.build(),
+		)
+
+	companion object {
+		private const val CUSTOM_COMMAND_NEXT =
+			"dev.rnap.reactnativeaudiopro.NEXT"
+		private const val CUSTOM_COMMAND_PREV =
+			"dev.rnap.reactnativeaudiopro.PREV"
+	}
 
 	@OptIn(UnstableApi::class) // MediaSession.ConnectionResult.DEFAULT_SESSION_AND_LIBRARY_COMMANDS
 	val mediaNotificationSessionCommands =
 		MediaSession.ConnectionResult.DEFAULT_SESSION_AND_LIBRARY_COMMANDS.buildUpon()
-//      .also { builder ->
-//        // Put all custom session commands in the list that may be used by the notification.
-//        commandButtons.forEach { commandButton ->
-//          commandButton.sessionCommand?.let { builder.add(it) }
-//        }
-//      }
+			.also { builder ->
+				commandButtons.forEach { commandButton ->
+					commandButton.sessionCommand?.let { builder.add(it) }
+				}
+			}
 			.build()
 
-	// ConnectionResult.DEFAULT_SESSION_AND_LIBRARY_COMMANDS
-	// ConnectionResult.AcceptedResultBuilder
 	@OptIn(UnstableApi::class)
 	override fun onConnect(
 		session: MediaSession,
 		controller: MediaSession.ControllerInfo,
 	): MediaSession.ConnectionResult {
-		if (
-			session.isMediaNotificationController(controller) ||
-			session.isAutomotiveController(controller) ||
-			session.isAutoCompanionController(controller)
-		) {
-			// Select the button to display.
-			// val customButton = commandButtons[if (session.player.shuffleModeEnabled) 1 else 0]
-			return MediaSession.ConnectionResult.AcceptedResultBuilder(session)
-				.setAvailableSessionCommands(mediaNotificationSessionCommands)
-				// .setMediaButtonPreferences(ImmutableList.of(customButton))
-				.build()
+		return MediaSession.ConnectionResult.AcceptedResultBuilder(session)
+			.setAvailableSessionCommands(mediaNotificationSessionCommands)
+			.setMediaButtonPreferences(commandButtons)
+			.build()
+	}
+
+	@OptIn(UnstableApi::class) // MediaSession.isMediaNotificationController
+	override fun onCustomCommand(
+		session: MediaSession,
+		controller: MediaSession.ControllerInfo,
+		customCommand: SessionCommand,
+		args: Bundle,
+	): ListenableFuture<SessionResult> {
+		if (CUSTOM_COMMAND_NEXT == customCommand.customAction) {
+			AudioProController.emitNext()
+			return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
+		} else if (CUSTOM_COMMAND_PREV == customCommand.customAction) {
+			AudioProController.emitPrev()
+			return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
 		}
-		// Default commands without media button preferences for common controllers.
-		return MediaSession.ConnectionResult.AcceptedResultBuilder(session).build()
+		return Futures.immediateFuture(SessionResult(SessionError.ERROR_NOT_SUPPORTED))
 	}
 
 	override fun onAddMediaItems(

@@ -29,41 +29,40 @@ class AudioProModule(private val reactContext: ReactApplicationContext) :
 		const val NOTICE_REMOTE_PREV = "REMOTE_PREV"
 	}
 
+	init {
+		AudioProController.setReactContext(reactContext)
+	}
+
 	@ReactMethod
 	fun play(track: ReadableMap, options: ReadableMap) {
 		CoroutineScope(Dispatchers.Main).launch {
-			AudioProController.play(reactApplicationContext, track, options)
+			AudioProController.play(track, options)
 		}
 	}
 
 	@ReactMethod
 	fun pause() {
-		AudioProController.pause(reactApplicationContext)
+		AudioProController.pause()
 	}
 
 	@ReactMethod
 	fun resume() {
-		AudioProController.resume(reactApplicationContext)
+		AudioProController.resume()
 	}
 
 	@ReactMethod
 	fun seekTo(position: Double) {
-		AudioProController.seekTo(reactApplicationContext, position.toLong())
+		AudioProController.seekTo(position.toLong())
 	}
 
 	@ReactMethod
 	fun seekForward(amount: Double) {
-		AudioProController.seekForward(reactApplicationContext, amount.toLong())
+		AudioProController.seekForward(amount.toLong())
 	}
 
 	@ReactMethod
 	fun seekBack(amount: Double) {
-		AudioProController.seekBack(reactApplicationContext, amount.toLong())
-	}
-
-	@ReactMethod
-	fun release() {
-		AudioProController.release()
+		AudioProController.seekBack(amount.toLong())
 	}
 
 	override fun getName(): String {
