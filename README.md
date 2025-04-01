@@ -1,6 +1,6 @@
 # React Native Audio Pro
 
-A React Native module for audio playback from remote URLs. Ideal for audiobook and podcast apps, it supports background playback and lock screen controls on both Android and iOS. Built from the ground up with Media3, our Android integration uses the latest playback engine — no legacy ExoPlayer dependencies. It supports background playback, lock screen controls, and seamless React Native integration using modern service-based architecture.
+Modern, background-capable audio playback for React Native — built for podcasts, audiobooks, and long-form media. Works out of the box with background playback, lock screen controls, and clean hooks-based state. Under the hood: Android uses Media3 (not old-school ExoPlayer), giving you up-to-date media session support without any of the legacy baggage. iOS uses AVFoundation, Apple's native audio engine for professional-grade media playback.
 
 [![npm version](https://img.shields.io/npm/v/react-native-audio-pro?logo=npm&logoColor=white&labelColor=grey&color=blue)](https://www.npmjs.com/package/react-native-audio-pro)
 [![website](https://img.shields.io/badge/website-rnap.dev-grey?logo=google-chrome&logoColor=white&color=blue)](https://rnap.dev)
@@ -8,22 +8,23 @@ A React Native module for audio playback from remote URLs. Ideal for audiobook a
 
 ## Table of Contents
 
-- [Installation](#installation)
-- [Requirements](#requirements)
-- [Platform-Specific Setup](#platform-specific-setup)
-  - [iOS](#ios)
-  - [Android](#android)
-- [API Overview](#api-overview)
-  - [Methods](#methods)
-  - [Event Listeners](#event-listeners)
-  - [Enums](#enums)
-  - [Types](#types)
-- [Basic Usage Example](#basic-usage-example)
+- [🚀 Installation](#-installation)
+- [⚙️ Requirements](#-requirements)
+- [🔧 Platform-Specific Setup](#-platform-specific-setup)
+  - [🍎 iOS](#ios)
+  - [🤖 Android](#android)
+- [📚 API Overview](#api-overview)
+  - [🛠 Methods](#methods)
+  - [🎧 Event Listeners](#event-listeners)
+  - [🧱 Enums](#enums)
+  - [🧩 Types](#types)
+- [⚡️ useAudioPro Hook Example](#useaudiopro-hook-example)
+- [📦 API Usage Example](#api-usage-example)
 - [📱 Example App](#-example-app)
-- [Contributing](#contributing)
-- [License](#license)
+- [🤝 Contributing](#contributing)
+- [🪪 License](#license)
 
-## Installation
+## 🚀 Installation
 
 ```bash
 npm install react-native-audio-pro
@@ -33,19 +34,16 @@ or
 yarn add react-native-audio-pro
 ```
 
-## Requirements
+## ⚙️ Requirements
 
 - **TypeScript:** 5.0 or higher
 - **React Native:** 0.72 or higher
 - **iOS:** iOS 15.1 or higher
 - **Android:** Android 13 (API 33) or higher
 
-> **Why Android 13+ (API 33) is required**
-> While Media3 supports API 21+, this library targets API 33+ to fully leverage modern media session APIs, foreground service behavior, and notification controls without legacy fallbacks. This ensures consistent, clean background playback using the latest Android standards.
+## 🔧 Platform-Specific Setup
 
-## Platform-Specific Setup
-
-### iOS
+### 🍎 iOS
 
 #### Enable Background Modes
 
@@ -53,12 +51,16 @@ yarn add react-native-audio-pro
 2. Go to **Signing & Capabilities**.
 3. Add **Background Modes** and enable **Audio, AirPlay, and Picture in Picture**.
 
-### Android
+### 🤖 Android
+
+> **Why Android 13+ (API 33) is required**
+> While Media3 supports API 21+, this library targets API 33+ to fully leverage modern media session APIs, foreground service behavior, and notification controls without legacy fallbacks. This ensures consistent, clean background playback using the latest Android standards.
 
 #### Gradle Configuration
 
+Edit `android/build.gradle`
+
 ```gradle
-// File: android/build.gradle
 buildscript {
     ext {
         minSdkVersion = 31
@@ -69,9 +71,9 @@ buildscript {
 }
 ```
 
-## API Overview
+## 📚 API Overview
 
-### Methods
+### 🛠 Methods
 
 - **load(track: AudioProTrack): void**
   - Loads the specified track.
@@ -82,7 +84,7 @@ buildscript {
 - **resume(): void**
   - Resumes playback if paused.
 - **stop(): void**
-  - Stops the playback.
+  - Stops the playback, resetting to position 0.
 - **seekTo(positionMs: number): void**
   - Seeks to a specific position (in milliseconds).
 - **seekForward(amountMs?: number): void**
@@ -92,17 +94,17 @@ buildscript {
 - **configure(options: AudioProSetupOptions): void**
   - Optional. Sets playback options like content type (`'music'` or `'speech'`). Takes effect the next time `play()` is called.
 
-### Event Listeners
+### 🎧 Event Listeners
 
 - **addListener(callback: AudioProEventCallback): EmitterSubscription**
   - Listens for playback events (e.g., track ended, errors, progress).
 
-### Enums
+### 🧱 Enums
 
 - **AudioProState:** `STOPPED`, `LOADING`, `PLAYING`, `PAUSED`
 - **AudioProEvent:** `TRACK_ENDED`, `PLAYBACK_ERROR`, `PROGRESS`, `SEEK_COMPLETE`, `REMOTE_NEXT`, `REMOTE_PREV`
 
-### Types
+### 🧩 Types
 
 ```typescript
 type AudioProTrack = {
@@ -121,9 +123,9 @@ type AudioProSetupOptions = {
 
 ### About contentType
 
-The `contentType` option informs the underlying audio engine how to optimize playback. Use `'speech'` for voice-based audio (e.g., stories, podcasts) and `'music'` for music-heavy tracks. This helps the OS route audio appropriately and manage interruptions. This setting is optional and defaults to `'music'`. Changes apply on the next `play()` call.
+Use `'speech'` for podcasts or audiobooks, `'music'` for songs or music-heavy audio. This optimizes playback behavior like audio focus and routing. Defaults to `'music'`.
 
-## The useAudioPro Hook
+## ⚡️ useAudioPro Hook Example
 
 The `useAudioPro` hook gives you real-time access to the playback state, current position, and total duration.
 
@@ -145,7 +147,7 @@ const AudioStatus = () => {
 export default AudioStatus;
 ```
 
-## Basic Usage Example
+## 📦 API Usage Example
 
 ```typescript
 // Optional: Set playback config
