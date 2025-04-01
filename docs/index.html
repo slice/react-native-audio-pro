@@ -14,6 +14,12 @@
     body {
       padding: var(--spacing);
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      font-size: 16px;
+    }
+
+    header, footer, main {
+      max-width: 700px;
+      margin: 0 auto;
     }
 
     header, footer {
@@ -23,8 +29,7 @@
     }
 
     main {
-      margin: var(--spacing) auto;
-      max-width: 800px;
+      /*margin: var(--spacing) auto;*/
     }
 
     h1 {
@@ -53,153 +58,91 @@
 <body>
 <header>
   <h1>React Native Audio Pro</h1>
-  <p>A React Native module for robust audio playback from remote URLs. Ideal for audiobook and podcast apps.</p>
+  <p>A React Native module for robust audio playback from remote URLs. Ideal for music, audiobook and podcast apps.</p>
   <div class="badge-container">
     <a href="https://www.npmjs.com/package/react-native-audio-pro">
-      <img src="https://img.shields.io/npm/v/react-native-audio-pro" alt="npm version" />
-    </a>
-    <a href="https://github.com/evergrace-co/react-native-audio-pro" target="_blank" rel="noopener">
-      <img src="https://img.shields.io/badge/GitHub-blue?logo=github" alt="GitHub Repo" />
+      <img src="https://img.shields.io/npm/v/react-native-audio-pro?logo=npm&logoColor=white&labelColor=grey&color=blue" alt="npm version" />
     </a>
     <a href="https://rnap.dev">
-      <img src="https://img.shields.io/badge/Website-rnap.dev-blue?logo=react" alt="Website" />
+      <img src="https://img.shields.io/badge/website-rnap.dev-grey?logo=google-chrome&logoColor=white&color=blue" alt="Website" />
+    </a>
+    <a href="https://github.com/evergrace-co/react-native-audio-pro" target="_blank" rel="noopener">
+      <img src="https://img.shields.io/badge/evergrace--co-react--native--audio--pro-grey?logo=github&logoColor=white&labelColor=grey&color=blue" alt="GitHub Repo" />
     </a>
   </div>
 </header>
 
 <main>
-  <section id="overview">
-    <h2>Overview</h2>
-    <p>React Native Audio Pro provides modern audio playback features for React Native apps. Stream remote files, control audio in the background, and access lock screen controls easily on both Android and iOS.</p>
-    <p>On Android, it leverages Google's new Media3 architecture — offering native background playback, lock screen media controls, and buttery-smooth React Native integration without relying on deprecated ExoPlayer APIs. It’s a future-proof audio engine for the modern Android ecosystem.</p>
-  </section>
-
-  <section id="installation">
-    <h2>Installation</h2>
-    <pre><code class="language-bash">npm install react-native-audio-pro
-# or
-yarn add react-native-audio-pro</code></pre>
-  </section>
-
-  <section id="requirements">
-    <h2>Requirements</h2>
+  <section id="features">
+    <h2>🚀 Features</h2>
     <ul>
-      <li>React Native 0.60 or higher</li>
-      <li>iOS 15.0 or higher</li>
-      <li>Android 13 (API Level 33) or higher</li>
+      <li>🎵 Powered by Media3 (Android) & AVFoundation (iOS)</li>
+      <li>🔒 Lock screen controls & background playback</li>
+      <li>🔔 Automatic handling of notification center (Android & iOS)</li>
+      <li>📦 Built fully in TypeScript – no JS wrappers</li>
+      <li>🧠 Simple React hook & module interface</li>
+      <li>⚡️ Lightweight, fast, and production-ready</li>
     </ul>
   </section>
 
-  <section id="setup">
-    <h2>Platform Setup</h2>
+  <section id="hook-example">
+    <h2>🎧 React Hook in Action</h2>
+    <pre><code class="language-ts">import { useAudioPro } from 'react-native-audio-pro';
 
-    <h3>iOS</h3>
-    <ul>
-      <li>Enable <strong>Background Modes</strong> > <em>Audio, AirPlay, and Picture in Picture</em></li>
-      <li>Set iOS Deployment Target to <strong>15.0+</strong></li>
-    </ul>
-
-    <h3>Android</h3>
-    <pre><code class="language-gradle">// android/build.gradle
-buildscript {
-  ext {
-    minSdkVersion = 31
-    compileSdkVersion = 33
-    targetSdkVersion = 33
-  }
-}</code></pre>
-  </section>
-
-  <section id="api">
-    <h2>API Overview</h2>
-    <h3>Methods</h3>
-    <ul>
-      <li><code>play(track)</code></li>
-      <li><code>pause()</code></li>
-      <li><code>resume()</code></li>
-      <li><code>stop()</code></li>
-      <li><code>seekTo(ms)</code></li>
-      <li><code>seekForward(seconds?)</code></li>
-      <li><code>seekBack(seconds?)</code></li>
-      <li><code>configure(options: AudioProSetupOptions): void</code> – Optional. Sets playback options like content type (`'music'` or `'speech'`). Takes effect the next time <code>play()</code> is called.</li>
-    </ul>
-
-    <h3>Events</h3>
-    <ul>
-      <li><code>addStateListener(callback)</code></li>
-      <li><code>addNoticeListener(callback)</code></li>
-    </ul>
-
-    <h3>Track Type</h3>
-    <pre><code class="language-ts">type AudioProTrack = {
-  url: string;
-  title: string;
-  artwork: string;
-  album?: string;
-  artist?: string;
-}</code></pre>
-    <h3>Setup Options</h3>
-    <pre><code class="language-ts">type AudioProSetupOptions = {
-    contentType?: 'music' | 'speech';
-  }</code></pre>
-    <p><strong>About <code>contentType</code>:</strong> Use <code>'speech'</code> for voice-based audio like stories or podcasts, and <code>'music'</code> for music tracks. It helps the OS optimize routing and handling. This option is optional and defaults to <code>'music'</code>. Changes take effect the next time <code>play()</code> is called.</p>
-  </section>
-
-  <section id="usage">
-    <h2>Basic Usage</h2>
-    <pre><code class="language-js">AudioPro.configure({ contentType: 'speech' }); // Optional: Set playback config before calling play
-import AudioPro from 'react-native-audio-pro';
-
-const track = {
-  url: 'https://example.com/audio.mp3',
-  title: 'Example Track',
-  artwork: 'https://example.com/art.jpg',
-  artist: 'Artist Name'
-};
-
-AudioPro.play(track);
-
-AudioPro.addStateListener((state) => {
-  console.log('State:', state);
-});
-
-AudioPro.addNoticeListener((notice) => {
-  console.log('Notice:', notice);
-});</code></pre>
-  </section>
-
-  <section id="example-app">
-    <h2>📱 Example App</h2>
-    <p>
-      A full working example app is available in the <code>example/</code> folder of the repository.
-      It shows how to build a complete audio player in React Native using <code>react-native-audio-pro</code>.
-    </p>
-    <ul>
-      <li>Track metadata (title, artist, artwork)</li>
-      <li>Playback controls (play, pause, seek, skip)</li>
-      <li>Slider for progress</li>
-      <li>Event listeners for playback state and notices</li>
-    </ul>
-    <p>To run the example:</p>
-    <pre><code class="language-bash">npm install
-npm run example start
-# In a new terminal:
-cd example
-npm run ios   # or npm run android
+export default function Player() {
+  const { state, duration, position } = useAudioPro();
+  return (
+    &lt;View&gt;
+      &lt;Text&gt;State: {state}&lt;/Text&gt;
+      &lt;Text&gt;Position: {position} / {duration}&lt;/Text&gt;
+    &lt;/View&gt;
+  );
+}
 </code></pre>
   </section>
+
+  <section id="api-example">
+    <h2>🧩 Module in Action</h2>
+    <pre><code class="language-ts">import {AudioPro} from 'react-native-audio-pro';
+
+AudioPro.configure({ contentType: 'speech' });
+
+AudioPro.load({
+  url: 'https://example.com/audio.mp3',
+  title: 'Sample Track',
+  artwork: 'https://example.com/image.jpg',
+  artist: 'Narrator Name',
+});
+
+AudioPro.play();
+</code></pre>
+  </section>
+  <section id="api-reference">
+    <h2>Documentation</h2>
+    <p>For full setup and API reference, see the <a href="https://github.com/evergrace-co/react-native-audio-pro" target="_blank">GitHub README</a>.</p>
+    <ul>
+      <li>📖 Full API for <code>AudioPro</code> module and <code>useAudioPro</code> hook</li>
+      <li>📦 Details on payloads, types, and setup options</li>
+      <li>🧪 Example app demonstrating integration and usage</li>
+      <li>🔧 Platform-specific setup (Android & iOS)</li>
+    </ul>
+  </section>
+<section id="signoff">
+  <h2>🚀 Ready to build?</h2>
+  <p>Check it out and let us know how you go! If you run into any issues, <a href="https://github.com/evergrace-co/react-native-audio-pro/issues" target="_blank">log an issue</a> — we’ll squash bugs fast. 💪</p>
+</section>
 </main>
+
 
 <footer>
   <small>
-    <a href="https://github.com/evergrace-co/react-native-audio-pro">GitHub</a> •
-    <a href="https://www.npmjs.com/package/react-native-audio-pro">NPM</a> •
-    <a href="https://rnap.dev">rnap.dev</a>
+    <a href="https://www.npmjs.com/package/react-native-audio-pro">npm</a> •
+    <a href="https://rnap.dev">rnap.dev</a> •
+    <a href="https://github.com/evergrace-co/react-native-audio-pro">github</a>
   </small>
 </footer>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-typescript.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
 </body>
 </html>
