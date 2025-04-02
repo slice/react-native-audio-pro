@@ -64,7 +64,7 @@ export const AudioPro = {
 	},
 
 	stop() {
-		if (!guardTrackPlaying('stop')) return;
+		// Don't guard stop()
 		logDebug('AudioPro: stop()');
 		NativeAudioPro.stop();
 		useInternalStore.getState().setTrackPlaying(undefined);
