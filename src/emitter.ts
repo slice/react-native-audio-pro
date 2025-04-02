@@ -8,32 +8,30 @@ export const emitter = new NativeEventEmitter(NativeAudioPro);
 
 emitter.addListener('AudioProEvent', (event: AudioProEventPayload) => {
 	logDebug('AudioProEvent', event);
-	const { setDuration, setLastNotice, setPosition } =
-		useInternalStore.getState();
-	if ('name' in event && event.name) {
-		setLastNotice(event.name);
+	const { setStateFromNoticeEvent } = useInternalStore.getState();
+
+	let position: number | undefined;
+	if ('position' in event) {
+		position = event.position ?? undefined;
 	}
-	// noinspection SuspiciousTypeOfGuard
-	if ('position' in event && typeof event.position === 'number') {
-		setPosition(event.position);
+	let duration: number | undefined;
+	if ('duration' in event) {
+		duration = event.duration ?? undefined;
 	}
-	// noinspection SuspiciousTypeOfGuard
-	if ('duration' in event && typeof event.duration === 'number') {
-		setDuration(event.duration);
-	}
+	setStateFromNoticeEvent(event.name, position, duration);
 });
 
 emitter.addListener('AudioProStateEvent', (event: AudioProStatePayload) => {
 	logDebug('AudioProState', event);
-	const { setPlayerState, setPosition, setDuration } =
-		useInternalStore.getState();
-	setPlayerState(event.state);
-	// noinspection SuspiciousTypeOfGuard
-	if ('position' in event && typeof event.position === 'number') {
-		setPosition(event.position);
+	const { setStateFromStateEvent } = useInternalStore.getState();
+
+	let position: number | undefined;
+	if ('position' in event) {
+		position = event.position ?? undefined;
 	}
-	// noinspection SuspiciousTypeOfGuard
-	if ('duration' in event && typeof event.duration === 'number') {
-		setDuration(event.duration);
+	let duration: number | undefined;
+	if ('duration' in event) {
+		duration = event.duration ?? undefined;
 	}
+	setStateFromStateEvent(event.state, position, duration);
 });

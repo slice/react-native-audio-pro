@@ -10,13 +10,19 @@ export interface AudioProStore {
 	debug: boolean;
 	loadedTrack?: AudioProTrack;
 	configureOptions: AudioProConfigureOptions;
-	setPlayerState: (playerState: AudioProState) => void;
-	setPosition: (position: number) => void;
-	setDuration: (duration: number) => void;
-	setLastNotice: (name: string) => void;
 	setDebug: (debug: boolean) => void;
 	setLoadedTrack: (track: AudioProTrack | undefined) => void;
 	setConfigureOptions: (options: AudioProConfigureOptions) => void;
+	setStateFromStateEvent: (
+		state: AudioProState,
+		position?: number,
+		duration?: number
+	) => void;
+	setStateFromNoticeEvent: (
+		name: string,
+		position?: number,
+		duration?: number
+	) => void;
 }
 
 export const useInternalStore = create<AudioProStore>((set) => ({
@@ -27,11 +33,21 @@ export const useInternalStore = create<AudioProStore>((set) => ({
 	debug: false,
 	loadedTrack: undefined,
 	configureOptions: { ...DEFAULT_CONFIG },
-	setPlayerState: (playerState) => set({ playerState }),
-	setPosition: (position) => set({ position }),
-	setDuration: (duration) => set({ duration }),
-	setLastNotice: (name) => set({ lastNotice: name }),
 	setDebug: (debug) => set({ debug }),
 	setLoadedTrack: (track) => set({ loadedTrack: track }),
 	setConfigureOptions: (options) => set({ configureOptions: options }),
+	setStateFromStateEvent: (state, position, duration) => {
+		const updates: Partial<AudioProStore> = {};
+		updates.playerState = state;
+		if (position !== undefined) updates.position = position;
+		if (duration !== undefined) updates.duration = duration;
+		set(updates);
+	},
+	setStateFromNoticeEvent: (name, position, duration) => {
+		const updates: Partial<AudioProStore> = {};
+		updates.lastNotice = name;
+		if (position !== undefined) updates.position = position;
+		if (duration !== undefined) updates.duration = duration;
+		set(updates);
+	},
 }));
