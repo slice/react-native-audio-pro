@@ -128,12 +128,16 @@ AudioPro.addEventListener((event) => {
   if (event.name === AudioProEventName.REMOTE_NEXT) {
     // Handle next track button press
     console.log('User pressed Next button');
+    // The current track is included in the event payload
+    console.log('Current track:', event.track);
     // Load and play next track
   }
 
   if (event.name === AudioProEventName.REMOTE_PREV) {
     // Handle previous track button press
     console.log('User pressed Previous button');
+    // The current track is included in the event payload
+    console.log('Current track:', event.track);
     // Load and play previous track
   }
 });
@@ -154,6 +158,17 @@ type AudioProTrack = {
 type AudioProSetupOptions = {
     contentType?: 'music' | 'speech';
     debug?: boolean; // Verbose logging
+};
+
+// All event payloads include the current track (null when no track is playing)
+type AudioProEventPayload = {
+    name: AudioProEventName;
+    track: AudioProTrack | null;
+    // Additional properties based on event type
+    position?: number;
+    duration?: number;
+    error?: string;
+    errorCode?: number;
 };
 ```
 

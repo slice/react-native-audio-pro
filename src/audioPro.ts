@@ -51,7 +51,6 @@ export const AudioPro = {
 
 		const options = { ...configureOptions, playbackSpeed };
 		NativeAudioPro.play(trackLoaded, options);
-		useInternalStore.getState().setTrackPlaying(trackLoaded);
 	},
 
 	pause() {
@@ -67,10 +66,8 @@ export const AudioPro = {
 	},
 
 	stop() {
-		// Don't guard stop()
 		logDebug('AudioPro: stop()');
 		NativeAudioPro.stop();
-		useInternalStore.getState().setTrackPlaying(undefined);
 	},
 
 	seekTo(positionMs: number) {
@@ -98,7 +95,7 @@ export const AudioPro = {
 			'AudioProEvent',
 			(event: AudioProEventPayload) => {
 				callback(event);
-			}
+			},
 		);
 	},
 
@@ -121,7 +118,7 @@ export const AudioPro = {
 		const validatedSpeed = Math.max(0.25, Math.min(2.0, speed));
 		if (validatedSpeed !== speed) {
 			console.warn(
-				`AudioPro: Playback speed ${speed} out of range, clamped to ${validatedSpeed}`
+				`AudioPro: Playback speed ${speed} out of range, clamped to ${validatedSpeed}`,
 			);
 		}
 

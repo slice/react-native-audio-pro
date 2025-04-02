@@ -17,6 +17,7 @@ export type AudioProTrack = {
 // ==============================
 export interface BaseAudioProStatePayload {
 	state: AudioProState;
+	track: AudioProTrack | null;
 }
 
 export interface AudioProPlayingStatePayload extends BaseAudioProStatePayload {
@@ -52,6 +53,7 @@ export type AudioProStatePayload =
 // ==============================
 export interface BaseAudioProNoticePayload {
 	name: AudioProEventName;
+	track: AudioProTrack | null;
 }
 
 export interface AudioProTrackEndedNoticePayload

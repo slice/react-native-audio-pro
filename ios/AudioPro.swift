@@ -38,6 +38,7 @@ class AudioPro: RCTEventEmitter {
     private var isStatusObserverAdded = false
 
     private var currentPlaybackSpeed: Float = 1.0
+    private var currentTrack: NSDictionary?
 
     private var debugLog: Bool = false
 
@@ -98,7 +99,8 @@ class AudioPro: RCTEventEmitter {
         let body: [String: Any] = [
             "notice": NOTICE_PROGRESS,
             "position": info.position,
-            "duration": info.duration
+            "duration": info.duration,
+            "track": info.track as Any
         ]
         sendEvent(withName: NOTICE_EVENT_NAME, body: body)
     }
@@ -109,6 +111,7 @@ class AudioPro: RCTEventEmitter {
 
     @objc(play:withOptions:)
     func play(track: NSDictionary, options: NSDictionary) {
+        currentTrack = track
         debugLog = options["debug"] as? Bool ?? false
         let speed = options["playbackSpeed"] as? Float ?? 1.0
         currentPlaybackSpeed = speed
@@ -144,7 +147,8 @@ class AudioPro: RCTEventEmitter {
 
         if hasListeners {
             let body: [String: Any] = [
-                "state": STATE_LOADING
+                "state": STATE_LOADING,
+                "track": currentTrack as Any
             ]
             sendEvent(withName: STATE_EVENT_NAME, body: body)
         }
@@ -208,7 +212,8 @@ class AudioPro: RCTEventEmitter {
                 let body: [String: Any] = [
                     "state": self.STATE_PLAYING,
                     "position": info.position,
-                    "duration": info.duration
+                    "duration": info.duration,
+                    "track": info.track as Any
                 ]
                 self.sendEvent(withName: self.STATE_EVENT_NAME, body: body)
                 self.startProgressTimer()
@@ -265,10 +270,10 @@ class AudioPro: RCTEventEmitter {
     @objc func stop() {
         shouldBePlaying = false
 
-        // Pause and reset playback without tearing down the now playing info.
         player?.pause()
         player?.seek(to: .zero)
         stopTimer()
+        currentTrack = nil
         sendStoppedStateEvent()
 
         // Update now playing info to reflect a stopped state but keep the artwork intact.
@@ -300,6 +305,7 @@ class AudioPro: RCTEventEmitter {
         player = nil
 
         stopTimer()
+        currentTrack = nil
         sendStoppedStateEvent()
 
         // Unlike stop, cleanup clears the now playing info and remote control events.
@@ -440,7 +446,8 @@ class AudioPro: RCTEventEmitter {
             let body: [String: Any] = [
                 "notice": NOTICE_SEEK_COMPLETE,
                 "position": info.position,
-                "duration": info.duration
+                "duration": info.duration,
+                "track": info.track as Any
             ]
             sendEvent(withName: NOTICE_EVENT_NAME, body: body)
         }
@@ -482,7 +489,8 @@ class AudioPro: RCTEventEmitter {
             let trackEndedBody: [String: Any] = [
                 "notice": NOTICE_TRACK_ENDED,
                 "position": info.duration,
-                "duration": info.duration
+                "duration": info.duration,
+                "track": info.track as Any
             ]
             sendEvent(withName: NOTICE_EVENT_NAME, body: trackEndedBody)
             // When a track naturally finishes, call stop (not cleanup)
@@ -501,7 +509,10 @@ class AudioPro: RCTEventEmitter {
             if let newRate = change?[.newKey] as? Float {
                 if newRate == 0 {
                     if shouldBePlaying && hasListeners {
-                        let body: [String: Any] = ["state": STATE_LOADING]
+                        let body: [String: Any] = [
+                            "state": STATE_LOADING,
+                            "track": currentTrack as Any
+                        ]
                         sendEvent(withName: STATE_EVENT_NAME, body: body)
                         stopTimer()
                     }
@@ -511,7 +522,8 @@ class AudioPro: RCTEventEmitter {
                         let body: [String: Any] = [
                             "state": STATE_PLAYING,
                             "position": info.position,
-                            "duration": info.duration
+                            "duration": info.duration,
+                            "track": info.track as Any
                         ]
                         sendEvent(withName: STATE_EVENT_NAME, body: body)
                         startProgressTimer()
@@ -534,9 +546,9 @@ class AudioPro: RCTEventEmitter {
     // MARK: - Private Helpers & Error Handling
     ////////////////////////////////////////////////////////////
 
-    private func getPlaybackInfo() -> (position: Int, duration: Int) {
+    private func getPlaybackInfo() -> (position: Int, duration: Int, track: NSDictionary?) {
         guard let player = player, let currentItem = player.currentItem else {
-            return (0, 0)
+            return (0, 0, nil)
         }
         let currentTimeSec = player.currentTime().seconds
         let durationSec = currentItem.duration.seconds
@@ -544,7 +556,7 @@ class AudioPro: RCTEventEmitter {
         let validDurationSec = (durationSec.isNaN || durationSec.isInfinite) ? 0 : durationSec
         let positionMs = Int(round(validCurrentTimeSec * 1000))
         let durationMs = Int(round(validDurationSec * 1000))
-        return (position: positionMs, duration: durationMs)
+        return (position: positionMs, duration: durationMs, track: currentTrack)
     }
 
     private func sendStoppedStateEvent() {
@@ -552,7 +564,8 @@ class AudioPro: RCTEventEmitter {
             let body: [String: Any] = [
                 "state": STATE_STOPPED,
                 "position": 0,
-                "duration": 0
+                "duration": 0,
+                "track": NSNull()
             ]
             sendEvent(withName: STATE_EVENT_NAME, body: body)
         }
@@ -564,7 +577,8 @@ class AudioPro: RCTEventEmitter {
             let body: [String: Any] = [
                 "state": STATE_PLAYING,
                 "position": info.position,
-                "duration": info.duration
+                "duration": info.duration,
+                "track": info.track as Any
             ]
             sendEvent(withName: STATE_EVENT_NAME, body: body)
         }
@@ -576,7 +590,8 @@ class AudioPro: RCTEventEmitter {
             let body: [String: Any] = [
                 "state": STATE_PAUSED,
                 "position": info.position,
-                "duration": info.duration
+                "duration": info.duration,
+                "track": info.track as Any
             ]
             sendEvent(withName: STATE_EVENT_NAME, body: body)
         }
@@ -596,11 +611,13 @@ class AudioPro: RCTEventEmitter {
 
     func onError(_ errorMessage: String) {
         if hasListeners {
-            sendEvent(withName: NOTICE_EVENT_NAME, body: [
+            let body: [String: Any] = [
                 "notice": NOTICE_PLAYBACK_ERROR,
                 "error": errorMessage,
-                "errorCode": GENERIC_ERROR_CODE
-            ])
+                "errorCode": GENERIC_ERROR_CODE,
+                "track": currentTrack as Any
+            ]
+            sendEvent(withName: NOTICE_EVENT_NAME, body: body)
         }
         cleanup()
     }
@@ -634,13 +651,21 @@ class AudioPro: RCTEventEmitter {
 
         commandCenter.nextTrackCommand.addTarget { [weak self] event in
             guard let self = self else { return .commandFailed }
-            self.sendEvent(withName: self.NOTICE_EVENT_NAME, body: ["notice": self.NOTICE_REMOTE_NEXT])
+            let body: [String: Any] = [
+                "notice": self.NOTICE_REMOTE_NEXT,
+                "track": self.currentTrack as Any
+            ]
+            self.sendEvent(withName: self.NOTICE_EVENT_NAME, body: body)
             return .success
         }
 
         commandCenter.previousTrackCommand.addTarget { [weak self] event in
             guard let self = self else { return .commandFailed }
-            self.sendEvent(withName: self.NOTICE_EVENT_NAME, body: ["notice": self.NOTICE_REMOTE_PREV])
+            let body: [String: Any] = [
+                "notice": self.NOTICE_REMOTE_PREV,
+                "track": self.currentTrack as Any
+            ]
+            self.sendEvent(withName: self.NOTICE_EVENT_NAME, body: body)
             return .success
         }
 

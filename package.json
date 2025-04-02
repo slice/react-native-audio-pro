@@ -140,7 +140,7 @@
           "quoteProps": "consistent",
           "singleQuote": true,
           "tabWidth": 4,
-          "trailingComma": "es5",
+          "trailingComma": "all",
           "useTabs": true
         }
       ]
@@ -154,7 +154,7 @@
     "quoteProps": "consistent",
     "singleQuote": true,
     "tabWidth": 4,
-    "trailingComma": "es5",
+    "trailingComma": "all",
     "useTabs": true
   },
   "react-native-builder-bob": {

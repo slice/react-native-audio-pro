@@ -18,7 +18,7 @@ emitter.addListener('AudioProEvent', (event: AudioProEventPayload) => {
 	if ('duration' in event) {
 		duration = event.duration ?? undefined;
 	}
-	setStateFromNoticeEvent(event.name, position, duration);
+	setStateFromNoticeEvent(event.name, position, duration, event.track);
 });
 
 emitter.addListener('AudioProStateEvent', (event: AudioProStatePayload) => {
@@ -33,5 +33,5 @@ emitter.addListener('AudioProStateEvent', (event: AudioProStatePayload) => {
 	if ('duration' in event) {
 		duration = event.duration ?? undefined;
 	}
-	setStateFromStateEvent(event.state, position, duration);
+	setStateFromStateEvent(event.state, position, duration, event.track);
 });

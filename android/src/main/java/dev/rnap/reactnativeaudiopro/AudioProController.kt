@@ -35,6 +35,7 @@ object AudioProController {
 	private var playerListener: Player.Listener? = null
 	private var lastEmittedState: String = AudioProModule.STATE_STOPPED
 	private var currentPlaybackSpeed: Float = 1.0f
+	private var currentTrack: ReadableMap? = null
 
 	private fun log(vararg args: Any?) {
 		if (debug) Log.d("AudioPro", "~~~ ${args.joinToString(" ")}")
@@ -66,6 +67,7 @@ object AudioProController {
 	}
 
 	suspend fun play(track: ReadableMap, options: ReadableMap) {
+		currentTrack = track
 		val contentType = if (options.hasKey("contentType")) {
 			options.getString("contentType") ?: "music"
 		} else "music"
@@ -153,6 +155,7 @@ object AudioProController {
 			browser?.let {
 				val pos = it.currentPosition
 				val dur = it.duration.takeIf { d -> d > 0 } ?: 0L
+				currentTrack = null
 				emitState(AudioProModule.STATE_STOPPED, pos, dur)
 			}
 		}
@@ -324,6 +327,12 @@ object AudioProController {
 			putString("state", state)
 			putDouble("position", position.toDouble())
 			putDouble("duration", duration.toDouble())
+
+			if (currentTrack != null) {
+				putMap("track", currentTrack!!.toHashMap().let { Arguments.makeNativeMap(it) })
+			} else {
+				putNull("track")
+			}
 		}
 		emitEvent(reactContext, AudioProModule.STATE_EVENT_NAME, body)
 
@@ -336,6 +345,12 @@ object AudioProController {
 			putString("notice", notice)
 			putDouble("position", position.toDouble())
 			putDouble("duration", duration.toDouble())
+
+			if (currentTrack != null) {
+				putMap("track", currentTrack!!.toHashMap().let { Arguments.makeNativeMap(it) })
+			} else {
+				putNull("track")
+			}
 		}
 		emitEvent(reactContext, AudioProModule.NOTICE_EVENT_NAME, body)
 	}
@@ -345,6 +360,12 @@ object AudioProController {
 			putString("notice", AudioProModule.NOTICE_PLAYBACK_ERROR)
 			putString("error", message)
 			putInt("errorCode", code)
+
+			if (currentTrack != null) {
+				putMap("track", currentTrack!!.toHashMap().let { Arguments.makeNativeMap(it) })
+			} else {
+				putNull("track")
+			}
 		}
 		emitEvent(reactContext, AudioProModule.NOTICE_EVENT_NAME, body)
 	}
@@ -352,6 +373,12 @@ object AudioProController {
 	fun emitNext() {
 		val body = Arguments.createMap().apply {
 			putString("notice", AudioProModule.NOTICE_REMOTE_NEXT)
+
+			if (currentTrack != null) {
+				putMap("track", currentTrack!!.toHashMap().let { Arguments.makeNativeMap(it) })
+			} else {
+				putNull("track")
+			}
 		}
 		emitEvent(reactContext, AudioProModule.NOTICE_EVENT_NAME, body)
 	}
@@ -359,6 +386,12 @@ object AudioProController {
 	fun emitPrev() {
 		val body = Arguments.createMap().apply {
 			putString("notice", AudioProModule.NOTICE_REMOTE_PREV)
+
+			if (currentTrack != null) {
+				putMap("track", currentTrack!!.toHashMap().let { Arguments.makeNativeMap(it) })
+			} else {
+				putNull("track")
+			}
 		}
 		emitEvent(reactContext, AudioProModule.NOTICE_EVENT_NAME, body)
 	}

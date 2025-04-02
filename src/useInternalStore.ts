@@ -9,53 +9,112 @@ export interface AudioProStore {
 	playbackSpeed: number;
 	lastNotice: string;
 	debug: boolean;
-	trackLoaded?: AudioProTrack;
-	trackPlaying?: AudioProTrack;
+	trackLoaded: AudioProTrack | null;
+	trackPlaying: AudioProTrack | null;
 	configureOptions: AudioProConfigureOptions;
 	setDebug: (debug: boolean) => void;
-	setTrackLoaded: (track: AudioProTrack | undefined) => void;
-	setTrackPlaying: (track: AudioProTrack | undefined) => void;
+	setTrackLoaded: (track: AudioProTrack | null) => void;
+	setTrackPlaying: (track: AudioProTrack | null) => void;
 	setConfigureOptions: (options: AudioProConfigureOptions) => void;
 	setPlaybackSpeed: (speed: number) => void;
 	setStateFromStateEvent: (
 		state: AudioProState,
-		position?: number,
-		duration?: number
+		position: number | undefined,
+		duration: number | undefined,
+		track: AudioProTrack | null,
 	) => void;
 	setStateFromNoticeEvent: (
 		name: string,
-		position?: number,
-		duration?: number
+		position: number | undefined,
+		duration: number | undefined,
+		track: AudioProTrack | null,
 	) => void;
 }
 
-export const useInternalStore = create<AudioProStore>((set) => ({
+export const useInternalStore = create<AudioProStore>((set, get) => ({
 	playerState: AudioProState.STOPPED,
 	position: 0,
 	duration: 0,
 	playbackSpeed: 1.0,
 	lastNotice: '',
 	debug: false,
-	trackLoaded: undefined,
-	trackPlaying: undefined,
+	trackLoaded: null,
+	trackPlaying: null,
 	configureOptions: { ...DEFAULT_CONFIG },
 	setDebug: (debug) => set({ debug }),
 	setTrackLoaded: (track) => set({ trackLoaded: track }),
 	setTrackPlaying: (track) => set({ trackPlaying: track }),
 	setConfigureOptions: (options) => set({ configureOptions: options }),
 	setPlaybackSpeed: (speed) => set({ playbackSpeed: speed }),
-	setStateFromStateEvent: (state, position, duration) => {
+	setStateFromStateEvent: (state, position, duration, track) => {
 		const updates: Partial<AudioProStore> = {};
 		updates.playerState = state;
-		if (position !== undefined) updates.position = position;
-		if (duration !== undefined) updates.duration = duration;
-		set(updates);
+
+		if (position !== undefined && position !== get().position) {
+			updates.position = position;
+		}
+		if (duration !== undefined && duration !== get().duration) {
+			updates.duration = duration;
+		}
+
+		if (track === null) {
+			if (get().trackPlaying !== null) {
+				updates.trackPlaying = null;
+			}
+		} else if (track) {
+			const currentTrack = get().trackPlaying;
+			if (
+				currentTrack === null ||
+				track.id !== currentTrack.id ||
+				track.url !== currentTrack.url ||
+				track.title !== currentTrack.title ||
+				track.artwork !== currentTrack.artwork ||
+				track.album !== currentTrack.album ||
+				track.artist !== currentTrack.artist
+			) {
+				updates.trackPlaying = track;
+			}
+		}
+
+		if (Object.keys(updates).length > 0) {
+			set(updates);
+		}
 	},
-	setStateFromNoticeEvent: (name, position, duration) => {
+	setStateFromNoticeEvent: (name, position, duration, track) => {
 		const updates: Partial<AudioProStore> = {};
-		updates.lastNotice = name;
-		if (position !== undefined) updates.position = position;
-		if (duration !== undefined) updates.duration = duration;
-		set(updates);
+
+		if (name !== get().lastNotice) {
+			updates.lastNotice = name;
+		}
+
+		if (position !== undefined && position !== get().position) {
+			updates.position = position;
+		}
+		if (duration !== undefined && duration !== get().duration) {
+			updates.duration = duration;
+		}
+
+		if (track === null) {
+			if (get().trackPlaying !== null) {
+				updates.trackPlaying = null;
+			}
+		} else if (track) {
+			const currentTrack = get().trackPlaying;
+			if (
+				currentTrack === null ||
+				track.id !== currentTrack.id ||
+				track.url !== currentTrack.url ||
+				track.title !== currentTrack.title ||
+				track.artwork !== currentTrack.artwork ||
+				track.album !== currentTrack.album ||
+				track.artist !== currentTrack.artist
+			) {
+				updates.trackPlaying = track;
+			}
+		}
+
+		if (Object.keys(updates).length > 0) {
+			set(updates);
+		}
 	},
 }));
