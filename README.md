@@ -39,7 +39,7 @@ yarn add react-native-audio-pro
 - **TypeScript:** 5.0 or higher
 - **React Native:** 0.72 or higher
 - **iOS:** iOS 15.1 or higher
-- **Android:** Android 13 (API 33) or higher
+- **Android:** Android 7.0 (API 24) or higher (tested on API 28+)
 
 ## 🔧 Platform-Specific Setup
 
@@ -53,19 +53,22 @@ yarn add react-native-audio-pro
 
 ### 🤖 Android
 
-> **Why Android 13+ (API 33) is required**
-> While Media3 supports API 21+, this library targets API 33+ to fully leverage modern media session APIs, foreground service behavior, and notification controls without legacy fallbacks. This ensures consistent, clean background playback using the latest Android standards.
+> **SDK Support:** Android 7.0 (API 24)+
+> Media3 APIs are supported from API 21+, but testing is focused on API 28+.
+
+> ℹ️ This library requires `compileSdkVersion = 35` and `targetSdkVersion = 35` to support the latest Media3 features and ensure compatibility with modern Android Studio tooling.
+> If you're on older SDKs, we recommend upgrading to avoid build issues.
 
 #### Gradle Configuration
 
-Edit `android/build.gradle`
+In `android/build.gradle`:
 
 ```gradle
 buildscript {
     ext {
-        minSdkVersion = 31
-        compileSdkVersion = 33
-        targetSdkVersion = 33
+        minSdkVersion = 24
+        compileSdkVersion = 35
+        targetSdkVersion = 35
         // ...
     }
 }
