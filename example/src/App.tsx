@@ -18,7 +18,7 @@ import { AudioPro } from '../../src/audioPro';
 export default function App() {
 	const [currentIndex, setCurrentIndex] = useState(0);
 	const currentTrack = playlist[currentIndex];
-	const { position, duration, state, track } = useAudioPro();
+	const { position, duration, state, track, playbackSpeed } = useAudioPro();
 
 	if (!currentTrack) return null;
 
@@ -72,6 +72,16 @@ export default function App() {
 		}
 	};
 
+	const handleIncreaseSpeed = () => {
+		const newSpeed = Math.min(2.0, playbackSpeed + 0.25);
+		AudioPro.setPlaybackSpeed(newSpeed);
+	};
+
+	const handleDecreaseSpeed = () => {
+		const newSpeed = Math.max(0.25, playbackSpeed - 0.25);
+		AudioPro.setPlaybackSpeed(newSpeed);
+	};
+
 	return (
 		<View style={styles.container}>
 			<Image
@@ -123,13 +133,26 @@ export default function App() {
 					<Text style={styles.controlText}>+30s</Text>
 				</TouchableOpacity>
 			</View>
+			<View style={styles.speedRow}>
+				<TouchableOpacity onPress={handleDecreaseSpeed}>
+					<Text style={styles.controlText}>- Speed</Text>
+				</TouchableOpacity>
+				<Text style={styles.speedText}>
+					{playbackSpeed.toFixed(2)}x
+				</Text>
+				<TouchableOpacity onPress={handleIncreaseSpeed}>
+					<Text style={styles.controlText}>+ Speed</Text>
+				</TouchableOpacity>
+			</View>
 			<View style={styles.stopRow}>
 				<TouchableOpacity onPress={handleStop}>
 					<Text style={styles.controlText}>Stop</Text>
 				</TouchableOpacity>
 			</View>
 			<Text style={styles.stateText}>State: {state}</Text>
-			<Text style={styles.stateText}>Track: {JSON.stringify(track)}</Text>
+			{track && (
+				<Text style={styles.stateText}>Track ID: {track.id}</Text>
+			)}
 		</View>
 	);
 }

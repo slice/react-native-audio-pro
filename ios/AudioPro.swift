@@ -37,6 +37,8 @@ class AudioPro: RCTEventEmitter {
     private var isRateObserverAdded = false
     private var isStatusObserverAdded = false
 
+    private var currentPlaybackSpeed: Float = 1.0
+
     private var debugLog: Bool = false
 
     ////////////////////////////////////////////////////////////
@@ -108,7 +110,9 @@ class AudioPro: RCTEventEmitter {
     @objc(play:withOptions:)
     func play(track: NSDictionary, options: NSDictionary) {
         debugLog = options["debug"] as? Bool ?? false
-        log("Play", track["title"] ?? "Unknown")
+        let speed = options["playbackSpeed"] as? Float ?? 1.0
+        currentPlaybackSpeed = speed
+        log("Play", track["title"] ?? "Unknown", "speed:", speed)
 
         if player != nil {
             DispatchQueue.main.sync {
@@ -189,6 +193,15 @@ class AudioPro: RCTEventEmitter {
         )
 
         player?.play()
+
+        if currentPlaybackSpeed != 1.0 {
+            player?.rate = currentPlaybackSpeed
+
+            var currentInfo = MPNowPlayingInfoCenter.default().nowPlayingInfo ?? [:]
+            currentInfo[MPNowPlayingInfoPropertyPlaybackRate] = Double(currentPlaybackSpeed)
+            MPNowPlayingInfoCenter.default().nowPlayingInfo = currentInfo
+        }
+
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
             if self.player?.rate != 0 && self.hasListeners {
                 let info = self.getPlaybackInfo()
@@ -434,6 +447,27 @@ class AudioPro: RCTEventEmitter {
         if player?.rate != 0 {
             startProgressTimer()
         }
+    }
+
+    ////////////////////////////////////////////////////////////
+    // MARK: - Playback Speed
+    ////////////////////////////////////////////////////////////
+
+    @objc(setPlaybackSpeed:)
+    func setPlaybackSpeed(speed: Double) {
+        currentPlaybackSpeed = Float(speed)
+
+        guard let player = player else {
+            onError("Cannot set playback speed: no track is playing")
+            return
+        }
+
+        log("Setting playback speed to ", speed)
+        player.rate = Float(speed)
+
+        var info = MPNowPlayingInfoCenter.default().nowPlayingInfo ?? [:]
+        info[MPNowPlayingInfoPropertyPlaybackRate] = speed
+        MPNowPlayingInfoCenter.default().nowPlayingInfo = info
     }
 
     ////////////////////////////////////////////////////////////

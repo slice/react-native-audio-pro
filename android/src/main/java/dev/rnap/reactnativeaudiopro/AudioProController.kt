@@ -33,6 +33,8 @@ object AudioProController {
 	private var debug: Boolean = false
 	private var reactContext: ReactApplicationContext? = null
 	private var playerListener: Player.Listener? = null
+	private var lastEmittedState: String = AudioProModule.STATE_STOPPED
+	private var currentPlaybackSpeed: Float = 1.0f
 
 	private fun log(vararg args: Any?) {
 		if (debug) Log.d("AudioPro", "~~~ ${args.joinToString(" ")}")
@@ -68,14 +70,18 @@ object AudioProController {
 			options.getString("contentType") ?: "music"
 		} else "music"
 		val enableDebug = options.hasKey("debug") && options.getBoolean("debug")
+		val speed = if (options.hasKey("playbackSpeed")) {
+			options.getDouble("playbackSpeed").toFloat()
+		} else 1.0f
 
 		debug = enableDebug
 		audioContentType = when (contentType.lowercase()) {
 			"speech" -> C.AUDIO_CONTENT_TYPE_SPEECH
 			else -> C.AUDIO_CONTENT_TYPE_MUSIC
 		}
+		currentPlaybackSpeed = speed
 
-		log("Configured with contentType=$contentType debug=$debug")
+		log("Configured with contentType=$contentType debug=$debug speed=$speed")
 
 		internalPrepareSession()
 		val url = track.getString("url") ?: run {
@@ -110,6 +116,7 @@ object AudioProController {
 				it.setMediaItem(mediaItem)
 				it.prepare()
 				it.play()
+				it.setPlaybackSpeed(currentPlaybackSpeed)
 			} ?: Log.w("AudioProController", "MediaBrowser not ready")
 		}
 	}
@@ -307,12 +314,21 @@ object AudioProController {
 	}
 
 	private fun emitState(state: String, position: Long, duration: Long) {
+		// Don't emit PAUSED if we've already emitted STOPPED
+		if (state == AudioProModule.STATE_PAUSED && lastEmittedState == AudioProModule.STATE_STOPPED) {
+			log("Ignoring PAUSED state after STOPPED")
+			return
+		}
+
 		val body = Arguments.createMap().apply {
 			putString("state", state)
 			putDouble("position", position.toDouble())
 			putDouble("duration", duration.toDouble())
 		}
 		emitEvent(reactContext, AudioProModule.STATE_EVENT_NAME, body)
+
+		// Track the last emitted state
+		lastEmittedState = state
 	}
 
 	private fun emitNotice(notice: String, position: Long, duration: Long) {
@@ -345,5 +361,14 @@ object AudioProController {
 			putString("notice", AudioProModule.NOTICE_REMOTE_PREV)
 		}
 		emitEvent(reactContext, AudioProModule.NOTICE_EVENT_NAME, body)
+	}
+
+	fun setPlaybackSpeed(speed: Float) {
+		ensureSession()
+		currentPlaybackSpeed = speed
+		runOnUiThread {
+			log("Setting playback speed to", speed)
+			browser?.setPlaybackSpeed(speed)
+		}
 	}
 }

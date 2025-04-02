@@ -59,6 +59,20 @@ export const styles = StyleSheet.create({
 		width: '60%',
 		marginBottom: 15,
 	},
+	speedRow: {
+		flexDirection: 'row',
+		justifyContent: 'space-around',
+		alignItems: 'center',
+		width: '80%',
+		marginBottom: 15,
+	},
+	speedText: {
+		fontSize: 18,
+		fontWeight: 'bold',
+		color: '#1EB1FC',
+		width: 70,
+		textAlign: 'center',
+	},
 	stopRow: {
 		marginBottom: 15,
 	},

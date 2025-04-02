@@ -6,6 +6,7 @@ export interface AudioProStore {
 	playerState: AudioProState;
 	position: number;
 	duration: number;
+	playbackSpeed: number;
 	lastNotice: string;
 	debug: boolean;
 	trackLoaded?: AudioProTrack;
@@ -15,6 +16,7 @@ export interface AudioProStore {
 	setTrackLoaded: (track: AudioProTrack | undefined) => void;
 	setTrackPlaying: (track: AudioProTrack | undefined) => void;
 	setConfigureOptions: (options: AudioProConfigureOptions) => void;
+	setPlaybackSpeed: (speed: number) => void;
 	setStateFromStateEvent: (
 		state: AudioProState,
 		position?: number,
@@ -31,6 +33,7 @@ export const useInternalStore = create<AudioProStore>((set) => ({
 	playerState: AudioProState.STOPPED,
 	position: 0,
 	duration: 0,
+	playbackSpeed: 1.0,
 	lastNotice: '',
 	debug: false,
 	trackLoaded: undefined,
@@ -40,6 +43,7 @@ export const useInternalStore = create<AudioProStore>((set) => ({
 	setTrackLoaded: (track) => set({ trackLoaded: track }),
 	setTrackPlaying: (track) => set({ trackPlaying: track }),
 	setConfigureOptions: (options) => set({ configureOptions: options }),
+	setPlaybackSpeed: (speed) => set({ playbackSpeed: speed }),
 	setStateFromStateEvent: (state, position, duration) => {
 		const updates: Partial<AudioProStore> = {};
 		updates.playerState = state;

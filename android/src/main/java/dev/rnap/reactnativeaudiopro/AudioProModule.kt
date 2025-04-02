@@ -70,6 +70,11 @@ class AudioProModule(private val reactContext: ReactApplicationContext) :
 		AudioProController.seekBack(amount.toLong())
 	}
 
+	@ReactMethod
+	fun setPlaybackSpeed(speed: Double) {
+		AudioProController.setPlaybackSpeed(speed.toFloat())
+	}
+
 	override fun getName(): String {
 		return NAME
 	}

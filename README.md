@@ -99,6 +99,10 @@ buildscript {
   - Returns the current playback state (STOPPED, LOADING, PLAYING, PAUSED).
 - **getTrack(): AudioProTrack | undefined**
   - Returns the currently playing track, or undefined if no track is playing.
+- **setPlaybackSpeed(speed: number): void**
+  - Sets the playback speed rate (0.25 to 2.0). Normal speed is 1.0.
+- **getPlaybackSpeed(): number**
+  - Returns the current playback speed rate.
 
 ### 🎧 Event Listeners
 
@@ -162,13 +166,14 @@ The `useAudioPro` hook gives you real-time access to the playback state, current
 import { useAudioPro } from 'react-native-audio-pro';
 
 const AudioStatus = () => {
-  const { state, position, duration, track } = useAudioPro();
+  const { state, position, duration, track, playbackSpeed } = useAudioPro();
 
   return (
     <View>
       <Text>Playback State: {state}</Text>
       <Text>Current Position: {position}ms</Text>
       <Text>Total Duration: {duration}ms</Text>
+      <Text>Playback Speed: {playbackSpeed}x</Text>
       {track && (
         <View>
           <Text>Track ID: {track.id}</Text>
@@ -207,11 +212,16 @@ AudioPro.pause();
 AudioPro.resume();
 AudioPro.seekTo(60);
 
+// Adjust playback speed (1.0 is normal speed)
+AudioPro.setPlaybackSpeed(1.5); // 1.5x speed for faster playback
+AudioPro.setPlaybackSpeed(0.8); // 0.8x speed for slower playback
+
 // Get current state without using the hook
 const { position, duration } = AudioPro.getTimings();
 const state = AudioPro.getState();
 const track = AudioPro.getTrack();
-console.log(`Currently playing: ${track?.title} (${position}/${duration}ms) - State: ${state}`);
+const speed = AudioPro.getPlaybackSpeed();
+console.log(`Currently playing: ${track?.title} (${position}/${duration}ms) - State: ${state} - Speed: ${speed}x`);
 
 // Listen for player events
 const eventSubscription = AudioPro.addEventListener((event: AudioProEventPayload) => {
