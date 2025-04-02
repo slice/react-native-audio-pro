@@ -93,6 +93,12 @@ buildscript {
   - Seeks backward (default 30 seconds).
 - **configure(options: AudioProSetupOptions): void**
   - Optional. Sets playback options like content type (`'music'` or `'speech'`). Takes effect the next time `play()` is called.
+- **getTimings(): { position: number, duration: number }**
+  - Returns the current playback position and total duration in milliseconds.
+- **getState(): AudioProState**
+  - Returns the current playback state (STOPPED, LOADING, PLAYING, PAUSED).
+- **getTrack(): AudioProTrack | undefined**
+  - Returns the currently playing track, or undefined if no track is playing.
 
 ### 🎧 Event Listeners
 
@@ -200,6 +206,12 @@ AudioPro.play(track);
 AudioPro.pause();
 AudioPro.resume();
 AudioPro.seekTo(60);
+
+// Get current state without using the hook
+const { position, duration } = AudioPro.getTimings();
+const state = AudioPro.getState();
+const track = AudioPro.getTrack();
+console.log(`Currently playing: ${track?.title} (${position}/${duration}ms) - State: ${state}`);
 
 // Listen for player events
 const eventSubscription = AudioPro.addEventListener((event: AudioProEventPayload) => {

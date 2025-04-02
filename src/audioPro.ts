@@ -98,4 +98,19 @@ export const AudioPro = {
 			}
 		);
 	},
+
+	getTimings() {
+		const { position, duration } = useInternalStore.getState();
+		return { position, duration };
+	},
+
+	getState() {
+		const { playerState } = useInternalStore.getState();
+		return playerState;
+	},
+
+	getTrack() {
+		const { trackPlaying } = useInternalStore.getState();
+		return trackPlaying;
+	},
 };
