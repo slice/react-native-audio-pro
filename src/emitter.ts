@@ -7,7 +7,7 @@ import { NativeAudioPro } from './index';
 export const emitter = new NativeEventEmitter(NativeAudioPro);
 
 emitter.addListener('AudioProEvent', (event: AudioProEventPayload) => {
-	logDebug('AudioProEvent', event);
+	logDebug('AudioProEvent', JSON.stringify(event));
 	const { setStateFromNoticeEvent } = useInternalStore.getState();
 
 	let position: number | undefined;
@@ -22,7 +22,7 @@ emitter.addListener('AudioProEvent', (event: AudioProEventPayload) => {
 });
 
 emitter.addListener('AudioProStateEvent', (event: AudioProStatePayload) => {
-	logDebug('AudioProState', event);
+	logDebug('AudioProState', JSON.stringify(event));
 	const { setStateFromStateEvent } = useInternalStore.getState();
 
 	let position: number | undefined;

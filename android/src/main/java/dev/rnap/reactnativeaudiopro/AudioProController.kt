@@ -32,6 +32,7 @@ object AudioProController {
 	var audioContentType: Int = C.AUDIO_CONTENT_TYPE_MUSIC
 	private var debug: Boolean = false
 	private var reactContext: ReactApplicationContext? = null
+	private var playerListener: Player.Listener? = null
 
 	private fun log(vararg args: Any?) {
 		if (debug) Log.d("AudioPro", "~~~ ${args.joinToString(" ")}")
@@ -140,6 +141,7 @@ object AudioProController {
 	fun stop() {
 		ensureSession()
 		runOnUiThread {
+			detachPlayerListener()
 			browser?.stop()
 			browser?.let {
 				val pos = it.currentPosition
@@ -196,8 +198,18 @@ object AudioProController {
 		}
 	}
 
+	fun detachPlayerListener() {
+		log("Detaching player listener")
+		playerListener?.let {
+			browser?.removeListener(it)
+			playerListener = null
+		}
+	}
+
 	fun attachPlayerListener() {
-		browser?.addListener(object : Player.Listener {
+		detachPlayerListener()
+
+		playerListener = object : Player.Listener {
 
 			override fun onIsPlayingChanged(isPlaying: Boolean) {
 				val pos = browser?.currentPosition ?: 0L
@@ -255,7 +267,9 @@ object AudioProController {
 				emitError(message, 500)
 				emitState(AudioProModule.STATE_STOPPED, 0L, 0L)
 			}
-		})
+		}
+
+		browser?.addListener(playerListener!!)
 	}
 
 	private fun startProgressTimer() {
