@@ -25,8 +25,9 @@ emitter.addListener('AudioProEvent', (event: AudioProEventPayload) => {
 
 emitter.addListener('AudioProStateEvent', (event: AudioProStatePayload) => {
 	logDebug('AudioProState', event);
-	const { setState, setPosition, setDuration } = useInternalStore.getState();
-	setState(event.state);
+	const { setPlayerState, setPosition, setDuration } =
+		useInternalStore.getState();
+	setPlayerState(event.state);
 	// noinspection SuspiciousTypeOfGuard
 	if ('position' in event && typeof event.position === 'number') {
 		setPosition(event.position);

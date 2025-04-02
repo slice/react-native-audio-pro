@@ -137,11 +137,27 @@ object AudioProController {
 		}
 	}
 
-	fun release() {
-		if (::browserFuture.isInitialized) {
-			MediaBrowser.releaseFuture(browserFuture)
+	fun stop() {
+		ensureSession()
+		runOnUiThread {
+			browser?.stop()
+			browser?.let {
+				val pos = it.currentPosition
+				val dur = it.duration.takeIf { d -> d > 0 } ?: 0L
+				emitState(AudioProModule.STATE_STOPPED, pos, dur)
+			}
 		}
-		browser = null
+		stopProgressTimer()
+		release()
+	}
+
+	fun release() {
+		runOnUiThread {
+			if (::browserFuture.isInitialized) {
+				MediaBrowser.releaseFuture(browserFuture)
+			}
+			browser = null
+		}
 	}
 
 	fun seekTo(position: Long) {

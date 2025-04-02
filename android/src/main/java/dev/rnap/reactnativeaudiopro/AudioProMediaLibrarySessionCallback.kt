@@ -1,6 +1,5 @@
 package dev.rnap.reactnativeaudiopro
 
-import android.content.Context
 import android.os.Bundle
 import androidx.annotation.OptIn
 import androidx.media3.common.MediaItem
@@ -11,7 +10,6 @@ import androidx.media3.session.MediaSession
 import androidx.media3.session.SessionCommand
 import androidx.media3.session.SessionError
 import androidx.media3.session.SessionResult
-import com.google.common.collect.ImmutableList
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
 

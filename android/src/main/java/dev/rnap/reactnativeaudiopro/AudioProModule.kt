@@ -51,6 +51,11 @@ class AudioProModule(private val reactContext: ReactApplicationContext) :
 	}
 
 	@ReactMethod
+	fun stop() {
+		AudioProController.stop()
+	}
+
+	@ReactMethod
 	fun seekTo(position: Double) {
 		AudioProController.seekTo(position.toLong())
 	}

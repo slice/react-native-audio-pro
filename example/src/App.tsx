@@ -7,7 +7,7 @@ import {
 	View,
 } from 'react-native';
 import Slider from '@react-native-community/slider';
-import { type AudioProTrack } from 'react-native-audio-pro';
+import { type AudioProTrack, useAudioPro } from 'react-native-audio-pro';
 
 import { formatTime } from './utils';
 import { playlist } from './playlist';
@@ -18,14 +18,7 @@ import { AudioPro } from '../../src/audioPro';
 export default function App() {
 	const [currentIndex, setCurrentIndex] = useState(0);
 	const currentTrack = playlist[currentIndex];
-
-	// TODO: To fix
-	// const { position, duration, state } = useAudioPro();
-	const { position, duration, state } = {
-		position: 0,
-		duration: 0,
-		state: AudioProState.STOPPED,
-	};
+	const { position, duration, state } = useAudioPro();
 
 	if (!currentTrack) return null;
 

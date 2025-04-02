@@ -3,14 +3,14 @@ import { AudioProState, DEFAULT_CONFIG } from './values';
 import type { AudioProConfigureOptions, AudioProTrack } from './types';
 
 export interface AudioProStore {
-	state: AudioProState;
+	playerState: AudioProState;
 	position: number;
 	duration: number;
 	lastNotice: string;
 	debug: boolean;
 	loadedTrack?: AudioProTrack;
 	configureOptions: AudioProConfigureOptions;
-	setState: (state: AudioProState) => void;
+	setPlayerState: (playerState: AudioProState) => void;
 	setPosition: (position: number) => void;
 	setDuration: (duration: number) => void;
 	setLastNotice: (name: string) => void;
@@ -20,14 +20,14 @@ export interface AudioProStore {
 }
 
 export const useInternalStore = create<AudioProStore>((set) => ({
-	state: AudioProState.STOPPED,
+	playerState: AudioProState.STOPPED,
 	position: 0,
 	duration: 0,
 	lastNotice: '',
 	debug: false,
 	loadedTrack: undefined,
 	configureOptions: { ...DEFAULT_CONFIG },
-	setState: (state) => set({ state }),
+	setPlayerState: (playerState) => set({ playerState }),
 	setPosition: (position) => set({ position }),
 	setDuration: (duration) => set({ duration }),
 	setLastNotice: (name) => set({ lastNotice: name }),
