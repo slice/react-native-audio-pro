@@ -7,6 +7,8 @@ export function validateTrack(track: AudioProTrack): boolean {
 	// noinspection SuspiciousTypeOfGuard
 	if (
 		!track ||
+		typeof track.id !== 'string' ||
+		!track.id.trim() ||
 		typeof track.url !== 'string' ||
 		!track.url.trim() ||
 		typeof track.title !== 'string' ||
@@ -71,9 +73,24 @@ export function logDebug(...args: any[]) {
 }
 
 export function guardTrackLoaded(methodName: string): boolean {
-	const { loadedTrack } = useInternalStore.getState();
-	if (!loadedTrack) {
+	const { trackLoaded } = useInternalStore.getState();
+	if (!trackLoaded) {
 		const errorMessage = `~~~ AudioPro: ${methodName} called but no track loaded.`;
+		console.error(errorMessage);
+		emitter.emit('AudioProNameEvent', {
+			name: AudioProEventName.PLAYBACK_ERROR,
+			error: errorMessage,
+			errorCode: -1,
+		});
+		return false;
+	}
+	return true;
+}
+
+export function guardTrackPlaying(methodName: string): boolean {
+	const { trackPlaying } = useInternalStore.getState();
+	if (!trackPlaying) {
+		const errorMessage = `~~~ AudioPro: ${methodName} called but no track is playing or has been played.`;
 		console.error(errorMessage);
 		emitter.emit('AudioProNameEvent', {
 			name: AudioProEventName.PLAYBACK_ERROR,

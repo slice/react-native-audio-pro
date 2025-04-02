@@ -4,6 +4,7 @@ import { AudioProEventName, AudioProState } from './values';
 // Track definition
 // ==============================
 export type AudioProTrack = {
+	id: string;
 	url: string;
 	title: string;
 	artwork: string;

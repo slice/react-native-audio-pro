@@ -8,10 +8,12 @@ export interface AudioProStore {
 	duration: number;
 	lastNotice: string;
 	debug: boolean;
-	loadedTrack?: AudioProTrack;
+	trackLoaded?: AudioProTrack;
+	trackPlaying?: AudioProTrack;
 	configureOptions: AudioProConfigureOptions;
 	setDebug: (debug: boolean) => void;
-	setLoadedTrack: (track: AudioProTrack | undefined) => void;
+	setTrackLoaded: (track: AudioProTrack | undefined) => void;
+	setTrackPlaying: (track: AudioProTrack | undefined) => void;
 	setConfigureOptions: (options: AudioProConfigureOptions) => void;
 	setStateFromStateEvent: (
 		state: AudioProState,
@@ -31,10 +33,12 @@ export const useInternalStore = create<AudioProStore>((set) => ({
 	duration: 0,
 	lastNotice: '',
 	debug: false,
-	loadedTrack: undefined,
+	trackLoaded: undefined,
+	trackPlaying: undefined,
 	configureOptions: { ...DEFAULT_CONFIG },
 	setDebug: (debug) => set({ debug }),
-	setLoadedTrack: (track) => set({ loadedTrack: track }),
+	setTrackLoaded: (track) => set({ trackLoaded: track }),
+	setTrackPlaying: (track) => set({ trackPlaying: track }),
 	setConfigureOptions: (options) => set({ configureOptions: options }),
 	setStateFromStateEvent: (state, position, duration) => {
 		const updates: Partial<AudioProStore> = {};

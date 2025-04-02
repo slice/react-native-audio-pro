@@ -76,7 +76,7 @@ buildscript {
 ### 🛠 Methods
 
 - **load(track: AudioProTrack): void**
-  - Loads the specified track.
+  - Loads the specified track without starting playback.
 - **play(): void**
   - Starts playing the loaded track.
 - **pause(): void**
@@ -84,7 +84,7 @@ buildscript {
 - **resume(): void**
   - Resumes playback if paused.
 - **stop(): void**
-  - Stops the playback, resetting to position 0.
+  - Stops the playback, resetting to position 0 and clearing the playing track.
 - **seekTo(positionMs: number): void**
   - Seeks to a specific position (in milliseconds).
 - **seekForward(amountMs?: number): void**
@@ -130,6 +130,7 @@ AudioPro.addEventListener((event) => {
 
 ```typescript
 type AudioProTrack = {
+    id: string;
     url: string; // the media url (mp3, m4a)
     title: string;
     artwork: string; // the image url (jpg, png)
@@ -149,19 +150,26 @@ Use `'speech'` for podcasts or audiobooks, `'music'` for songs or music-heavy au
 
 ## ⚡️ useAudioPro Hook Example
 
-The `useAudioPro` hook gives you real-time access to the playback state, current position, and total duration.
+The `useAudioPro` hook gives you real-time access to the playback state, current position, total duration, and the currently playing track.
 
 ```typescript jsx
 import { useAudioPro } from 'react-native-audio-pro';
 
 const AudioStatus = () => {
-  const { state, position, duration } = useAudioPro();
+  const { state, position, duration, track } = useAudioPro();
 
   return (
     <View>
       <Text>Playback State: {state}</Text>
       <Text>Current Position: {position}ms</Text>
       <Text>Total Duration: {duration}ms</Text>
+      {track && (
+        <View>
+          <Text>Track ID: {track.id}</Text>
+          <Text>Now Playing: {track.title}</Text>
+          <Text>Artist: {track.artist}</Text>
+        </View>
+      )}
     </View>
   );
 };
@@ -177,6 +185,7 @@ AudioPro.configure({ contentType: 'music', debug: __DEV__ });
 
 // Define an audio track
 const track = {
+  id: 'track-001',
   url: 'https://example.com/audio.mp3',
   title: 'My Track',
   artwork: 'https://example.com/artwork.jpg',

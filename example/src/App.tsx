@@ -18,7 +18,7 @@ import { AudioPro } from '../../src/audioPro';
 export default function App() {
 	const [currentIndex, setCurrentIndex] = useState(0);
 	const currentTrack = playlist[currentIndex];
-	const { position, duration, state } = useAudioPro();
+	const { position, duration, state, track } = useAudioPro();
 
 	if (!currentTrack) return null;
 
@@ -129,6 +129,7 @@ export default function App() {
 				</TouchableOpacity>
 			</View>
 			<Text style={styles.stateText}>State: {state}</Text>
+			<Text style={styles.stateText}>Track: {JSON.stringify(track)}</Text>
 		</View>
 	);
 }
