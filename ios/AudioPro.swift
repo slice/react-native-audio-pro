@@ -71,7 +71,7 @@ class AudioPro: RCTEventEmitter {
 
     private func log(_ items: Any...) {
         guard debugLog else { return }
-        print("~~~", items.map { "\($0)" }.joined(separator: " "))
+        print("~~~ [AudioPro]", items.map { "\($0)" }.joined(separator: " "))
     }
 
     private func sendEvent(type: String, track: Any?, payload: [String: Any]?) {
@@ -265,20 +265,14 @@ class AudioPro: RCTEventEmitter {
         player?.pause()
         stopTimer()
         sendPausedStateEvent()
-        var info = MPNowPlayingInfoCenter.default().nowPlayingInfo ?? [:]
-        info[MPNowPlayingInfoPropertyPlaybackRate] = 0
-        info[MPNowPlayingInfoPropertyElapsedPlaybackTime] = player?.currentTime().seconds ?? 0
-        MPNowPlayingInfoCenter.default().nowPlayingInfo = info
+        updateNowPlayingInfo(time: player?.currentTime().seconds ?? 0, rate: 0)
     }
 
     @objc(resume)
     func resume() {
         shouldBePlaying = true
         player?.play()
-        var info = MPNowPlayingInfoCenter.default().nowPlayingInfo ?? [:]
-        info[MPNowPlayingInfoPropertyPlaybackRate] = 1.0
-        info[MPNowPlayingInfoPropertyElapsedPlaybackTime] = player?.currentTime().seconds ?? 0
-        MPNowPlayingInfoCenter.default().nowPlayingInfo = info
+        updateNowPlayingInfo(time: player?.currentTime().seconds ?? 0, rate: 1.0)
     }
 
     /// stop is meant to halt playback and update the state without destroying persistent info
@@ -294,10 +288,7 @@ class AudioPro: RCTEventEmitter {
         sendStoppedStateEvent()
 
         // Update now playing info to reflect a stopped state but keep the artwork intact.
-        var info = MPNowPlayingInfoCenter.default().nowPlayingInfo ?? [:]
-        info[MPNowPlayingInfoPropertyPlaybackRate] = 0
-        info[MPNowPlayingInfoPropertyElapsedPlaybackTime] = 0
-        MPNowPlayingInfoCenter.default().nowPlayingInfo = info
+        updateNowPlayingInfo(time: 0, rate: 0)
     }
 
     /// cleanup fully tears down the player instance and removes observers and remote controls.
@@ -338,8 +329,8 @@ class AudioPro: RCTEventEmitter {
     // MARK: - Seeking Methods
     ////////////////////////////////////////////////////////////
 
-    @objc(seekTo:)
-    func seekTo(position: Double) {
+    /// Common seek implementation used by all seek methods
+    private func performSeek(to position: Double, isAbsolute: Bool = true) {
         guard let player = player else {
             onError("Cannot seek: no track is playing")
             return
@@ -350,15 +341,36 @@ class AudioPro: RCTEventEmitter {
             return
         }
 
-        let positionInSeconds = position / 1000.0
         let duration = currentItem.duration.seconds
+        let currentTime = player.currentTime().seconds
 
+        // For relative seeking (forward/back), we need valid current time
+        if !isAbsolute && (currentTime.isNaN || currentTime.isInfinite) {
+            onError("Cannot seek: invalid track position")
+            return
+        }
+
+        // For all seeks, we need valid duration
         if duration.isNaN || duration.isInfinite {
             onError("Cannot seek: invalid track duration")
             return
         }
 
-        let validPosition = max(0, min(positionInSeconds, duration))
+        // Calculate target position based on whether this is absolute or relative
+        let targetPosition: Double
+        if isAbsolute {
+            // For seekTo, convert ms to seconds
+            targetPosition = position / 1000.0
+        } else {
+            // For seekForward/Back, position is the amount in ms
+            let amountInSeconds = position / 1000.0
+            targetPosition = isAbsolute ? amountInSeconds :
+                             (position >= 0) ? min(currentTime + amountInSeconds, duration) :
+                                              max(0, currentTime + amountInSeconds)
+        }
+
+        // Ensure position is within valid range
+        let validPosition = max(0, min(targetPosition, duration))
         let time = CMTime(seconds: validPosition, preferredTimescale: 1000)
 
         beginSeeking()
@@ -370,95 +382,33 @@ class AudioPro: RCTEventEmitter {
                 self.completeSeekingAndSendSeekCompleteNoticeEvent(newPosition: validPosition * 1000)
 
                 // Force update the now playing info to ensure controls work
-                DispatchQueue.main.async {
-                    var info = MPNowPlayingInfoCenter.default().nowPlayingInfo ?? [:]
-                    info[MPNowPlayingInfoPropertyElapsedPlaybackTime] = validPosition
-                    info[MPNowPlayingInfoPropertyPlaybackRate] = player.rate
-                    MPNowPlayingInfoCenter.default().nowPlayingInfo = info
+                if isAbsolute { // Only do this for absolute seeks to avoid redundant updates
+                    DispatchQueue.main.async {
+                        var info = MPNowPlayingInfoCenter.default().nowPlayingInfo ?? [:]
+                        info[MPNowPlayingInfoPropertyElapsedPlaybackTime] = validPosition
+                        info[MPNowPlayingInfoPropertyPlaybackRate] = player.rate
+                        MPNowPlayingInfoCenter.default().nowPlayingInfo = info
+                    }
                 }
-            } else {
-                if player.rate != 0 {
-                    self.startProgressTimer()
-                }
+            } else if player.rate != 0 {
+                self.startProgressTimer()
             }
         }
+    }
+
+    @objc(seekTo:)
+    func seekTo(position: Double) {
+        performSeek(to: position, isAbsolute: true)
     }
 
     @objc(seekForward:)
     func seekForward(amount: Double) {
-        guard let player = player else {
-            onError("Cannot seek: no track is playing")
-            return
-        }
-
-        guard let currentItem = player.currentItem else {
-            onError("Cannot seek: no item loaded")
-            return
-        }
-
-        let amountInSeconds = amount / 1000.0
-        let currentTime = player.currentTime().seconds
-        let duration = currentItem.duration.seconds
-
-        if currentTime.isNaN || currentTime.isInfinite || duration.isNaN || duration.isInfinite {
-            onError("Cannot seek: invalid track position or duration")
-            return
-        }
-
-        let newPosition = min(currentTime + amountInSeconds, duration)
-        let time = CMTime(seconds: newPosition, preferredTimescale: 1000)
-
-        beginSeeking()
-
-        player.seek(to: time, toleranceBefore: .zero, toleranceAfter: .zero) { [weak self] completed in
-            guard let self = self else { return }
-            if completed {
-                self.updateNowPlayingInfoWithCurrentTime(newPosition)
-                self.completeSeekingAndSendSeekCompleteNoticeEvent(newPosition: newPosition * 1000)
-            } else {
-                if player.rate != 0 {
-                    self.startProgressTimer()
-                }
-            }
-        }
+        performSeek(to: amount, isAbsolute: false)
     }
 
     @objc(seekBack:)
     func seekBack(amount: Double) {
-        guard let player = player else {
-            onError("Cannot seek: no track is playing")
-            return
-        }
-
-        guard player.currentItem != nil else {
-            onError("Cannot seek: no item loaded")
-            return
-        }
-
-        let amountInSeconds = amount / 1000.0
-        let currentTime = player.currentTime().seconds
-
-        if currentTime.isNaN || currentTime.isInfinite {
-            onError("Cannot seek: invalid track position")
-            return
-        }
-
-        let newPosition = max(0, currentTime - amountInSeconds)
-        let time = CMTime(seconds: newPosition, preferredTimescale: 1000)
-
-        beginSeeking()
-
-        player.seek(to: time, toleranceBefore: .zero, toleranceAfter: .zero) { [weak self] completed in
-            guard let self = self else { return }
-            if completed {
-                self.updateNowPlayingInfoWithCurrentTime(newPosition)
-                self.completeSeekingAndSendSeekCompleteNoticeEvent(newPosition: newPosition * 1000)
-            } else {
-                if player.rate != 0 {
-                    self.startProgressTimer()
-                }
-            }
-        }
+        performSeek(to: -amount, isAbsolute: false)
     }
 
     private func beginSeeking() {
@@ -496,16 +446,11 @@ class AudioPro: RCTEventEmitter {
         log("Setting playback speed to ", speed)
         player.rate = Float(speed)
 
-        var info = MPNowPlayingInfoCenter.default().nowPlayingInfo ?? [:]
-        info[MPNowPlayingInfoPropertyPlaybackRate] = speed
-        MPNowPlayingInfoCenter.default().nowPlayingInfo = info
+        updateNowPlayingInfo(rate: Float(speed))
 
         if hasListeners {
             let playbackInfo = getPlaybackInfo()
-
-            let payload: [String: Any] = [
-                "speed": speed
-            ]
+            let payload: [String: Any] = ["speed": speed]
             sendEvent(type: EVENT_TYPE_PLAYBACK_SPEED_CHANGED, track: playbackInfo.track, payload: payload)
         }
     }
@@ -590,69 +535,72 @@ class AudioPro: RCTEventEmitter {
         return (position: positionMs, duration: durationMs, track: currentTrack)
     }
 
+    private func sendStateEvent(state: String, position: Int? = nil, duration: Int? = nil, track: NSDictionary? = nil) {
+        guard hasListeners else { return }
+
+        let info = position == nil || duration == nil ? getPlaybackInfo() : (position: position!, duration: duration!, track: track)
+
+        let payload: [String: Any] = [
+            "state": state,
+            "position": info.position,
+            "duration": info.duration
+        ]
+        sendEvent(type: EVENT_TYPE_STATE_CHANGED, track: info.track, payload: payload)
+    }
+
     private func sendStoppedStateEvent() {
-        if hasListeners {
-            let payload: [String: Any] = [
-                "state": STATE_STOPPED,
-                "position": 0,
-                "duration": 0
-            ]
-            sendEvent(type: EVENT_TYPE_STATE_CHANGED, track: nil, payload: payload)
-        }
+        sendStateEvent(state: STATE_STOPPED, position: 0, duration: 0, track: nil)
     }
 
     private func sendPlayingStateEvent() {
-        if hasListeners {
-            let info = getPlaybackInfo()
-
-            let payload: [String: Any] = [
-                "state": STATE_PLAYING,
-                "position": info.position,
-                "duration": info.duration
-            ]
-            sendEvent(type: EVENT_TYPE_STATE_CHANGED, track: info.track, payload: payload)
-        }
+        sendStateEvent(state: STATE_PLAYING)
     }
 
     private func sendPausedStateEvent() {
-        if hasListeners {
-            let info = getPlaybackInfo()
-
-            let payload: [String: Any] = [
-                "state": STATE_PAUSED,
-                "position": info.position,
-                "duration": info.duration
-            ]
-            sendEvent(type: EVENT_TYPE_STATE_CHANGED, track: info.track, payload: payload)
-        }
+        sendStateEvent(state: STATE_PAUSED)
     }
 
-    private func updateNowPlayingInfoWithCurrentTime(_ time: Double) {
+    /// Updates Now Playing Info with specified parameters, preserving existing values
+    private func updateNowPlayingInfo(time: Double? = nil, rate: Float? = nil, duration: Double? = nil, track: NSDictionary? = nil) {
         var nowPlayingInfo = MPNowPlayingInfoCenter.default().nowPlayingInfo ?? [String: Any]()
-        nowPlayingInfo[MPNowPlayingInfoPropertyElapsedPlaybackTime] = time
-        nowPlayingInfo[MPNowPlayingInfoPropertyPlaybackRate] = player?.rate ?? 0
 
-        if let currentItem = player?.currentItem {
-            let duration = currentItem.duration.seconds
-            if !duration.isNaN && !duration.isInfinite {
-                nowPlayingInfo[MPMediaItemPropertyPlaybackDuration] = duration
+        // Update time if provided
+        if let time = time {
+            nowPlayingInfo[MPNowPlayingInfoPropertyElapsedPlaybackTime] = time
+        }
+
+        // Update rate if provided, otherwise use current player rate
+        nowPlayingInfo[MPNowPlayingInfoPropertyPlaybackRate] = rate ?? player?.rate ?? 0
+
+        // Update duration if provided, otherwise try to get from current item
+        if let duration = duration {
+            nowPlayingInfo[MPMediaItemPropertyPlaybackDuration] = duration
+        } else if let currentItem = player?.currentItem {
+            let itemDuration = currentItem.duration.seconds
+            if !itemDuration.isNaN && !itemDuration.isInfinite {
+                nowPlayingInfo[MPMediaItemPropertyPlaybackDuration] = itemDuration
             }
         }
 
-        // Ensure we have the basic track info
-        if let track = currentTrack {
-            if nowPlayingInfo[MPMediaItemPropertyTitle] == nil, let title = track["title"] as? String {
+        // Ensure we have the basic track info from either provided track or current track
+        let trackInfo = track ?? currentTrack
+        if let trackInfo = trackInfo {
+            if nowPlayingInfo[MPMediaItemPropertyTitle] == nil, let title = trackInfo["title"] as? String {
                 nowPlayingInfo[MPMediaItemPropertyTitle] = title
             }
-            if nowPlayingInfo[MPMediaItemPropertyArtist] == nil, let artist = track["artist"] as? String {
+            if nowPlayingInfo[MPMediaItemPropertyArtist] == nil, let artist = trackInfo["artist"] as? String {
                 nowPlayingInfo[MPMediaItemPropertyArtist] = artist
             }
-            if nowPlayingInfo[MPMediaItemPropertyAlbumTitle] == nil, let album = track["album"] as? String {
+            if nowPlayingInfo[MPMediaItemPropertyAlbumTitle] == nil, let album = trackInfo["album"] as? String {
                 nowPlayingInfo[MPMediaItemPropertyAlbumTitle] = album
             }
         }
 
         MPNowPlayingInfoCenter.default().nowPlayingInfo = nowPlayingInfo
+    }
+
+    private func updateNowPlayingInfoWithCurrentTime(_ time: Double) {
+        updateNowPlayingInfo(time: time)
     }
 
     func onError(_ errorMessage: String) {
@@ -670,12 +618,20 @@ class AudioPro: RCTEventEmitter {
         if isRemoteCommandCenterSetup { return }
         let commandCenter = MPRemoteCommandCenter.shared()
 
-        commandCenter.playCommand.isEnabled = true
-        commandCenter.pauseCommand.isEnabled = true
-        commandCenter.nextTrackCommand.isEnabled = true
-        commandCenter.previousTrackCommand.isEnabled = true
+        // Configure all commands at once
+        let commands: [(MPRemoteCommand, Bool)] = [
+            (commandCenter.playCommand, true),
+            (commandCenter.pauseCommand, true),
+            (commandCenter.nextTrackCommand, true),
+            (commandCenter.previousTrackCommand, true),
+            (commandCenter.changePlaybackPositionCommand, true)
+        ]
 
-        commandCenter.playCommand.addTarget { [weak self] event in
+        // Enable all commands
+        commands.forEach { $0.0.isEnabled = $0.1 }
+
+        // Add targets
+        commandCenter.playCommand.addTarget { [weak self] _ in
             guard let self = self else { return .commandFailed }
             if self.player?.rate == 0 {
                 self.resume()
@@ -684,7 +640,7 @@ class AudioPro: RCTEventEmitter {
             return .commandFailed
         }
 
-        commandCenter.pauseCommand.addTarget { [weak self] event in
+        commandCenter.pauseCommand.addTarget { [weak self] _ in
             guard let self = self else { return .commandFailed }
             if self.player?.rate != 0 {
                 self.pause()
@@ -693,23 +649,18 @@ class AudioPro: RCTEventEmitter {
             return .commandFailed
         }
 
-        commandCenter.nextTrackCommand.addTarget { [weak self] event in
+        commandCenter.nextTrackCommand.addTarget { [weak self] _ in
             guard let self = self else { return .commandFailed }
-
             self.sendEvent(type: self.EVENT_TYPE_REMOTE_NEXT, track: self.currentTrack, payload: [:])
-
             return .success
         }
 
-        commandCenter.previousTrackCommand.addTarget { [weak self] event in
+        commandCenter.previousTrackCommand.addTarget { [weak self] _ in
             guard let self = self else { return .commandFailed }
-
             self.sendEvent(type: self.EVENT_TYPE_REMOTE_PREV, track: self.currentTrack, payload: [:])
-
             return .success
         }
 
-        commandCenter.changePlaybackPositionCommand.isEnabled = true
         commandCenter.changePlaybackPositionCommand.addTarget { [weak self] event in
             guard let self = self, let positionEvent = event as? MPChangePlaybackPositionCommandEvent else {
                 return .commandFailed
