@@ -14,20 +14,21 @@ class AudioProModule(private val reactContext: ReactApplicationContext) :
 	companion object {
 		const val NAME = "AudioPro"
 
-		const val STATE_EVENT_NAME = "AudioProStateEvent"
-		const val NOTICE_EVENT_NAME = "AudioProEvent"
+		const val EVENT_NAME = "AudioProEvent"
 
 		const val STATE_PLAYING = "PLAYING"
 		const val STATE_PAUSED = "PAUSED"
 		const val STATE_STOPPED = "STOPPED"
 		const val STATE_LOADING = "LOADING"
 
-		const val NOTICE_SEEK_COMPLETE = "SEEK_COMPLETE"
-		const val NOTICE_TRACK_ENDED = "TRACK_ENDED"
-		const val NOTICE_PROGRESS = "PROGRESS"
-		const val NOTICE_PLAYBACK_ERROR = "PLAYBACK_ERROR"
-		const val NOTICE_REMOTE_NEXT = "REMOTE_NEXT"
-		const val NOTICE_REMOTE_PREV = "REMOTE_PREV"
+		const val EVENT_TYPE_STATE_CHANGED = "STATE_CHANGED"
+		const val EVENT_TYPE_TRACK_ENDED = "TRACK_ENDED"
+		const val EVENT_TYPE_PLAYBACK_ERROR = "PLAYBACK_ERROR"
+		const val EVENT_TYPE_PROGRESS = "PROGRESS"
+		const val EVENT_TYPE_SEEK_COMPLETE = "SEEK_COMPLETE"
+		const val EVENT_TYPE_REMOTE_NEXT = "REMOTE_NEXT"
+		const val EVENT_TYPE_REMOTE_PREV = "REMOTE_PREV"
+		const val EVENT_TYPE_PLAYBACK_SPEED_CHANGED = "PLAYBACK_SPEED_CHANGED"
 	}
 
 	init {

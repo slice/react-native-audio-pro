@@ -78,69 +78,88 @@ buildscript {
 
 ### 🛠 Methods
 
-- **load(track: AudioProTrack): void**
+- **loadTrack(track: AudioProTrack)**
   - Loads the specified track without starting playback.
-- **play(): void**
+- **play()**
   - Starts playing the loaded track.
-- **pause(): void**
+- **pause()**
   - Pauses the current playback.
-- **resume(): void**
+- **resume()**
   - Resumes playback if paused.
-- **stop(): void**
+- **stop()**
   - Stops the playback, resetting to position 0 and clearing the playing track.
-- **seekTo(positionMs: number): void**
+- **seekTo(positionMs: number)**
   - Seeks to a specific position (in milliseconds).
-- **seekForward(amountMs?: number): void**
-  - Seeks forward (default 30 seconds).
-- **seekBack(amountMs?: number): void**
-  - Seeks backward (default 30 seconds).
-- **configure(options: AudioProSetupOptions): void**
-  - Optional. Sets playback options like content type (`'music'` or `'speech'`). Takes effect the next time `play()` is called.
+- **seekForward(amountMs?: number)**
+  - Seeks forward (in milliseconds) {default 30 seconds}.
+- **seekBack(amountMs?: number)**
+  - Seeks backward (in milliseconds) {default 30 seconds}.
+- **configure(options: AudioProSetupOptions)**
+  - Optional. Sets playback options like content type (`'MUSIC'` or `'SPEECH'`). Takes effect the next time `play()` is called.
 - **getTimings(): { position: number, duration: number }**
   - Returns the current playback position and total duration in milliseconds.
 - **getState(): AudioProState**
   - Returns the current playback state (STOPPED, LOADING, PLAYING, PAUSED).
 - **getTrack(): AudioProTrack | undefined**
   - Returns the currently playing track, or undefined if no track is playing.
-- **setPlaybackSpeed(speed: number): void**
+- **setPlaybackSpeed(speed: number)**
   - Sets the playback speed rate (0.25 to 2.0). Normal speed is 1.0.
 - **getPlaybackSpeed(): number**
   - Returns the current playback speed rate.
 
 ### 🎧 Event Listeners
 
-- **addListener(callback: AudioProEventCallback): EmitterSubscription**
-  - Listens for playback events (e.g., track ended, errors, progress).
+- **addEventListener(callback: AudioProEventCallback): EmitterSubscription**
+  - Listens for playback events (e.g., state changes, track ended, errors, progress).
 
 ### 🧱 Enums
 
 - **AudioProState:** `STOPPED`, `LOADING`, `PLAYING`, `PAUSED`
-- **AudioProEvent:** `TRACK_ENDED`, `PLAYBACK_ERROR`, `PROGRESS`, `SEEK_COMPLETE`, `REMOTE_NEXT`, `REMOTE_PREV`
+- **AudioProEventType:** `STATE_CHANGED`, `TRACK_ENDED`, `PLAYBACK_ERROR`, `PROGRESS`, `SEEK_COMPLETE`, `REMOTE_NEXT`, `REMOTE_PREV`, `PLAYBACK_SPEED_CHANGED`
+- **AudioProContentType:** `MUSIC`, `SPEECH`
 
 ### Lock Screen Controls
 
 Both iOS and Android support lock screen and notification controls for play/pause, seek, and track navigation (next/previous). To handle next and previous track events:
 
 ```typescript
-import { AudioPro, AudioProEventName } from 'react-native-audio-pro';
+import { AudioPro, AudioProEventType } from 'react-native-audio-pro';
 
-AudioPro.addEventListener((event) => {
-  if (event.name === AudioProEventName.REMOTE_NEXT) {
-    // Handle next track button press
-    console.log('User pressed Next button');
-    // The current track is included in the event payload
-    console.log('Current track:', event.track);
-    // Load and play next track
-  }
+// Set up listeners outside React components (see warning section below)
+const subscription = AudioPro.addEventListener((event) => {
+  switch (event.type) {
+    case AudioProEventType.REMOTE_NEXT:
+      // Handle next track button press
+      console.log('User pressed Next button');
+      // The current track is included in the event payload
+      console.log('Current track:', event.track);
+      // Load and play next track
+      break;
 
-  if (event.name === AudioProEventName.REMOTE_PREV) {
-    // Handle previous track button press
-    console.log('User pressed Previous button');
-    // The current track is included in the event payload
-    console.log('Current track:', event.track);
-    // Load and play previous track
+    case AudioProEventType.REMOTE_PREV:
+      // Handle previous track button press
+      console.log('User pressed Previous button');
+      // The current track is included in the event payload
+      console.log('Current track:', event.track);
+      // Load and play previous track
+      break;
+
+    case AudioProEventType.STATE_CHANGED:
+      // Handle state changes
+      console.log('State changed to:', event.payload?.state);
+      console.log('Position:', event.payload?.position);
+      console.log('Duration:', event.payload?.duration);
+      break;
+
+    case AudioProEventType.PLAYBACK_SPEED_CHANGED:
+      // Handle playback speed changes
+      console.log('Playback speed changed to:', event.payload?.speed);
+      break;
   }
 });
+
+// Later, when you want to remove the listener (e.g., in componentWillUnmount or useEffect cleanup)
+subscription.remove();
 ```
 
 ### 🧩 Types
@@ -156,25 +175,42 @@ type AudioProTrack = {
 };
 
 type AudioProSetupOptions = {
-    contentType?: 'music' | 'speech';
+    contentType?: AudioProContentType; // MUSIC or SPEECH
     debug?: boolean; // Verbose logging
 };
 
-// All event payloads include the current track (null when no track is playing)
-type AudioProEventPayload = {
-    name: AudioProEventName;
+// Unified event structure
+interface AudioProEvent {
+    type: AudioProEventType;
     track: AudioProTrack | null;
-    // Additional properties based on event type
-    position?: number;
-    duration?: number;
-    error?: string;
+    payload?: Record<string, any>;
+}
+
+// Event payload examples
+interface AudioProStateChangedPayload {
+    state: AudioProState;
+    position: number;
+    duration: number;
+}
+
+interface AudioProTrackEndedPayload {
+    position: number;
+    duration: number;
+}
+
+interface AudioProPlaybackErrorPayload {
+    error: string;
     errorCode?: number;
-};
+}
+
+interface AudioProPlaybackSpeedChangedPayload {
+    speed: number;
+}
 ```
 
 ### About contentType
 
-Use `'speech'` for podcasts or audiobooks, `'music'` for songs or music-heavy audio. This optimizes playback behavior like audio focus and routing. Defaults to `'music'`.
+Use `AudioProContentType.SPEECH` for podcasts or audiobooks, `AudioProContentType.MUSIC` for songs or music-heavy audio. This optimizes playback behavior like audio focus and routing. Defaults to `AudioProContentType.MUSIC`.
 
 ## ⚡️ useAudioPro Hook Example
 
@@ -209,8 +245,10 @@ export default AudioStatus;
 ## 📦 API Usage Example
 
 ```typescript
+import { AudioPro, AudioProContentType } from 'react-native-audio-pro';
+
 // Optional: Set playback config
-AudioPro.configure({ contentType: 'music', debug: __DEV__ });
+AudioPro.configure({ contentType: AudioProContentType.MUSIC, debug: __DEV__ });
 
 // Define an audio track
 const track = {
@@ -222,8 +260,8 @@ const track = {
 };
 
 // Load and play the track
-AudioPro.load(track);
-AudioPro.play(track);
+AudioPro.loadTrack(track);
+AudioPro.play();
 
 // Control playback
 AudioPro.pause();
@@ -241,11 +279,80 @@ const track = AudioPro.getTrack();
 const speed = AudioPro.getPlaybackSpeed();
 console.log(`Currently playing: ${track?.title} (${position}/${duration}ms) - State: ${state} - Speed: ${speed}x`);
 
-// Listen for player events
-const eventSubscription = AudioPro.addEventListener((event: AudioProEventPayload) => {
-  // const {name, position, duration} = event;
-  console.log('AudioPro Event:', event);
+// Listen for player events (set up OUTSIDE React components - see warning section below)
+const eventSubscription = AudioPro.addEventListener((event: AudioProEvent) => {
+  console.log('Event type:', event.type);
+  console.log('Track:', event.track);
+  console.log('Payload:', event.payload);
 });
+
+// To unsubscribe when needed:
+// eventSubscription.remove();
+```
+
+## ⚠️ Important: Event Listeners and React Lifecycle
+
+When React Native apps go to the background, React may unmount your components or even your entire app. To ensure continuous audio playback and event handling, **always set up audio event listeners outside the React component lifecycle**.
+
+### Example Setup Pattern
+
+```javascript
+// index.js - App Entry Point
+import { AppRegistry } from 'react-native';
+import App from './App';
+import { name as appName } from './app.json';
+import { setupAudio } from './audioSetup';
+
+// Register the React component
+AppRegistry.registerComponent(appName, () => App);
+
+// Initialize audio logic OUTSIDE of React lifecycle
+setupAudio();
+```
+
+```javascript
+// audioSetup.js example
+import { AudioPro, AudioProEventType, AudioProContentType } from 'react-native-audio-pro';
+
+export function setupAudio() {
+  // Configure audio settings
+  AudioPro.configure({
+    contentType: AudioProContentType.MUSIC,
+    debug: __DEV__
+  });
+
+  // Set up event listeners that persist for the app's lifetime
+  AudioPro.addEventListener((event) => {
+    switch (event.type) {
+      case AudioProEventType.TRACK_ENDED:
+        // Auto-play next track when current track ends
+        // Determine next track based on your app's logic
+        const nextTrack = determineNextTrack();
+        if (nextTrack) {
+          AudioPro.loadTrack(nextTrack);
+          AudioPro.play();
+        }
+        break;
+
+      case AudioProEventType.REMOTE_NEXT:
+        // Handle next button press from lock screen/notification
+        const nextTrackFromRemote = determineNextTrack();
+		AudioPro.loadTrack(nextTrackFromRemote);
+		AudioPro.play();
+        break;
+
+      case AudioProEventType.REMOTE_PREV:
+        // Handle previous button press from lock screen/notification
+        const prevTrack = determinePrevTrack();
+		AudioPro.loadTrack(prevTrack);
+		AudioPro.play();
+        break;
+    }
+  });
+}
+
+function determineNextTrack() { /* Your logic here */ }
+function determinePrevTrack() { /* Your logic here */ }
 ```
 
 ## 📱 Example App
@@ -257,7 +364,7 @@ It demonstrates how to use `react-native-audio-pro` in a real React Native app, 
 - Track metadata (title, artist, artwork)
 - Play/Pause/Seek/Skip controls
 - Progress slider
-- Event listener for events
+- Event listeners set up outside the React lifecycle
 
 ### To run the example:
 
@@ -266,12 +373,16 @@ It demonstrates how to use `react-native-audio-pro` in a real React Native app, 
 ```bash
 yarn install
 yarn example start
-# In a new terminal:
-yarn example android
+```
+And in a new terminal window/pane:
+
+```bash
 yarn example ios
+# or
+yarn example android
 ```
 
-**OR** open the `./example/ios` folder in XCode, or the `./example/android` folder in Android Studio and run in a simulator or physical device.
+**OR** open the `./example/ios` folder in XCode, or the `./example/android` folder in Android Studio and run the app on a simulator or physical device.
 
 ---
 

@@ -1,7 +1,6 @@
 import type {
 	AudioProConfigureOptions,
 	AudioProEventCallback,
-	AudioProEventPayload,
 	AudioProTrack,
 } from './types';
 import {
@@ -12,7 +11,7 @@ import {
 } from './utils';
 import { useInternalStore } from './useInternalStore';
 import {
-	AudioProEventName,
+	AudioProEventType,
 	DEFAULT_CONFIG,
 	DEFAULT_SEEK_SECONDS,
 } from './values';
@@ -22,21 +21,25 @@ import { NativeAudioPro } from './index';
 
 export const AudioPro = {
 	configure(options: AudioProConfigureOptions): void {
-		logDebug('AudioPro: configure()', options);
 		const { setConfigureOptions, setDebug } = useInternalStore.getState();
 		setConfigureOptions({ ...DEFAULT_CONFIG, ...options });
 		setDebug(!!options.debug);
+		logDebug('AudioPro: configure()', options);
 	},
 
-	load(track: AudioProTrack) {
-		logDebug('AudioPro: load()', track);
+	loadTrack(track: AudioProTrack) {
+		logDebug('AudioPro: loadTrack()', track);
 		if (!validateTrack(track)) {
-			const errorMessage = 'AudioPro: Invalid track provided to load().';
+			const errorMessage =
+				'AudioPro: Invalid track provided to loadTrack().';
 			console.error(errorMessage);
 			emitter.emit('AudioProEvent', {
-				name: AudioProEventName.PLAYBACK_ERROR,
-				error: errorMessage,
-				errorCode: -1,
+				type: AudioProEventType.PLAYBACK_ERROR,
+				track: null,
+				payload: {
+					error: errorMessage,
+					errorCode: -1,
+				},
 			});
 			return;
 		}
@@ -48,7 +51,6 @@ export const AudioPro = {
 		const { trackLoaded, configureOptions, playbackSpeed } =
 			useInternalStore.getState();
 		logDebug('AudioPro: play()', trackLoaded);
-
 		const options = { ...configureOptions, playbackSpeed };
 		NativeAudioPro.play(trackLoaded, options);
 	},
@@ -91,12 +93,7 @@ export const AudioPro = {
 	},
 
 	addEventListener(callback: AudioProEventCallback) {
-		return emitter.addListener(
-			'AudioProEvent',
-			(event: AudioProEventPayload) => {
-				callback(event);
-			},
-		);
+		return emitter.addListener('AudioProEvent', callback);
 	},
 
 	getTimings() {

@@ -1,7 +1,6 @@
 package dev.rnap.reactnativeaudiopro
 
 import android.content.ComponentName
-import android.content.Context
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
@@ -69,16 +68,16 @@ object AudioProController {
 	suspend fun play(track: ReadableMap, options: ReadableMap) {
 		currentTrack = track
 		val contentType = if (options.hasKey("contentType")) {
-			options.getString("contentType") ?: "music"
-		} else "music"
+			options.getString("contentType") ?: "MUSIC"
+		} else "MUSIC"
 		val enableDebug = options.hasKey("debug") && options.getBoolean("debug")
 		val speed = if (options.hasKey("playbackSpeed")) {
 			options.getDouble("playbackSpeed").toFloat()
 		} else 1.0f
 
 		debug = enableDebug
-		audioContentType = when (contentType.lowercase()) {
-			"speech" -> C.AUDIO_CONTENT_TYPE_SPEECH
+		audioContentType = when (contentType) {
+			"SPEECH" -> C.AUDIO_CONTENT_TYPE_SPEECH
 			else -> C.AUDIO_CONTENT_TYPE_MUSIC
 		}
 		currentPlaybackSpeed = speed
@@ -182,7 +181,7 @@ object AudioProController {
 				else -> position
 			}
 			browser?.seekTo(validPosition)
-			emitNotice(AudioProModule.NOTICE_SEEK_COMPLETE, validPosition, dur)
+			emitNotice(AudioProModule.EVENT_TYPE_SEEK_COMPLETE, validPosition, dur)
 		}
 	}
 
@@ -193,7 +192,7 @@ object AudioProController {
 			val dur = browser?.duration ?: 0L
 			val newPos = (current + amount).coerceAtMost(dur)
 			browser?.seekTo(newPos)
-			emitNotice(AudioProModule.NOTICE_SEEK_COMPLETE, newPos, dur)
+			emitNotice(AudioProModule.EVENT_TYPE_SEEK_COMPLETE, newPos, dur)
 		}
 	}
 
@@ -204,7 +203,7 @@ object AudioProController {
 			val newPos = (current - amount).coerceAtLeast(0L)
 			val dur = browser?.duration ?: 0L
 			browser?.seekTo(newPos)
-			emitNotice(AudioProModule.NOTICE_SEEK_COMPLETE, newPos, dur)
+			emitNotice(AudioProModule.EVENT_TYPE_SEEK_COMPLETE, newPos, dur)
 		}
 	}
 
@@ -261,7 +260,7 @@ object AudioProController {
 
 					Player.STATE_ENDED -> {
 						stopProgressTimer()
-						emitNotice(AudioProModule.NOTICE_TRACK_ENDED, dur, dur)
+						emitNotice(AudioProModule.EVENT_TYPE_TRACK_ENDED, dur, dur)
 						emitState(AudioProModule.STATE_STOPPED, dur, dur)
 					}
 
@@ -289,7 +288,7 @@ object AudioProController {
 			override fun run() {
 				val pos = browser?.currentPosition ?: 0L
 				val dur = browser?.duration ?: 0L
-				emitNotice(AudioProModule.NOTICE_PROGRESS, pos, dur)
+				emitNotice(AudioProModule.EVENT_TYPE_PROGRESS, pos, dur)
 				progressHandler?.postDelayed(this, 1000)
 			}
 		}
@@ -306,11 +305,26 @@ object AudioProController {
 		Handler(Looper.getMainLooper()).post(block)
 	}
 
-	private fun emitEvent(context: Context?, eventName: String, params: WritableMap) {
+	private fun emitEvent(type: String, track: ReadableMap?, payload: WritableMap?) {
+		val context = reactContext
 		if (context is ReactApplicationContext) {
+			val body = Arguments.createMap().apply {
+				putString("type", type)
+
+				if (track != null) {
+					putMap("track", track.toHashMap().let { Arguments.makeNativeMap(it) })
+				} else {
+					putNull("track")
+				}
+
+				if (payload != null) {
+					putMap("payload", payload)
+				}
+			}
+
 			context
 				.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
-				.emit(eventName, params)
+				.emit(AudioProModule.EVENT_NAME, body)
 		} else {
 			Log.w("AudioProController", "Context is not an instance of ReactApplicationContext")
 		}
@@ -323,77 +337,39 @@ object AudioProController {
 			return
 		}
 
-		val body = Arguments.createMap().apply {
+		val payload = Arguments.createMap().apply {
 			putString("state", state)
 			putDouble("position", position.toDouble())
 			putDouble("duration", duration.toDouble())
-
-			if (currentTrack != null) {
-				putMap("track", currentTrack!!.toHashMap().let { Arguments.makeNativeMap(it) })
-			} else {
-				putNull("track")
-			}
 		}
-		emitEvent(reactContext, AudioProModule.STATE_EVENT_NAME, body)
+		emitEvent(AudioProModule.EVENT_TYPE_STATE_CHANGED, currentTrack, payload)
 
 		// Track the last emitted state
 		lastEmittedState = state
 	}
 
-	private fun emitNotice(notice: String, position: Long, duration: Long) {
-		val body = Arguments.createMap().apply {
-			putString("notice", notice)
+	private fun emitNotice(eventType: String, position: Long, duration: Long) {
+		val payload = Arguments.createMap().apply {
 			putDouble("position", position.toDouble())
 			putDouble("duration", duration.toDouble())
-
-			if (currentTrack != null) {
-				putMap("track", currentTrack!!.toHashMap().let { Arguments.makeNativeMap(it) })
-			} else {
-				putNull("track")
-			}
 		}
-		emitEvent(reactContext, AudioProModule.NOTICE_EVENT_NAME, body)
+		emitEvent(eventType, currentTrack, payload)
 	}
 
 	private fun emitError(message: String, code: Int) {
-		val body = Arguments.createMap().apply {
-			putString("notice", AudioProModule.NOTICE_PLAYBACK_ERROR)
+		val payload = Arguments.createMap().apply {
 			putString("error", message)
 			putInt("errorCode", code)
-
-			if (currentTrack != null) {
-				putMap("track", currentTrack!!.toHashMap().let { Arguments.makeNativeMap(it) })
-			} else {
-				putNull("track")
-			}
 		}
-		emitEvent(reactContext, AudioProModule.NOTICE_EVENT_NAME, body)
+		emitEvent(AudioProModule.EVENT_TYPE_PLAYBACK_ERROR, currentTrack, payload)
 	}
 
 	fun emitNext() {
-		val body = Arguments.createMap().apply {
-			putString("notice", AudioProModule.NOTICE_REMOTE_NEXT)
-
-			if (currentTrack != null) {
-				putMap("track", currentTrack!!.toHashMap().let { Arguments.makeNativeMap(it) })
-			} else {
-				putNull("track")
-			}
-		}
-		emitEvent(reactContext, AudioProModule.NOTICE_EVENT_NAME, body)
+		emitEvent(AudioProModule.EVENT_TYPE_REMOTE_NEXT, currentTrack, Arguments.createMap())
 	}
 
 	fun emitPrev() {
-		val body = Arguments.createMap().apply {
-			putString("notice", AudioProModule.NOTICE_REMOTE_PREV)
-
-			if (currentTrack != null) {
-				putMap("track", currentTrack!!.toHashMap().let { Arguments.makeNativeMap(it) })
-			} else {
-				putNull("track")
-			}
-		}
-		emitEvent(reactContext, AudioProModule.NOTICE_EVENT_NAME, body)
+		emitEvent(AudioProModule.EVENT_TYPE_REMOTE_PREV, currentTrack, Arguments.createMap())
 	}
 
 	fun setPlaybackSpeed(speed: Float) {
@@ -402,6 +378,11 @@ object AudioProController {
 		runOnUiThread {
 			log("Setting playback speed to", speed)
 			browser?.setPlaybackSpeed(speed)
+
+			val payload = Arguments.createMap().apply {
+				putDouble("speed", speed.toDouble())
+			}
+			emitEvent(AudioProModule.EVENT_TYPE_PLAYBACK_SPEED_CHANGED, currentTrack, payload)
 		}
 	}
 }

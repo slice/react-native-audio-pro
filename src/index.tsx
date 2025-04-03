@@ -10,10 +10,10 @@ export const NativeAudioPro = NativeModules.AudioPro
 			{
 				get() {
 					throw new Error(
-						'react-native-audio-pro: Native module is not linked properly.'
+						'react-native-audio-pro: Native module is not linked properly.',
 					);
 				},
-			}
+			},
 		);
 
 export { AudioPro } from './audioPro';
@@ -22,8 +22,20 @@ export { useAudioPro } from './useAudioPro';
 
 export type {
 	AudioProTrack,
-	AudioProEventPayload,
 	AudioProEventCallback,
+	AudioProEvent,
+	AudioProStateChangedPayload,
+	AudioProTrackEndedPayload,
+	AudioProPlaybackErrorPayload,
+	AudioProProgressPayload,
+	AudioProSeekCompletePayload,
+	AudioProRemoteNextPayload,
+	AudioProRemotePrevPayload,
+	AudioProPlaybackSpeedChangedPayload,
 } from './types';
 
-export { AudioProState, AudioProEventName } from './values';
+export {
+	AudioProState,
+	AudioProEventType,
+	AudioProContentType,
+} from './values';

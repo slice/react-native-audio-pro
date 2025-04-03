@@ -14,22 +14,25 @@ class AudioPro: RCTEventEmitter {
     private var player: AVPlayer?
     private var timer: Timer?
     private var hasListeners = false
-    private let STATE_EVENT_NAME = "AudioProStateEvent"
-    private let NOTICE_EVENT_NAME = "AudioProEvent"
+    private let EVENT_NAME = "AudioProEvent"
 
+    // Event types
+    private let EVENT_TYPE_STATE_CHANGED = "STATE_CHANGED"
+    private let EVENT_TYPE_TRACK_ENDED = "TRACK_ENDED"
+    private let EVENT_TYPE_PLAYBACK_ERROR = "PLAYBACK_ERROR"
+    private let EVENT_TYPE_PROGRESS = "PROGRESS"
+    private let EVENT_TYPE_SEEK_COMPLETE = "SEEK_COMPLETE"
+    private let EVENT_TYPE_REMOTE_NEXT = "REMOTE_NEXT"
+    private let EVENT_TYPE_REMOTE_PREV = "REMOTE_PREV"
+    private let EVENT_TYPE_PLAYBACK_SPEED_CHANGED = "PLAYBACK_SPEED_CHANGED"
+
+    // States
     private let STATE_STOPPED = "STOPPED"
     private let STATE_LOADING = "LOADING"
     private let STATE_PLAYING = "PLAYING"
     private let STATE_PAUSED = "PAUSED"
 
-    private let NOTICE_TRACK_ENDED = "TRACK_ENDED"
-    private let NOTICE_PLAYBACK_ERROR = "PLAYBACK_ERROR"
-    private let NOTICE_PROGRESS = "PROGRESS"
-    private let NOTICE_SEEK_COMPLETE = "SEEK_COMPLETE"
-    private let NOTICE_REMOTE_NEXT = "REMOTE_NEXT"
-    private let NOTICE_REMOTE_PREV = "REMOTE_PREV"
-
-    private let GENERIC_ERROR_CODE = 1000
+    private let GENERIC_ERROR_CODE = 900
     private let progressInterval: TimeInterval = 1.0
     private var shouldBePlaying = false
     private var isRemoteCommandCenterSetup = false
@@ -47,7 +50,7 @@ class AudioPro: RCTEventEmitter {
     ////////////////////////////////////////////////////////////
 
     override func supportedEvents() -> [String]! {
-        return [STATE_EVENT_NAME, NOTICE_EVENT_NAME]
+        return [EVENT_NAME]
     }
 
     override static func requiresMainQueueSetup() -> Bool {
@@ -69,6 +72,21 @@ class AudioPro: RCTEventEmitter {
     private func log(_ items: Any...) {
         guard debugLog else { return }
         print("~~~", items.map { "\($0)" }.joined(separator: " "))
+    }
+
+    private func sendEvent(type: String, track: Any?, payload: [String: Any]?) {
+        guard hasListeners else { return }
+
+        var body: [String: Any] = [
+            "type": type,
+            "track": track as Any
+        ]
+
+        if let payload = payload {
+            body["payload"] = payload
+        }
+
+        sendEvent(withName: EVENT_NAME, body: body)
     }
 
 
@@ -96,13 +114,12 @@ class AudioPro: RCTEventEmitter {
     private func sendProgressNoticeEvent() {
         guard let player = player, let _ = player.currentItem, player.rate != 0 else { return }
         let info = getPlaybackInfo()
-        let body: [String: Any] = [
-            "notice": NOTICE_PROGRESS,
+
+        let payload: [String: Any] = [
             "position": info.position,
-            "duration": info.duration,
-            "track": info.track as Any
+            "duration": info.duration
         ]
-        sendEvent(withName: NOTICE_EVENT_NAME, body: body)
+        sendEvent(type: EVENT_TYPE_PROGRESS, track: info.track, payload: payload)
     }
 
     ////////////////////////////////////////////////////////////
@@ -136,8 +153,8 @@ class AudioPro: RCTEventEmitter {
         }
 
         do {
-            let contentType = options["contentType"] as? String ?? "music"
-            let mode: AVAudioSession.Mode = (contentType == "speech") ? .spokenAudio : .default
+            let contentType = options["contentType"] as? String ?? "MUSIC"
+            let mode: AVAudioSession.Mode = (contentType == "SPEECH") ? .spokenAudio : .default
             try AVAudioSession.sharedInstance().setCategory(.playback, mode: mode)
             try AVAudioSession.sharedInstance().setActive(true)
         } catch {
@@ -146,11 +163,12 @@ class AudioPro: RCTEventEmitter {
         }
 
         if hasListeners {
-            let body: [String: Any] = [
+            let payload: [String: Any] = [
                 "state": STATE_LOADING,
-                "track": currentTrack as Any
+                "position": 0,
+                "duration": 0
             ]
-            sendEvent(withName: STATE_EVENT_NAME, body: body)
+            sendEvent(type: EVENT_TYPE_STATE_CHANGED, track: currentTrack, payload: payload)
         }
         shouldBePlaying = true
 
@@ -209,13 +227,12 @@ class AudioPro: RCTEventEmitter {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
             if self.player?.rate != 0 && self.hasListeners {
                 let info = self.getPlaybackInfo()
-                let body: [String: Any] = [
+                let payload: [String: Any] = [
                     "state": self.STATE_PLAYING,
                     "position": info.position,
-                    "duration": info.duration,
-                    "track": info.track as Any
+                    "duration": info.duration
                 ]
-                self.sendEvent(withName: self.STATE_EVENT_NAME, body: body)
+                self.sendEvent(type: self.EVENT_TYPE_STATE_CHANGED, track: info.track, payload: payload)
                 self.startProgressTimer()
             }
         }
@@ -351,6 +368,14 @@ class AudioPro: RCTEventEmitter {
             if completed {
                 self.updateNowPlayingInfoWithCurrentTime(validPosition)
                 self.completeSeekingAndSendSeekCompleteNoticeEvent(newPosition: validPosition * 1000)
+
+                // Force update the now playing info to ensure controls work
+                DispatchQueue.main.async {
+                    var info = MPNowPlayingInfoCenter.default().nowPlayingInfo ?? [:]
+                    info[MPNowPlayingInfoPropertyElapsedPlaybackTime] = validPosition
+                    info[MPNowPlayingInfoPropertyPlaybackRate] = player.rate
+                    MPNowPlayingInfoCenter.default().nowPlayingInfo = info
+                }
             } else {
                 if player.rate != 0 {
                     self.startProgressTimer()
@@ -405,7 +430,7 @@ class AudioPro: RCTEventEmitter {
             return
         }
 
-        guard let currentItem = player.currentItem else {
+        guard player.currentItem != nil else {
             onError("Cannot seek: no item loaded")
             return
         }
@@ -443,13 +468,12 @@ class AudioPro: RCTEventEmitter {
     private func completeSeekingAndSendSeekCompleteNoticeEvent(newPosition: Double) {
         if hasListeners {
             let info = getPlaybackInfo()
-            let body: [String: Any] = [
-                "notice": NOTICE_SEEK_COMPLETE,
+
+            let payload: [String: Any] = [
                 "position": info.position,
-                "duration": info.duration,
-                "track": info.track as Any
+                "duration": info.duration
             ]
-            sendEvent(withName: NOTICE_EVENT_NAME, body: body)
+            sendEvent(type: EVENT_TYPE_SEEK_COMPLETE, track: info.track, payload: payload)
         }
         if player?.rate != 0 {
             startProgressTimer()
@@ -475,6 +499,15 @@ class AudioPro: RCTEventEmitter {
         var info = MPNowPlayingInfoCenter.default().nowPlayingInfo ?? [:]
         info[MPNowPlayingInfoPropertyPlaybackRate] = speed
         MPNowPlayingInfoCenter.default().nowPlayingInfo = info
+
+        if hasListeners {
+            let playbackInfo = getPlaybackInfo()
+
+            let payload: [String: Any] = [
+                "speed": speed
+            ]
+            sendEvent(type: EVENT_TYPE_PLAYBACK_SPEED_CHANGED, track: playbackInfo.track, payload: payload)
+        }
     }
 
     ////////////////////////////////////////////////////////////
@@ -486,16 +519,14 @@ class AudioPro: RCTEventEmitter {
         let info = getPlaybackInfo()
 
         if hasListeners {
-            let trackEndedBody: [String: Any] = [
-                "notice": NOTICE_TRACK_ENDED,
+            let payload: [String: Any] = [
                 "position": info.duration,
-                "duration": info.duration,
-                "track": info.track as Any
+                "duration": info.duration
             ]
-            sendEvent(withName: NOTICE_EVENT_NAME, body: trackEndedBody)
-            // When a track naturally finishes, call stop (not cleanup)
-            // so that Now Playing info (artwork, track details) remains visible.
+            sendEvent(type: EVENT_TYPE_TRACK_ENDED, track: info.track, payload: payload)
         }
+		// When a track naturally finishes, call stop (not cleanup)
+		// so that Now Playing info (artwork, track details) remains visible.
         stop()
     }
 
@@ -509,23 +540,23 @@ class AudioPro: RCTEventEmitter {
             if let newRate = change?[.newKey] as? Float {
                 if newRate == 0 {
                     if shouldBePlaying && hasListeners {
-                        let body: [String: Any] = [
+                        let payload: [String: Any] = [
                             "state": STATE_LOADING,
-                            "track": currentTrack as Any
+                            "position": 0,
+                            "duration": 0
                         ]
-                        sendEvent(withName: STATE_EVENT_NAME, body: body)
+                        sendEvent(type: EVENT_TYPE_STATE_CHANGED, track: currentTrack, payload: payload)
                         stopTimer()
                     }
                 } else {
                     if shouldBePlaying && hasListeners {
                         let info = getPlaybackInfo()
-                        let body: [String: Any] = [
+                        let payload: [String: Any] = [
                             "state": STATE_PLAYING,
                             "position": info.position,
-                            "duration": info.duration,
-                            "track": info.track as Any
+                            "duration": info.duration
                         ]
-                        sendEvent(withName: STATE_EVENT_NAME, body: body)
+                        sendEvent(type: EVENT_TYPE_STATE_CHANGED, track: info.track, payload: payload)
                         startProgressTimer()
                     }
                 }
@@ -561,63 +592,76 @@ class AudioPro: RCTEventEmitter {
 
     private func sendStoppedStateEvent() {
         if hasListeners {
-            let body: [String: Any] = [
+            let payload: [String: Any] = [
                 "state": STATE_STOPPED,
                 "position": 0,
-                "duration": 0,
-                "track": NSNull()
+                "duration": 0
             ]
-            sendEvent(withName: STATE_EVENT_NAME, body: body)
+            sendEvent(type: EVENT_TYPE_STATE_CHANGED, track: nil, payload: payload)
         }
     }
 
     private func sendPlayingStateEvent() {
         if hasListeners {
             let info = getPlaybackInfo()
-            let body: [String: Any] = [
+
+            let payload: [String: Any] = [
                 "state": STATE_PLAYING,
                 "position": info.position,
-                "duration": info.duration,
-                "track": info.track as Any
+                "duration": info.duration
             ]
-            sendEvent(withName: STATE_EVENT_NAME, body: body)
+            sendEvent(type: EVENT_TYPE_STATE_CHANGED, track: info.track, payload: payload)
         }
     }
 
     private func sendPausedStateEvent() {
         if hasListeners {
             let info = getPlaybackInfo()
-            let body: [String: Any] = [
+
+            let payload: [String: Any] = [
                 "state": STATE_PAUSED,
                 "position": info.position,
-                "duration": info.duration,
-                "track": info.track as Any
+                "duration": info.duration
             ]
-            sendEvent(withName: STATE_EVENT_NAME, body: body)
+            sendEvent(type: EVENT_TYPE_STATE_CHANGED, track: info.track, payload: payload)
         }
     }
 
     private func updateNowPlayingInfoWithCurrentTime(_ time: Double) {
         var nowPlayingInfo = MPNowPlayingInfoCenter.default().nowPlayingInfo ?? [String: Any]()
         nowPlayingInfo[MPNowPlayingInfoPropertyElapsedPlaybackTime] = time
+        nowPlayingInfo[MPNowPlayingInfoPropertyPlaybackRate] = player?.rate ?? 0
+
         if let currentItem = player?.currentItem {
             let duration = currentItem.duration.seconds
             if !duration.isNaN && !duration.isInfinite {
                 nowPlayingInfo[MPMediaItemPropertyPlaybackDuration] = duration
             }
         }
+
+        // Ensure we have the basic track info
+        if let track = currentTrack {
+            if nowPlayingInfo[MPMediaItemPropertyTitle] == nil, let title = track["title"] as? String {
+                nowPlayingInfo[MPMediaItemPropertyTitle] = title
+            }
+            if nowPlayingInfo[MPMediaItemPropertyArtist] == nil, let artist = track["artist"] as? String {
+                nowPlayingInfo[MPMediaItemPropertyArtist] = artist
+            }
+            if nowPlayingInfo[MPMediaItemPropertyAlbumTitle] == nil, let album = track["album"] as? String {
+                nowPlayingInfo[MPMediaItemPropertyAlbumTitle] = album
+            }
+        }
+
         MPNowPlayingInfoCenter.default().nowPlayingInfo = nowPlayingInfo
     }
 
     func onError(_ errorMessage: String) {
         if hasListeners {
-            let body: [String: Any] = [
-                "notice": NOTICE_PLAYBACK_ERROR,
+            let payload: [String: Any] = [
                 "error": errorMessage,
-                "errorCode": GENERIC_ERROR_CODE,
-                "track": currentTrack as Any
+                "errorCode": GENERIC_ERROR_CODE
             ]
-            sendEvent(withName: NOTICE_EVENT_NAME, body: body)
+            sendEvent(type: EVENT_TYPE_PLAYBACK_ERROR, track: currentTrack, payload: payload)
         }
         cleanup()
     }
@@ -651,21 +695,17 @@ class AudioPro: RCTEventEmitter {
 
         commandCenter.nextTrackCommand.addTarget { [weak self] event in
             guard let self = self else { return .commandFailed }
-            let body: [String: Any] = [
-                "notice": self.NOTICE_REMOTE_NEXT,
-                "track": self.currentTrack as Any
-            ]
-            self.sendEvent(withName: self.NOTICE_EVENT_NAME, body: body)
+
+            self.sendEvent(type: self.EVENT_TYPE_REMOTE_NEXT, track: self.currentTrack, payload: [:])
+
             return .success
         }
 
         commandCenter.previousTrackCommand.addTarget { [weak self] event in
             guard let self = self else { return .commandFailed }
-            let body: [String: Any] = [
-                "notice": self.NOTICE_REMOTE_PREV,
-                "track": self.currentTrack as Any
-            ]
-            self.sendEvent(withName: self.NOTICE_EVENT_NAME, body: body)
+
+            self.sendEvent(type: self.EVENT_TYPE_REMOTE_PREV, track: self.currentTrack, payload: [:])
+
             return .success
         }
 
@@ -687,5 +727,6 @@ class AudioPro: RCTEventEmitter {
         commandCenter.pauseCommand.removeTarget(nil)
         commandCenter.nextTrackCommand.removeTarget(nil)
         commandCenter.previousTrackCommand.removeTarget(nil)
+        commandCenter.changePlaybackPositionCommand.removeTarget(nil)
     }
 }

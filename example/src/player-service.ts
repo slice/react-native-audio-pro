@@ -1,37 +1,74 @@
 import {
-	AudioProEventName,
-	type AudioProEventPayload,
+	AudioProEventType,
+	AudioProContentType,
+	type AudioProEvent,
+	type AudioProTrack,
 } from 'react-native-audio-pro';
 import { AudioPro } from '../../src/audioPro';
+import { playlist } from './playlist';
 
-export function setupAudioPro() {
-	AudioPro.configure({ contentType: 'music', debug: __DEV__ });
-	AudioPro.addEventListener((event: AudioProEventPayload) => {
-		switch (event.name) {
-			case AudioProEventName.SEEK_COMPLETE:
-				// {name, position, duration}
-				console.log(event);
+// Track the current playlist position
+let currentIndex = 0;
+
+export function setupAudioPro(): void {
+	// Configure audio settings
+	AudioPro.configure({
+		contentType: AudioProContentType.MUSIC,
+		debug: __DEV__,
+	});
+
+	// Set up event listeners that persist for the app's lifetime
+	AudioPro.addEventListener((event: AudioProEvent) => {
+		switch (event.type) {
+			case AudioProEventType.TRACK_ENDED:
+				// Auto-play next track when current track ends
+				playNextTrack();
 				break;
-			case AudioProEventName.PROGRESS:
-				// {name, position, duration}
-				console.log(event);
+
+			case AudioProEventType.REMOTE_NEXT:
+				// Handle next button press from lock screen/notification
+				playNextTrack();
 				break;
-			case AudioProEventName.TRACK_ENDED:
-				// {name, position, duration}
-				console.log(event);
+
+			case AudioProEventType.REMOTE_PREV:
+				// Handle previous button press from lock screen/notification
+				playPreviousTrack();
 				break;
-			case AudioProEventName.REMOTE_NEXT:
-				console.log(event);
-				break;
-			case AudioProEventName.REMOTE_PREV:
-				console.log(event);
-				break;
-			case AudioProEventName.PLAYBACK_ERROR:
-				// {name}
-				console.warn(event.name);
-				break;
-			default:
+
+			case AudioProEventType.PLAYBACK_ERROR:
+				console.warn('Playback error:', event.payload?.error);
 				break;
 		}
 	});
+}
+
+function playNextTrack(): void {
+	if (playlist.length === 0) return;
+
+	currentIndex = (currentIndex + 1) % playlist.length;
+	const nextTrack = playlist[currentIndex];
+
+	AudioPro.loadTrack(nextTrack as AudioProTrack);
+	AudioPro.play();
+}
+
+function playPreviousTrack(): void {
+	if (playlist.length === 0) return;
+
+	currentIndex = currentIndex > 0 ? currentIndex - 1 : playlist.length - 1;
+	const prevTrack = playlist[currentIndex];
+
+	AudioPro.loadTrack(prevTrack as AudioProTrack);
+	AudioPro.play();
+}
+
+// Export functions that can be called from React components
+export function getCurrentTrackIndex(): number {
+	return currentIndex;
+}
+
+export function setCurrentTrackIndex(index: number): void {
+	if (index >= 0 && index < playlist.length) {
+		currentIndex = index;
+	}
 }

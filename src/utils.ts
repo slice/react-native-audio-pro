@@ -1,7 +1,7 @@
 import type { AudioProTrack } from './types';
 import { useInternalStore } from './useInternalStore';
 import { emitter } from './emitter';
-import { AudioProEventName } from './values';
+import { AudioProEventType } from './values';
 
 export function validateTrack(track: AudioProTrack): boolean {
 	// noinspection SuspiciousTypeOfGuard
@@ -19,7 +19,7 @@ export function validateTrack(track: AudioProTrack): boolean {
 		(track.artist !== undefined && typeof track.artist !== 'string')
 	) {
 		logDebug(
-			'Track validation failed: Missing or invalid required properties'
+			'Track validation failed: Missing or invalid required properties',
 		);
 		return false;
 	}
@@ -37,12 +37,13 @@ export function validateTrack(track: AudioProTrack): boolean {
 	];
 
 	const isAudioFormatSupported = supportedAudioFormats.some(
-		(format) => audioUrl.endsWith(format) || audioUrl.includes(`${format}?`) // Handle URLs with query parameters
+		(format) =>
+			audioUrl.endsWith(format) || audioUrl.includes(`${format}?`), // Handle URLs with query parameters
 	);
 
 	if (!isAudioFormatSupported) {
 		logDebug(
-			`Track validation failed: Unsupported audio format for URL: ${track.url}`
+			`Track validation failed: Unsupported audio format for URL: ${track.url}`,
 		);
 		return false;
 	}
@@ -52,12 +53,12 @@ export function validateTrack(track: AudioProTrack): boolean {
 
 	const isImageFormatSupported = supportedImageFormats.some(
 		(format) =>
-			artworkUrl.endsWith(format) || artworkUrl.includes(`${format}?`) // Handle URLs with query parameters
+			artworkUrl.endsWith(format) || artworkUrl.includes(`${format}?`), // Handle URLs with query parameters
 	);
 
 	if (!isImageFormatSupported) {
 		logDebug(
-			`Track validation failed: Unsupported image format for artwork: ${track.artwork}`
+			`Track validation failed: Unsupported image format for artwork: ${track.artwork}`,
 		);
 		return false;
 	}
@@ -75,12 +76,15 @@ export function logDebug(...args: any[]) {
 export function guardTrackLoaded(methodName: string): boolean {
 	const { trackLoaded } = useInternalStore.getState();
 	if (!trackLoaded) {
-		const errorMessage = `~~~ AudioPro: ${methodName} called but no track loaded.`;
+		const errorMessage = `~~~ AudioPro: ${methodName} called but no track loaded. Call loadTrack() first.`;
 		console.error(errorMessage);
-		emitter.emit('AudioProNameEvent', {
-			name: AudioProEventName.PLAYBACK_ERROR,
-			error: errorMessage,
-			errorCode: -1,
+		emitter.emit('AudioProEvent', {
+			type: AudioProEventType.PLAYBACK_ERROR,
+			track: null,
+			payload: {
+				error: errorMessage,
+				errorCode: -1,
+			},
 		});
 		return false;
 	}
@@ -92,10 +96,13 @@ export function guardTrackPlaying(methodName: string): boolean {
 	if (!trackPlaying) {
 		const errorMessage = `~~~ AudioPro: ${methodName} called but no track is playing or has been played.`;
 		console.error(errorMessage);
-		emitter.emit('AudioProNameEvent', {
-			name: AudioProEventName.PLAYBACK_ERROR,
-			error: errorMessage,
-			errorCode: -1,
+		emitter.emit('AudioProEvent', {
+			type: AudioProEventType.PLAYBACK_ERROR,
+			track: null,
+			payload: {
+				error: errorMessage,
+				errorCode: -1,
+			},
 		});
 		return false;
 	}
