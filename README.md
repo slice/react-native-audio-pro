@@ -1,6 +1,6 @@
 # React Native Audio Pro
 
-Modern, background-capable audio playback for React Native — built for podcasts, audiobooks, and long-form media. Works out of the box with background playback, lock screen controls, and clean hooks-based state. Under the hood: Android uses Media3 (not old-school ExoPlayer), giving you up-to-date media session support without any of the legacy baggage. iOS uses AVFoundation, Apple's native audio engine for professional-grade media playback.
+Modern, background-capable audio playback for React Native — built for podcasts, audiobooks, live streams, and long-form media. Works out of the box with background playback, lock screen controls, and clean hooks-based state. Under the hood: Android uses Media3 (not old-school ExoPlayer), giving you up-to-date media session support without any of the legacy baggage. iOS uses AVFoundation, Apple's native audio engine for professional-grade media playback. Supports both static audio files and live streaming URLs.
 
 [![npm version](https://img.shields.io/npm/v/react-native-audio-pro?logo=npm&logoColor=white&labelColor=grey&color=blue)](https://www.npmjs.com/package/react-native-audio-pro)
 [![website](https://img.shields.io/badge/website-rnap.dev-grey?logo=google-chrome&logoColor=white&color=blue)](https://rnap.dev)
@@ -75,6 +75,8 @@ buildscript {
 ```
 
 ## 📚 API Overview
+
+React Native Audio Pro supports various audio formats including MP3, AAC, WAV, and streaming protocols like HLS, DASH, RTSP, and RTMP.
 
 ### 🛠 Methods
 
@@ -167,7 +169,7 @@ subscription.remove();
 ```typescript
 type AudioProTrack = {
     id: string;
-    url: string; // the media url (mp3, m4a)
+    url: string; // the media url (mp3, m4a, streaming URLs)
     title: string;
     artwork: string; // the image url (jpg, png)
     album?: string;
@@ -250,10 +252,10 @@ import { AudioPro, AudioProContentType } from 'react-native-audio-pro';
 // Optional: Set playback config
 AudioPro.configure({ contentType: AudioProContentType.MUSIC, debug: __DEV__ });
 
-// Define an audio track
+// Define an audio track (supports both static files and live streams)
 const track = {
   id: 'track-001',
-  url: 'https://example.com/audio.mp3',
+  url: 'https://example.com/audio.mp3', // Can also be a live stream URL
   title: 'My Track',
   artwork: 'https://example.com/artwork.jpg',
   artist: 'Artist Name',

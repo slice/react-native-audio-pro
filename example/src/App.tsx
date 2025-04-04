@@ -74,18 +74,18 @@ export default function App() {
 				currentIndex > 0 ? currentIndex - 1 : playlist.length - 1;
 			updateCurrentIndex(newIndex);
 			AudioPro.loadTrack(playlist[newIndex] as AudioProTrack);
-			AudioPro.play();
+			if (state === AudioProState.PLAYING) {
+				AudioPro.play();
+			}
 		}
 	};
 
 	const handleNext = () => {
 		const newIndex = (currentIndex + 1) % playlist.length;
 		updateCurrentIndex(newIndex);
+		AudioPro.loadTrack(playlist[newIndex] as AudioProTrack);
 		if (state === AudioProState.PLAYING) {
-			AudioPro.loadTrack(playlist[newIndex] as AudioProTrack);
 			AudioPro.play();
-		} else {
-			AudioPro.seekTo(0);
 		}
 	};
 

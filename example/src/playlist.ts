@@ -16,11 +16,11 @@ export const playlist: AudioProTrack[] = [
 		artist: 'T. Schurger',
 	},
 	{
-		id: 'song-9',
-		url: 'https://rnap.dev/audio-soundhelix-song-9-tschurger.mp3',
-		title: 'Soundhelix Song 9',
+		id: 'stream-1',
+		url: 'https://audio-edge-d34v9.syd.o.radiomast.io/ref-128k-mp3-stereo-preroll',
+		title: 'Radio Mast Stream',
 		artwork: 'https://rnap.dev/artwork-usgs-8tfu4320oxI-unsplash.jpg',
-		artist: 'T. Schurger',
+		artist: 'Radio Mast',
 	},
 	{
 		id: 'error-track',

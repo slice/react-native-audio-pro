@@ -3,8 +3,80 @@ import { useInternalStore } from './useInternalStore';
 import { emitter } from './emitter';
 import { AudioProEventType } from './values';
 
+export function isValidMediaUrl(url: string): boolean {
+	if (!url || typeof url !== 'string' || !url.trim()) {
+		logDebug('URL validation failed: URL is empty or not a string');
+		return false;
+	}
+
+	try {
+		const urlObj = new URL(url);
+		const supportedProtocols = [
+			'https:',
+			'http:',
+			'rtsp:',
+			'rtmp:',
+			'rtp:',
+			'file:',
+		];
+
+		if (
+			!supportedProtocols.includes(urlObj.protocol) &&
+			urlObj.protocol !== 'http:'
+		) {
+			logDebug(
+				`URL validation failed: Unsupported protocol: ${urlObj.protocol}`,
+			);
+			return false;
+		}
+
+		return true;
+	} catch (e) {
+		console.warn(
+			`AudioPro: URL format may be invalid but will attempt to play: ${url}`,
+		);
+		return true;
+	}
+}
+
+export function isValidArtworkUrl(artworkUrl: string): boolean {
+	if (!artworkUrl || typeof artworkUrl !== 'string' || !artworkUrl.trim()) {
+		logDebug('Artwork URL validation failed: URL is empty or not a string');
+		return false;
+	}
+
+	try {
+		new URL(artworkUrl);
+
+		const supportedImageFormats = [
+			'.jpg',
+			'.jpeg',
+			'.png',
+			'.webp',
+			'.gif',
+		];
+		const isImageFormatSupported = supportedImageFormats.some(
+			(format) =>
+				artworkUrl.toLowerCase().endsWith(format) ||
+				artworkUrl.toLowerCase().includes(`${format}?`),
+		);
+
+		if (!isImageFormatSupported) {
+			console.warn(
+				`AudioPro: Artwork URL doesn't have a recognized image extension: ${artworkUrl}`,
+			);
+		}
+
+		return true;
+	} catch (e) {
+		console.warn(
+			`AudioPro: Artwork URL format may be invalid but will attempt to use it: ${artworkUrl}`,
+		);
+		return true;
+	}
+}
+
 export function validateTrack(track: AudioProTrack): boolean {
-	// noinspection SuspiciousTypeOfGuard
 	if (
 		!track ||
 		typeof track.id !== 'string' ||
@@ -24,41 +96,16 @@ export function validateTrack(track: AudioProTrack): boolean {
 		return false;
 	}
 
-	const audioUrl = track.url.toLowerCase();
-	const supportedAudioFormats = [
-		'.mp3',
-		'.aac',
-		'.wav',
-		'.m4a',
-		'.ogg',
-		'.flac',
-		'.mp4',
-		'.3gp',
-	];
-
-	const isAudioFormatSupported = supportedAudioFormats.some(
-		(format) =>
-			audioUrl.endsWith(format) || audioUrl.includes(`${format}?`), // Handle URLs with query parameters
-	);
-
-	if (!isAudioFormatSupported) {
+	if (!isValidMediaUrl(track.url)) {
 		logDebug(
-			`Track validation failed: Unsupported audio format for URL: ${track.url}`,
+			`Track validation failed: Invalid media URL format: ${track.url}`,
 		);
 		return false;
 	}
 
-	const artworkUrl = track.artwork.toLowerCase();
-	const supportedImageFormats = ['.jpg', '.jpeg', '.png', '.webp'];
-
-	const isImageFormatSupported = supportedImageFormats.some(
-		(format) =>
-			artworkUrl.endsWith(format) || artworkUrl.includes(`${format}?`), // Handle URLs with query parameters
-	);
-
-	if (!isImageFormatSupported) {
+	if (!isValidArtworkUrl(track.artwork)) {
 		logDebug(
-			`Track validation failed: Unsupported image format for artwork: ${track.artwork}`,
+			`Track validation failed: Invalid artwork URL format: ${track.artwork}`,
 		);
 		return false;
 	}
