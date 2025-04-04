@@ -29,6 +29,7 @@ export default function App() {
 		if (index !== currentIndex) {
 			setLocalIndex(index);
 		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [state]); // Re-sync when playback state changes
 
 	// Update both local state and player service when changing tracks

@@ -46,6 +46,7 @@ export function isValidArtworkUrl(artworkUrl: string): boolean {
 	}
 
 	try {
+		// eslint-disable-next-line no-new
 		new URL(artworkUrl);
 
 		const supportedImageFormats = [
