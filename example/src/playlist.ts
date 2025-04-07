@@ -12,7 +12,7 @@ export const playlist: AudioProTrack[] = [
 		id: 'song-2',
 		url: 'https://rnap.dev/audio-soundhelix-song-2-tschurger.mp3',
 		title: 'Soundhelix Song 2',
-		artwork: 'https://rnap.dev/artwork-usgs-PgL1p8TBGNQ-unsplash.jpg',
+		artwork: require('../../docs/artwork-usgs-PgL1p8TBGNQ-unsplash.jpg'),
 		artist: 'T. Schurger',
 	},
 	{

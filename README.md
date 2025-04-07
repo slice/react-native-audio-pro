@@ -171,7 +171,7 @@ type AudioProTrack = {
     id: string;
     url: string; // the media url (mp3, m4a, streaming URLs)
     title: string;
-    artwork: string; // the image url (jpg, png)
+    artwork: string | number; // the image url (jpg, png), or local asset via require()
     album?: string;
     artist?: string;
 };
@@ -257,7 +257,7 @@ const track = {
   id: 'track-001',
   url: 'https://example.com/audio.mp3', // Can also be a live stream URL
   title: 'My Track',
-  artwork: 'https://example.com/artwork.jpg',
+  artwork: 'https://example.com/artwork.jpg', // Can also be a local asset via require()
   artist: 'Artist Name',
 };
 

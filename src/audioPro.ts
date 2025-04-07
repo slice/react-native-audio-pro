@@ -16,6 +16,7 @@ import {
 	DEFAULT_SEEK_SECONDS,
 } from './values';
 import { emitter } from './emitter';
+import { Image } from 'react-native';
 
 import { NativeAudioPro } from './index';
 
@@ -29,7 +30,17 @@ export const AudioPro = {
 
 	loadTrack(track: AudioProTrack) {
 		logDebug('AudioPro: loadTrack()', track);
-		if (!validateTrack(track)) {
+
+		const resolvedTrack = { ...track };
+		if (typeof track.artwork === 'number') {
+			resolvedTrack.artwork = Image.resolveAssetSource(track.artwork).uri;
+			logDebug(
+				'AudioPro: Resolved require() artwork to URI',
+				resolvedTrack.artwork,
+			);
+		}
+
+		if (!validateTrack(resolvedTrack)) {
 			const errorMessage =
 				'AudioPro: Invalid track provided to loadTrack().';
 			console.error(errorMessage);
@@ -43,7 +54,8 @@ export const AudioPro = {
 			});
 			return;
 		}
-		useInternalStore.getState().setTrackLoaded(track);
+
+		useInternalStore.getState().setTrackLoaded(resolvedTrack);
 	},
 
 	play() {

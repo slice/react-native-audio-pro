@@ -8,11 +8,13 @@ import {
 // TRACK
 // ==============================
 
+export type AudioProArtwork = string | number;
+
 export type AudioProTrack = {
 	id: string;
 	url: string;
 	title: string;
-	artwork: string;
+	artwork: AudioProArtwork;
 	album?: string;
 	artist?: string;
 };

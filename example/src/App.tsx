@@ -107,7 +107,11 @@ export default function App() {
 				showsVerticalScrollIndicator={false}
 			>
 				<Image
-					source={{ uri: currentTrack.artwork }}
+					source={
+						typeof currentTrack.artwork === 'number'
+							? currentTrack.artwork
+							: { uri: currentTrack.artwork }
+					}
 					style={styles.artwork}
 				/>
 				<Text style={styles.title}>{currentTrack.title}</Text>

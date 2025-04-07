@@ -49,13 +49,7 @@ export function isValidArtworkUrl(artworkUrl: string): boolean {
 		// eslint-disable-next-line no-new
 		new URL(artworkUrl);
 
-		const supportedImageFormats = [
-			'.jpg',
-			'.jpeg',
-			'.png',
-			'.webp',
-			'.gif',
-		];
+		const supportedImageFormats = ['.jpg', '.jpeg', '.png', '.webp'];
 		const isImageFormatSupported = supportedImageFormats.some(
 			(format) =>
 				artworkUrl.toLowerCase().endsWith(format) ||
@@ -64,7 +58,7 @@ export function isValidArtworkUrl(artworkUrl: string): boolean {
 
 		if (!isImageFormatSupported) {
 			console.warn(
-				`AudioPro: Artwork URL doesn't have a recognized image extension: ${artworkUrl}`,
+				`AudioPro: Artwork URL doesn't have a supported image extension: ${artworkUrl}. Supported formats: ${supportedImageFormats.join(', ')}`,
 			);
 		}
 
@@ -78,6 +72,7 @@ export function isValidArtworkUrl(artworkUrl: string): boolean {
 }
 
 export function validateTrack(track: AudioProTrack): boolean {
+	// noinspection SuspiciousTypeOfGuard
 	if (
 		!track ||
 		typeof track.id !== 'string' ||
