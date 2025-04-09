@@ -2,6 +2,7 @@ import type { AudioProTrack } from './types';
 import { useInternalStore } from './useInternalStore';
 import { emitter } from './emitter';
 import { AudioProEventType } from './values';
+import { Platform } from 'react-native';
 
 export function isValidMediaUrl(url: string): boolean {
 	if (!url || typeof url !== 'string' || !url.trim()) {
@@ -18,6 +19,8 @@ export function isValidMediaUrl(url: string): boolean {
 			'rtmp:',
 			'rtp:',
 			'file:',
+			'blob:',
+			'data:',
 		];
 
 		if (
@@ -28,6 +31,32 @@ export function isValidMediaUrl(url: string): boolean {
 				`URL validation failed: Unsupported protocol: ${urlObj.protocol}`,
 			);
 			return false;
+		}
+
+		// For web, check if the file extension is supported
+		if (Platform.OS === 'web') {
+			const supportedFormats = [
+				'.mp3',
+				'.mp4',
+				'.m4a',
+				'.aac',
+				'.wav',
+				'.ogg',
+				'.oga',
+				'.opus',
+				'.webm',
+			];
+			const hasValidExtension = supportedFormats.some(
+				(ext) =>
+					urlObj.pathname.toLowerCase().endsWith(ext) ||
+					urlObj.pathname.toLowerCase().includes(`${ext}?`),
+			);
+
+			if (!hasValidExtension && !urlObj.pathname.includes('stream')) {
+				console.warn(
+					`AudioPro: URL doesn't have a supported audio extension: ${url}. This may not work in all browsers.`,
+				);
+			}
 		}
 
 		return true;
@@ -46,17 +75,31 @@ export function isValidArtworkUrl(artworkUrl: string): boolean {
 	}
 
 	try {
-		// eslint-disable-next-line no-new
-		new URL(artworkUrl);
+		const urlObj = new URL(artworkUrl);
 
-		const supportedImageFormats = ['.jpg', '.jpeg', '.png', '.webp'];
+		const supportedImageFormats = [
+			'.jpg',
+			'.jpeg',
+			'.png',
+			'.webp',
+			'.gif',
+			'.svg',
+		];
+
+		// Check if the URL has a supported image extension
 		const isImageFormatSupported = supportedImageFormats.some(
 			(format) =>
-				artworkUrl.toLowerCase().endsWith(format) ||
-				artworkUrl.toLowerCase().includes(`${format}?`),
+				urlObj.pathname.toLowerCase().endsWith(format) ||
+				urlObj.pathname.toLowerCase().includes(`${format}?`),
 		);
 
-		if (!isImageFormatSupported) {
+		// For web, also accept data URLs for images
+		const isDataUrl =
+			urlObj.protocol === 'data:' &&
+			(artworkUrl.startsWith('data:image/') ||
+				artworkUrl.includes('base64'));
+
+		if (!isImageFormatSupported && !isDataUrl) {
 			console.warn(
 				`AudioPro: Artwork URL doesn't have a supported image extension: ${artworkUrl}. Supported formats: ${supportedImageFormats.join(', ')}`,
 			);

@@ -1,6 +1,6 @@
 # React Native Audio Pro
 
-Modern, background-capable audio playback for React Native — built for podcasts, audiobooks, live streams, and long-form media. Works out of the box with background playback, lock screen controls, and clean hooks-based state. Under the hood: Android uses Media3 (not old-school ExoPlayer), giving you up-to-date media session support without any of the legacy baggage. iOS uses AVFoundation, Apple's native audio engine for professional-grade media playback. Supports both static audio files and live streaming URLs.
+Modern, background-capable audio playback for React Native — built for podcasts, audiobooks, live streams, and long-form media. Works out of the box with background playback, lock screen controls, and clean hooks-based state. Under the hood: Android uses Media3 (not old-school ExoPlayer), giving you up-to-date media session support without any of the legacy baggage. iOS uses AVFoundation, Apple's native audio engine for professional-grade media playback. Web uses the HTML5 Audio API for cross-browser compatibility. Supports both static audio files and live streaming URLs across all platforms.
 
 [![npm version](https://img.shields.io/npm/v/react-native-audio-pro?logo=npm&logoColor=white&labelColor=grey&color=blue)](https://www.npmjs.com/package/react-native-audio-pro)
 [![website](https://img.shields.io/badge/website-rnap.dev-grey?logo=google-chrome&logoColor=white&color=blue)](https://rnap.dev)
@@ -13,6 +13,7 @@ Modern, background-capable audio playback for React Native — built for podcast
 - [🔧 Platform-Specific Setup](#-platform-specific-setup)
   - [🍎 iOS](#ios)
   - [🤖 Android](#android)
+  - [🌐 Web](#web)
 - [📚 API Overview](#api-overview)
   - [🛠 Methods](#methods)
   - [🎧 Event Listeners](#event-listeners)
@@ -73,6 +74,27 @@ buildscript {
     }
 }
 ```
+
+### 🌐 Web
+
+> **Browser Support:** Modern browsers with HTML5 Audio API support (Chrome, Firefox, Safari, Edge)
+
+No additional setup is required for web support. The library automatically uses the HTML5 Audio API when running in a web environment.
+
+#### Supported Audio Formats
+
+Supported formats depend on the browser. Generally, these formats are well-supported:
+- MP3 (.mp3)
+- AAC (.m4a, .aac)
+- WAV (.wav)
+- Ogg Vorbis (.ogg, .oga)
+- Opus (.opus)
+- WebM (.webm)
+
+#### Web Limitations
+
+- Lock screen controls are not available on web platforms
+- Some streaming protocols may have limited support depending on the browser
 
 ## 📚 API Overview
 
