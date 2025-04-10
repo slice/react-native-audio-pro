@@ -71,29 +71,6 @@ buildscript {
 ```
 </details>
 
-<details>
-<summary><b>🌐 Web Support</b></summary>
-
-> **Browser Support:** Modern browsers with HTML5 Audio API support (Chrome, Firefox, Safari, Edge)
-
-No additional setup is required for web support. The library automatically uses the HTML5 Audio API when running in a web environment.
-
-#### Supported Audio Formats
-
-Supported formats depend on the browser. Generally, these formats are well-supported:
-- MP3 (.mp3)
-- AAC (.m4a, .aac)
-- WAV (.wav)
-- Ogg Vorbis (.ogg, .oga)
-- Opus (.opus)
-- WebM (.webm)
-
-#### Web Limitations
-
-- Lock screen controls are not available on web platforms
-- Some streaming protocols may have limited support depending on the browser
-</details>
-
 ## 📚 API Overview
 
 React Native Audio Pro supports various audio formats including MP3, AAC, WAV, and streaming protocols like HLS, DASH, RTSP, and RTMP.
@@ -382,7 +359,7 @@ function determineNextTrack() { /* Your logic here */ }
 <details>
 <summary><b>Running the Example App</b></summary>
 
-A complete working example is provided in the [`example/`](./example) folder.
+A complete working example for iOS and Android is provided in the [`example/`](./example) folder.
 
 It demonstrates how to use `react-native-audio-pro` in a real React Native app, including:
 
@@ -408,6 +385,29 @@ yarn example android
 ```
 
 **OR** open the `./example/ios` folder in XCode, or the `./example/android` folder in Android Studio and run the app on a simulator or physical device.
+</details>
+
+## 🌐 Web Support
+
+<details>
+<summary><b>Web Platform Information</b></summary>
+
+This library supports web environments through react-native-web. The API is identical to the native version.
+
+### Web Limitations
+
+- Lock screen controls are not available on web platforms
+- Some streaming protocols may have limited support depending on the browser
+- Autoplay policies may require user interaction before playback can begin
+- Supported audio formats depend on the browser (MP3, AAC, WAV, Ogg, Opus, WebM are generally well-supported)
+
+### Running the Web Example
+
+To run the included web example:
+
+```bash
+yarn example web
+```
 </details>
 
 ---
