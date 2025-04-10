@@ -36,8 +36,15 @@ export type AudioProEventCallback = (event: AudioProEvent) => void;
 
 export interface AudioProEvent {
 	type: AudioProEventType;
-	track: AudioProTrack | null;
-	payload?: Record<string, any>;
+	track: AudioProTrack | null; // Required for all events except REMOTE_NEXT and REMOTE_PREV
+	payload?: {
+		state?: AudioProState;
+		position?: number;
+		duration?: number;
+		error?: string;
+		errorCode?: number;
+		speed?: number;
+	};
 }
 
 export interface AudioProStateChangedPayload {

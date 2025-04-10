@@ -3,15 +3,11 @@ import type {
 	AudioProEventCallback,
 	AudioProTrack,
 } from './types';
-import {
-	guardTrackLoaded,
-	guardTrackPlaying,
-	logDebug,
-	validateTrack,
-} from './utils';
+import { guardTrackPlaying, logDebug, validateTrack } from './utils';
 import { useInternalStore } from './useInternalStore';
 import {
 	AudioProEventType,
+	AudioProState,
 	DEFAULT_CONFIG,
 	DEFAULT_SEEK_SECONDS,
 } from './values';
@@ -19,6 +15,22 @@ import { emitter } from './emitter';
 import { Image } from 'react-native';
 
 import { NativeAudioPro } from './index';
+
+function isValidPlayerStateForOperation(operation: string): boolean {
+	const { playerState } = useInternalStore.getState();
+	if (
+		playerState === AudioProState.STOPPED ||
+		playerState === AudioProState.ERROR
+	) {
+		logDebug(
+			`AudioPro: ${operation} ignored - player in`,
+			playerState,
+			'state',
+		);
+		return false;
+	}
+	return true;
+}
 
 export const AudioPro = {
 	configure(options: AudioProConfigureOptions): void {
@@ -28,8 +40,8 @@ export const AudioPro = {
 		logDebug('AudioPro: configure()', options);
 	},
 
-	loadTrack(track: AudioProTrack) {
-		logDebug('AudioPro: loadTrack()', track);
+	play(track: AudioProTrack) {
+		logDebug('AudioPro: play()', track);
 
 		const resolvedTrack = { ...track };
 		if (typeof track.artwork === 'number') {
@@ -41,8 +53,7 @@ export const AudioPro = {
 		}
 
 		if (!validateTrack(resolvedTrack)) {
-			const errorMessage =
-				'AudioPro: Invalid track provided to loadTrack().';
+			const errorMessage = 'AudioPro: Invalid track provided to play().';
 			console.error(errorMessage);
 			emitter.emit('AudioProEvent', {
 				type: AudioProEventType.PLAYBACK_ERROR,
@@ -55,52 +66,65 @@ export const AudioPro = {
 			return;
 		}
 
-		useInternalStore.getState().setTrackLoaded(resolvedTrack);
-	},
-
-	play() {
-		if (!guardTrackLoaded('play')) return;
-		const { trackLoaded, configureOptions, playbackSpeed } =
+		// Clear errors and set track as playing
+		const { error, setError, configureOptions, playbackSpeed } =
 			useInternalStore.getState();
-		logDebug('AudioPro: play()', trackLoaded);
+		if (error) {
+			setError(null);
+		}
 		const options = { ...configureOptions, playbackSpeed };
-		NativeAudioPro.play(trackLoaded, options);
+		NativeAudioPro.play(resolvedTrack, options);
 	},
 
 	pause() {
 		if (!guardTrackPlaying('pause')) return;
 		logDebug('AudioPro: pause()');
+		if (!isValidPlayerStateForOperation('pause()')) return;
 		NativeAudioPro.pause();
 	},
 
 	resume() {
 		if (!guardTrackPlaying('resume')) return;
 		logDebug('AudioPro: resume()');
+		if (!isValidPlayerStateForOperation('resume()')) return;
+
+		// Clear any existing error
+		const { error, setError } = useInternalStore.getState();
+		if (error) {
+			setError(null);
+		}
 		NativeAudioPro.resume();
 	},
 
 	stop() {
 		logDebug('AudioPro: stop()');
+		const { error, setError } = useInternalStore.getState();
+		if (error) {
+			setError(null);
+		}
 		NativeAudioPro.stop();
 	},
 
 	seekTo(positionMs: number) {
 		if (!guardTrackPlaying('seekTo')) return;
 		logDebug('AudioPro: seekTo()', positionMs);
+		if (!isValidPlayerStateForOperation('seekTo()')) return;
 		NativeAudioPro.seekTo(positionMs);
 	},
 
-	seekForward(amountMs: number = DEFAULT_SEEK_SECONDS) {
+	seekForward(amountSec: number = DEFAULT_SEEK_SECONDS) {
 		if (!guardTrackPlaying('seekForward')) return;
-		logDebug('AudioPro: seekForward()', amountMs);
-		const milliseconds = amountMs * 1000;
+		logDebug('AudioPro: seekForward()', amountSec);
+		if (!isValidPlayerStateForOperation('seekForward()')) return;
+		const milliseconds = amountSec * 1000;
 		NativeAudioPro.seekForward(milliseconds);
 	},
 
-	seekBack(amountMs: number = DEFAULT_SEEK_SECONDS) {
+	seekBack(amountSec: number = DEFAULT_SEEK_SECONDS) {
 		if (!guardTrackPlaying('seekBack')) return;
-		logDebug('AudioPro: seekBack()', amountMs);
-		const milliseconds = amountMs * 1000;
+		logDebug('AudioPro: seekBack()', amountSec);
+		if (!isValidPlayerStateForOperation('seekBack()')) return;
+		const milliseconds = amountSec * 1000;
 		NativeAudioPro.seekBack(milliseconds);
 	},
 
@@ -136,6 +160,12 @@ export const AudioPro = {
 		setPlaybackSpeed(validatedSpeed);
 
 		if (trackPlaying) {
+			if (
+				!isValidPlayerStateForOperation(
+					'setPlaybackSpeed() native call',
+				)
+			)
+				return;
 			NativeAudioPro.setPlaybackSpeed(validatedSpeed);
 		}
 	},
@@ -143,5 +173,10 @@ export const AudioPro = {
 	getPlaybackSpeed() {
 		const { playbackSpeed } = useInternalStore.getState();
 		return playbackSpeed;
+	},
+
+	getError() {
+		const { error } = useInternalStore.getState();
+		return error;
 	},
 };

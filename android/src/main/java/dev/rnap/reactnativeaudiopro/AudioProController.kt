@@ -274,7 +274,7 @@ object AudioProController {
 			override fun onPlayerError(error: PlaybackException) {
 				val message = error.message ?: "Unknown error"
 				emitError(message, 500)
-				emitState(AudioProModule.STATE_STOPPED, 0L, 0L)
+				emitState(AudioProModule.STATE_ERROR, 0L, 0L)
 			}
 		}
 

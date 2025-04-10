@@ -31,6 +31,7 @@ class AudioPro: RCTEventEmitter {
     private let STATE_LOADING = "LOADING"
     private let STATE_PLAYING = "PLAYING"
     private let STATE_PAUSED = "PAUSED"
+    private let STATE_ERROR = "ERROR"
 
     private let GENERIC_ERROR_CODE = 900
     private let progressInterval: TimeInterval = 1.0
@@ -293,7 +294,8 @@ class AudioPro: RCTEventEmitter {
 
     /// cleanup fully tears down the player instance and removes observers and remote controls.
     /// This is used when switching tracks or recovering from an error.
-    @objc func cleanup() {
+    /// - Parameter emitStateChange: Whether to emit a STOPPED state change event (default: true)
+    @objc func cleanup(emitStateChange: Bool = true) {
         shouldBePlaying = false
 
         NotificationCenter.default.removeObserver(self)
@@ -314,9 +316,13 @@ class AudioPro: RCTEventEmitter {
 
         stopTimer()
         currentTrack = nil
-        sendStoppedStateEvent()
 
-        // Unlike stop, cleanup clears the now playing info and remote control events.
+        // Only emit state change if requested
+        if emitStateChange {
+            sendStoppedStateEvent()
+        }
+
+        // Clear the now playing info and remote control events
         DispatchQueue.main.async {
             MPNowPlayingInfoCenter.default().nowPlayingInfo = [:]
             UIApplication.shared.endReceivingRemoteControlEvents()
@@ -560,6 +566,13 @@ class AudioPro: RCTEventEmitter {
         sendStateEvent(state: STATE_PAUSED)
     }
 
+    /// Stops playback without emitting a state change event
+    /// Used for error handling to avoid emitting STOPPED after ERROR
+    private func stopPlaybackWithoutStateChange() {
+        // Use the cleanup method with emitStateChange set to false
+        cleanup(emitStateChange: false)
+    }
+
     /// Updates Now Playing Info with specified parameters, preserving existing values
     private func updateNowPlayingInfo(time: Double? = nil, rate: Float? = nil, duration: Double? = nil, track: NSDictionary? = nil) {
         var nowPlayingInfo = MPNowPlayingInfoCenter.default().nowPlayingInfo ?? [String: Any]()
@@ -605,13 +618,24 @@ class AudioPro: RCTEventEmitter {
 
     func onError(_ errorMessage: String) {
         if hasListeners {
-            let payload: [String: Any] = [
+            // Send the error payload
+            let errorPayload: [String: Any] = [
                 "error": errorMessage,
                 "errorCode": GENERIC_ERROR_CODE
             ]
-            sendEvent(type: EVENT_TYPE_PLAYBACK_ERROR, track: currentTrack, payload: payload)
+            sendEvent(type: EVENT_TYPE_PLAYBACK_ERROR, track: currentTrack, payload: errorPayload)
+
+            // Also send a state change to ERROR
+            let statePayload: [String: Any] = [
+                "state": STATE_ERROR,
+                "position": player?.currentTime().seconds.isNaN ?? true ? 0 : Int(player?.currentTime().seconds ?? 0) * 1000,
+                "duration": player?.currentItem?.duration.seconds.isNaN ?? true ? 0 : Int(player?.currentItem?.duration.seconds ?? 0) * 1000
+            ]
+            sendEvent(type: EVENT_TYPE_STATE_CHANGED, track: currentTrack, payload: statePayload)
         }
-        cleanup()
+        // Don't call cleanup() which would emit STOPPED state
+        // Just stop playback and timers without changing state
+        stopPlaybackWithoutStateChange()
     }
 
     private func setupRemoteTransportControls() {

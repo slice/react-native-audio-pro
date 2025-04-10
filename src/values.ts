@@ -12,6 +12,7 @@ export enum AudioProState {
 	LOADING = 'LOADING',
 	PLAYING = 'PLAYING',
 	PAUSED = 'PAUSED',
+	ERROR = 'ERROR',
 }
 
 export enum AudioProEventType {

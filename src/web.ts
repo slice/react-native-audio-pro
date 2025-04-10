@@ -2,15 +2,14 @@ import type { AudioProTrack } from './types';
 import { emitter } from './emitter';
 import { AudioProEventType, AudioProState } from './values';
 
-// Define the interface for the web audio implementation
 interface WebAudioProInterface {
 	play(track: AudioProTrack, options: any): void;
 	pause(): void;
 	resume(): void;
 	stop(): void;
-	seekTo(position: number): void;
-	seekForward(amount: number): void;
-	seekBack(amount: number): void;
+	seekTo(positionMs: number): void;
+	seekForward(amountSec: number): void;
+	seekBack(amountSec: number): void;
 	setPlaybackSpeed(speed: number): void;
 }
 
@@ -22,7 +21,6 @@ class WebAudioProImpl implements WebAudioProInterface {
 	private debug: boolean = false;
 
 	constructor() {
-		// Create audio element when the class is instantiated
 		if (typeof window !== 'undefined' && typeof document !== 'undefined') {
 			this.audio = new Audio();
 			this.setupAudioListeners();
@@ -159,6 +157,16 @@ class WebAudioProImpl implements WebAudioProInterface {
 				errorCode,
 			},
 		});
+
+		emitter.emit('AudioProEvent', {
+			type: AudioProEventType.STATE_CHANGED,
+			track: this.currentTrack,
+			payload: {
+				state: AudioProState.ERROR,
+				position: 0,
+				duration: 0,
+			},
+		});
 	}
 
 	private startProgressUpdates(): void {
@@ -225,29 +233,35 @@ class WebAudioProImpl implements WebAudioProInterface {
 		this.stopProgressUpdates();
 	}
 
-	seekTo(position: number): void {
-		this.log('SeekTo', position);
+	seekTo(positionMs: number): void {
+		this.log('SeekTo', positionMs);
 		if (this.audio) {
-			this.audio.currentTime = position / 1000; // Convert ms to seconds
+			this.audio.currentTime = positionMs / 1000; // Convert ms to seconds
 		}
 	}
 
-	seekForward(amount: number): void {
-		this.log('SeekForward', amount);
+	seekForward(amountSec: number): void {
+		this.log('SeekForward', amountSec);
 		if (this.audio) {
+			// Convert seconds to milliseconds for consistency with native implementation
+			const milliseconds = amountSec * 1000;
+			// Then convert back to seconds for the HTML Audio API
 			this.audio.currentTime = Math.min(
 				this.audio.duration || 0,
-				this.audio.currentTime + amount / 1000,
+				this.audio.currentTime + milliseconds / 1000,
 			);
 		}
 	}
 
-	seekBack(amount: number): void {
-		this.log('SeekBack', amount);
+	seekBack(amountSec: number): void {
+		this.log('SeekBack', amountSec);
 		if (this.audio) {
+			// Convert seconds to milliseconds for consistency with native implementation
+			const milliseconds = amountSec * 1000;
+			// Then convert back to seconds for the HTML Audio API
 			this.audio.currentTime = Math.max(
 				0,
-				this.audio.currentTime - amount / 1000,
+				this.audio.currentTime - milliseconds / 1000,
 			);
 		}
 	}

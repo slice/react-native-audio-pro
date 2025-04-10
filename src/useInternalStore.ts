@@ -3,6 +3,7 @@ import { AudioProEventType, AudioProState, DEFAULT_CONFIG } from './values';
 import type {
 	AudioProConfigureOptions,
 	AudioProEvent,
+	AudioProPlaybackErrorPayload,
 	AudioProTrack,
 } from './types';
 
@@ -12,14 +13,14 @@ export interface AudioProStore {
 	duration: number;
 	playbackSpeed: number;
 	debug: boolean;
-	trackLoaded: AudioProTrack | null;
 	trackPlaying: AudioProTrack | null;
 	configureOptions: AudioProConfigureOptions;
+	error: AudioProPlaybackErrorPayload | null;
 	setDebug: (debug: boolean) => void;
-	setTrackLoaded: (track: AudioProTrack | null) => void;
 	setTrackPlaying: (track: AudioProTrack | null) => void;
 	setConfigureOptions: (options: AudioProConfigureOptions) => void;
 	setPlaybackSpeed: (speed: number) => void;
+	setError: (error: AudioProPlaybackErrorPayload | null) => void;
 	updateFromEvent: (event: AudioProEvent) => void;
 }
 
@@ -29,23 +30,57 @@ export const useInternalStore = create<AudioProStore>((set, get) => ({
 	duration: 0,
 	playbackSpeed: 1.0,
 	debug: false,
-	trackLoaded: null,
 	trackPlaying: null,
 	configureOptions: { ...DEFAULT_CONFIG },
+	error: null,
 	setDebug: (debug) => set({ debug }),
-	setTrackLoaded: (track) => set({ trackLoaded: track }),
 	setTrackPlaying: (track) => set({ trackPlaying: track }),
 	setConfigureOptions: (options) => set({ configureOptions: options }),
 	setPlaybackSpeed: (speed) => set({ playbackSpeed: speed }),
+	setError: (error) => set({ error }),
 	updateFromEvent: (event) => {
 		const updates: Partial<AudioProStore> = {};
 		const { type, track, payload } = event;
+
+		// Command events don't update state or require track
+		if (
+			type === AudioProEventType.REMOTE_NEXT ||
+			type === AudioProEventType.REMOTE_PREV
+		) {
+			return; // Command events don't update state
+		}
+
+		// For non-command events, track should be included
+		if (track === undefined && type !== AudioProEventType.PLAYBACK_ERROR) {
+			console.warn(
+				`AudioPro: Event ${type} missing required track property`,
+			);
+		}
 
 		// Handle different event types
 		switch (type) {
 			case AudioProEventType.STATE_CHANGED:
 				if (payload?.state && payload.state !== get().playerState) {
 					updates.playerState = payload.state as AudioProState;
+
+					// Clear error when transitioning to a non-ERROR state
+					if (
+						payload.state !== AudioProState.ERROR &&
+						get().error !== null
+					) {
+						updates.error = null;
+					}
+				}
+				break;
+
+			case AudioProEventType.PLAYBACK_ERROR:
+				if (payload && payload.error) {
+					updates.error = {
+						error: payload.error,
+						errorCode: payload.errorCode,
+					};
+					// Set state to ERROR
+					updates.playerState = AudioProState.ERROR;
 				}
 				break;
 
@@ -70,12 +105,9 @@ export const useInternalStore = create<AudioProStore>((set, get) => ({
 			updates.duration = payload.duration;
 		}
 
-		// Update track if it has changed
-		if (track === null) {
-			if (get().trackPlaying !== null) {
-				updates.trackPlaying = null;
-			}
-		} else if (track) {
+		// Update track if it has changed and we're not in an error state
+		// Never clear trackPlaying on error
+		if (track) {
 			const currentTrack = get().trackPlaying;
 			if (
 				currentTrack === null ||
@@ -87,6 +119,14 @@ export const useInternalStore = create<AudioProStore>((set, get) => ({
 				track.artist !== currentTrack.artist
 			) {
 				updates.trackPlaying = track;
+			}
+		} else if (
+			track === null &&
+			type !== AudioProEventType.PLAYBACK_ERROR
+		) {
+			// Only clear trackPlaying if explicitly set to null and not an error event
+			if (get().trackPlaying !== null) {
+				updates.trackPlaying = null;
 			}
 		}
 

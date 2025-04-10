@@ -2,7 +2,7 @@ import { useInternalStore } from './useInternalStore';
 import { useShallow } from 'zustand/react/shallow';
 
 export const useAudioPro = () => {
-	const { state, position, duration, track, playbackSpeed } =
+	const { state, position, duration, track, playbackSpeed, error } =
 		useInternalStore(
 			useShallow((zustandState) => ({
 				state: zustandState.playerState,
@@ -10,7 +10,8 @@ export const useAudioPro = () => {
 				duration: zustandState.duration,
 				track: zustandState.trackPlaying,
 				playbackSpeed: zustandState.playbackSpeed,
-			}))
+				error: zustandState.error,
+			})),
 		);
 	return {
 		state,
@@ -18,5 +19,6 @@ export const useAudioPro = () => {
 		duration,
 		track,
 		playbackSpeed,
+		error,
 	};
 };

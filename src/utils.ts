@@ -68,7 +68,11 @@ export function isValidMediaUrl(url: string): boolean {
 	}
 }
 
-export function isValidArtworkUrl(artworkUrl: string): boolean {
+export function isValidArtworkUrl(artworkUrl: string | number): boolean {
+	// If artwork is a number (require() result), it's valid
+	if (typeof artworkUrl === 'number') {
+		return true;
+	}
 	if (!artworkUrl || typeof artworkUrl !== 'string' || !artworkUrl.trim()) {
 		logDebug('Artwork URL validation failed: URL is empty or not a string');
 		return false;
@@ -124,14 +128,18 @@ export function validateTrack(track: AudioProTrack): boolean {
 		!track.url.trim() ||
 		typeof track.title !== 'string' ||
 		!track.title.trim() ||
-		typeof track.artwork !== 'string' ||
-		!track.artwork.trim() ||
+		!(
+			typeof track.artwork === 'string' ||
+			typeof track.artwork === 'number'
+		) ||
+		(typeof track.artwork === 'string' && !track.artwork.trim()) ||
 		(track.album !== undefined && typeof track.album !== 'string') ||
 		(track.artist !== undefined && typeof track.artist !== 'string')
 	) {
 		logDebug(
 			'Track validation failed: Missing or invalid required properties',
 		);
+
 		return false;
 	}
 
@@ -157,24 +165,6 @@ export function logDebug(...args: any[]) {
 	if (debug) {
 		console.log('~~~', ...args);
 	}
-}
-
-export function guardTrackLoaded(methodName: string): boolean {
-	const { trackLoaded } = useInternalStore.getState();
-	if (!trackLoaded) {
-		const errorMessage = `~~~ AudioPro: ${methodName} called but no track loaded. Call loadTrack() first.`;
-		console.error(errorMessage);
-		emitter.emit('AudioProEvent', {
-			type: AudioProEventType.PLAYBACK_ERROR,
-			track: null,
-			payload: {
-				error: errorMessage,
-				errorCode: -1,
-			},
-		});
-		return false;
-	}
-	return true;
 }
 
 export function guardTrackPlaying(methodName: string): boolean {

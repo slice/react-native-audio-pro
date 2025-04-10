@@ -20,6 +20,7 @@ class AudioProModule(private val reactContext: ReactApplicationContext) :
 		const val STATE_PAUSED = "PAUSED"
 		const val STATE_STOPPED = "STOPPED"
 		const val STATE_LOADING = "LOADING"
+		const val STATE_ERROR = "ERROR"
 
 		const val EVENT_TYPE_STATE_CHANGED = "STATE_CHANGED"
 		const val EVENT_TYPE_TRACK_ENDED = "TRACK_ENDED"

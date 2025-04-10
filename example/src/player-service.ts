@@ -48,8 +48,7 @@ function playNextTrack(): void {
 	currentIndex = (currentIndex + 1) % playlist.length;
 	const nextTrack = playlist[currentIndex];
 
-	AudioPro.loadTrack(nextTrack as AudioProTrack);
-	AudioPro.play();
+	AudioPro.play(nextTrack as AudioProTrack);
 }
 
 function playPreviousTrack(): void {
@@ -58,8 +57,7 @@ function playPreviousTrack(): void {
 	currentIndex = currentIndex > 0 ? currentIndex - 1 : playlist.length - 1;
 	const prevTrack = playlist[currentIndex];
 
-	AudioPro.loadTrack(prevTrack as AudioProTrack);
-	AudioPro.play();
+	AudioPro.play(prevTrack as AudioProTrack);
 }
 
 // Export functions that can be called from React components
