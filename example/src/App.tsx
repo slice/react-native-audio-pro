@@ -6,6 +6,7 @@ import {
 	Text,
 	TouchableOpacity,
 	View,
+	Alert,
 } from 'react-native';
 import Slider from '@react-native-community/slider';
 import { type AudioProTrack, useAudioPro } from 'react-native-audio-pro';
@@ -21,7 +22,8 @@ export default function App() {
 	// Use the current track index from the player service
 	const [currentIndex, setLocalIndex] = useState(getCurrentTrackIndex());
 	const currentTrack = playlist[currentIndex];
-	const { position, duration, state, track, playbackSpeed } = useAudioPro();
+	const { position, duration, state, track, playbackSpeed, error } =
+		useAudioPro();
 
 	// Sync the local index with the player service
 	useEffect(() => {
@@ -59,11 +61,11 @@ export default function App() {
 	};
 
 	const handleSeekBack = () => {
-		AudioPro.seekBack(10);
+		AudioPro.seekBack(10000); // 10 seconds in milliseconds
 	};
 
 	const handleSeekForward = () => {
-		AudioPro.seekForward(30);
+		AudioPro.seekForward(30000); // 30 seconds in milliseconds
 	};
 
 	const handlePrevious = () => {
@@ -95,6 +97,15 @@ export default function App() {
 	const handleDecreaseSpeed = () => {
 		const newSpeed = Math.max(0.25, playbackSpeed - 0.25);
 		AudioPro.setPlaybackSpeed(newSpeed);
+	};
+
+	const showErrorDetails = () => {
+		if (error) {
+			Alert.alert(
+				'Playback Error',
+				`Error: ${error.error}\nCode: ${error.errorCode || 'N/A'}`,
+			);
+		}
 	};
 
 	return (
@@ -167,6 +178,23 @@ export default function App() {
 				<Text style={styles.stateText}>State: {state}</Text>
 				{track && (
 					<Text style={styles.stateText}>Track ID: {track.id}</Text>
+				)}
+
+				{/* Error display and handling */}
+				{error && (
+					<View style={styles.errorContainer}>
+						<Text style={styles.errorText}>
+							Error: {error.error}
+						</Text>
+						<TouchableOpacity
+							onPress={showErrorDetails}
+							style={styles.errorButton}
+						>
+							<Text style={styles.errorButtonText}>
+								Show Details
+							</Text>
+						</TouchableOpacity>
+					</View>
 				)}
 			</ScrollView>
 		</SafeAreaView>

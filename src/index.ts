@@ -1,24 +1,20 @@
 /**
  * REACT NATIVE AUDIO PRO
  */
-import { NativeModules, Platform } from 'react-native';
-import { WebAudioPro } from './web';
+import { NativeModules } from 'react-native';
 
-export const NativeAudioPro =
-	Platform.OS === 'web'
-		? WebAudioPro
-		: NativeModules.AudioPro
-			? NativeModules.AudioPro
-			: new Proxy(
-					{},
-					{
-						get() {
-							throw new Error(
-								'react-native-audio-pro: Native module is not linked properly.',
-							);
-						},
-					},
-				);
+export const NativeAudioPro = NativeModules.AudioPro
+	? NativeModules.AudioPro
+	: new Proxy(
+			{},
+			{
+				get() {
+					throw new Error(
+						'react-native-audio-pro: Native module is not linked properly.',
+					);
+				},
+			},
+		);
 
 export { AudioPro } from './audioPro';
 

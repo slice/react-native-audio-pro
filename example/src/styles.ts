@@ -1,22 +1,13 @@
 import { StyleSheet, Dimensions } from 'react-native';
 
-// Get screen dimensions
 const { width, height } = Dimensions.get('window');
 
-// Calculate screen aspect ratio
 const aspectRatio = height / width;
 
-// Check if device needs smaller UI
-// This includes both physically small devices and devices with less available vertical space
-// Pixel devices (16:9 or 19:9 ratio) will qualify as needing smaller UI
 const needsSmallerUI = width < 400 || height < 700 || aspectRatio > 1.9;
 
-// Scale factors based on device size and aspect ratio
-// More aggressive scaling for very tall phones
 const scale = needsSmallerUI ? (aspectRatio > 2 ? 0.8 : 0.85) : 1;
 
-// For Pixel devices and other tall phones, we need to be more aggressive with artwork scaling
-// For extremely tall phones (like Pixel 4 XL), scale down to 65%
 let artworkScale = 1;
 if (needsSmallerUI) {
 	if (aspectRatio > 2.1)
@@ -26,7 +17,6 @@ if (needsSmallerUI) {
 	else artworkScale = 0.75; // Other small devices
 }
 
-// Debug info
 console.log(
 	`Screen: ${width}x${height}, Ratio: ${aspectRatio.toFixed(2)}, Small UI: ${needsSmallerUI}`,
 );
@@ -124,5 +114,68 @@ export const styles = StyleSheet.create({
 		fontSize: 12 * scale,
 		color: '#ccc',
 		marginBottom: needsSmallerUI ? 2 : 4,
+	},
+	// Error display styles
+	errorContainer: {
+		marginHorizontal: 20,
+		marginBottom: needsSmallerUI ? 8 : 15,
+		padding: needsSmallerUI ? 10 : 15,
+		backgroundColor: '#500',
+		borderRadius: 8,
+		borderWidth: 1,
+		borderColor: '#800',
+	},
+	errorText: {
+		color: '#fff',
+		fontSize: 16 * scale,
+		marginBottom: needsSmallerUI ? 6 : 10,
+	},
+	errorButton: {
+		backgroundColor: '#800',
+		paddingVertical: needsSmallerUI ? 6 : 8,
+		paddingHorizontal: needsSmallerUI ? 8 : 12,
+		borderRadius: 4,
+		alignSelf: 'flex-start',
+	},
+	errorButtonText: {
+		color: 'white',
+		fontSize: 14 * scale,
+		fontWeight: 'bold',
+	},
+	// Settings styles
+	settingsContainer: {
+		marginHorizontal: needsSmallerUI ? 10 : 20,
+		marginBottom: needsSmallerUI ? 8 : 15,
+		paddingVertical: needsSmallerUI ? 10 : 15,
+		paddingHorizontal: needsSmallerUI ? 15 : 20,
+		backgroundColor: '#333',
+		borderRadius: 8,
+	},
+	settingsHeader: {
+		fontSize: 18 * scale,
+		fontWeight: 'bold',
+		color: '#fff',
+		marginBottom: needsSmallerUI ? 10 : 15,
+	},
+	settingRow: {
+		flexDirection: 'row',
+		justifyContent: 'space-between',
+		alignItems: 'center',
+		marginBottom: needsSmallerUI ? 8 : 12,
+	},
+	settingLabel: {
+		fontSize: 16 * scale,
+		color: '#ccc',
+	},
+	contentTypeButton: {
+		backgroundColor: '#1EB1FC',
+		paddingVertical: needsSmallerUI ? 4 : 6,
+		paddingHorizontal: needsSmallerUI ? 8 : 12,
+		borderRadius: 4,
+	},
+	contentTypeButtonText: {
+		color: 'white',
+		fontSize: 14 * scale,
+		fontWeight: 'bold',
 	},
 });
