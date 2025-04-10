@@ -8,8 +8,8 @@ interface WebAudioProInterface {
 	resume(): void;
 	stop(): void;
 	seekTo(positionMs: number): void;
-	seekForward(amountSec: number): void;
-	seekBack(amountSec: number): void;
+	seekForward(amountMs: number): void;
+	seekBack(amountMs: number): void;
 	setPlaybackSpeed(speed: number): void;
 }
 
@@ -240,28 +240,24 @@ class WebAudioProImpl implements WebAudioProInterface {
 		}
 	}
 
-	seekForward(amountSec: number): void {
-		this.log('SeekForward', amountSec);
+	seekForward(amountMs: number): void {
+		this.log('SeekForward', amountMs);
 		if (this.audio) {
-			// Convert seconds to milliseconds for consistency with native implementation
-			const milliseconds = amountSec * 1000;
-			// Then convert back to seconds for the HTML Audio API
+			// Convert milliseconds to seconds for the HTML Audio API
 			this.audio.currentTime = Math.min(
 				this.audio.duration || 0,
-				this.audio.currentTime + milliseconds / 1000,
+				this.audio.currentTime + amountMs / 1000,
 			);
 		}
 	}
 
-	seekBack(amountSec: number): void {
-		this.log('SeekBack', amountSec);
+	seekBack(amountMs: number): void {
+		this.log('SeekBack', amountMs);
 		if (this.audio) {
-			// Convert seconds to milliseconds for consistency with native implementation
-			const milliseconds = amountSec * 1000;
-			// Then convert back to seconds for the HTML Audio API
+			// Convert milliseconds to seconds for the HTML Audio API
 			this.audio.currentTime = Math.max(
 				0,
-				this.audio.currentTime - milliseconds / 1000,
+				this.audio.currentTime - amountMs / 1000,
 			);
 		}
 	}

@@ -9,7 +9,7 @@ import {
 	AudioProEventType,
 	AudioProState,
 	DEFAULT_CONFIG,
-	DEFAULT_SEEK_SECONDS,
+	DEFAULT_SEEK_MS,
 } from './values';
 import { emitter } from './emitter';
 import { Image } from 'react-native';
@@ -112,20 +112,18 @@ export const AudioPro = {
 		NativeAudioPro.seekTo(positionMs);
 	},
 
-	seekForward(amountSec: number = DEFAULT_SEEK_SECONDS) {
+	seekForward(amountMs: number = DEFAULT_SEEK_MS) {
 		if (!guardTrackPlaying('seekForward')) return;
-		logDebug('AudioPro: seekForward()', amountSec);
+		logDebug('AudioPro: seekForward()', amountMs);
 		if (!isValidPlayerStateForOperation('seekForward()')) return;
-		const milliseconds = amountSec * 1000;
-		NativeAudioPro.seekForward(milliseconds);
+		NativeAudioPro.seekForward(amountMs);
 	},
 
-	seekBack(amountSec: number = DEFAULT_SEEK_SECONDS) {
+	seekBack(amountMs: number = DEFAULT_SEEK_MS) {
 		if (!guardTrackPlaying('seekBack')) return;
-		logDebug('AudioPro: seekBack()', amountSec);
+		logDebug('AudioPro: seekBack()', amountMs);
 		if (!isValidPlayerStateForOperation('seekBack()')) return;
-		const milliseconds = amountSec * 1000;
-		NativeAudioPro.seekBack(milliseconds);
+		NativeAudioPro.seekBack(amountMs);
 	},
 
 	addEventListener(callback: AudioProEventCallback) {

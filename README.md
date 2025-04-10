@@ -110,10 +110,10 @@ React Native Audio Pro supports various audio formats including MP3, AAC, WAV, a
   - Stops the playback, resetting to position 0 and clearing the playing track.
 - **seekTo(positionMs: number)**
   - Seeks to a specific position (in milliseconds).
-- **seekForward(amountSec?: number)**
-  - Seeks forward by specified seconds (default: 30 seconds).
-- **seekBack(amountSec?: number)**
-  - Seeks backward by specified seconds (default: 30 seconds).
+- **seekForward(amountMs?: number)**
+  - Seeks forward by specified milliseconds (default: 30 seconds).
+- **seekBack(amountMs?: number)**
+  - Seeks backward by specified milliseconds (default: 30 seconds).
 - **configure(options: AudioProSetupOptions)**
   - Optional. Sets playback options like content type (`'MUSIC'` or `'SPEECH'`). Takes effect the next time `play()` is called.
 - **getTimings(): { position: number, duration: number }**

@@ -1,6 +1,6 @@
 import type { AudioProConfigureOptions } from './types';
 
-export const DEFAULT_SEEK_SECONDS = 30;
+export const DEFAULT_SEEK_MS = 30000; // 30 seconds
 
 export enum AudioProContentType {
 	MUSIC = 'MUSIC',
