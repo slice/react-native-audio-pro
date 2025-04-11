@@ -165,6 +165,9 @@ object AudioProController {
 		}
 		stopProgressTimer()
 		release()
+
+		// Stop the service to remove notification
+		stopPlaybackService()
 	}
 
 	fun release() {
@@ -173,6 +176,31 @@ object AudioProController {
 				MediaBrowser.releaseFuture(browserFuture)
 			}
 			browser = null
+		}
+	}
+
+	/**
+	 * Explicitly stops the AudioProPlaybackService to remove notification
+	 * This is the central method for stopping the service and removing the notification
+	 */
+	fun stopPlaybackService() {
+		log("Stopping AudioProPlaybackService")
+		try {
+			reactContext?.let { context ->
+				// Try to cancel notification directly
+				try {
+					val notificationManager = context.getSystemService(android.content.Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
+					notificationManager.cancel(789) // Using the same NOTIFICATION_ID as in AudioProPlaybackService
+				} catch (e: Exception) {
+					Log.e("AudioProController", "Error canceling notification", e)
+				}
+
+				// Stop the service
+				val intent = android.content.Intent(context, AudioProPlaybackService::class.java)
+				context.stopService(intent)
+			}
+		} catch (e: Exception) {
+			Log.e("AudioProController", "Error stopping service", e)
 		}
 	}
 

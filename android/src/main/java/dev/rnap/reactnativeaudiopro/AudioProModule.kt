@@ -4,12 +4,14 @@ import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
 import com.facebook.react.bridge.ReadableMap
+import com.facebook.react.bridge.LifecycleEventListener
+import android.util.Log
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 class AudioProModule(private val reactContext: ReactApplicationContext) :
-	ReactContextBaseJavaModule(reactContext) {
+	ReactContextBaseJavaModule(reactContext), LifecycleEventListener {
 
 	companion object {
 		const val NAME = "AudioPro"
@@ -34,6 +36,8 @@ class AudioProModule(private val reactContext: ReactApplicationContext) :
 
 	init {
 		AudioProController.setReactContext(reactContext)
+		// Register for lifecycle events
+		reactContext.addLifecycleEventListener(this)
 	}
 
 	@ReactMethod
@@ -80,5 +84,35 @@ class AudioProModule(private val reactContext: ReactApplicationContext) :
 
 	override fun getName(): String {
 		return NAME
+	}
+
+	// LifecycleEventListener methods
+	override fun onHostResume() {} // Not used, but required by interface
+
+	override fun onHostPause() {} // Not used, but required by interface
+
+	override fun onHostDestroy() {
+		// App is being destroyed
+		Log.d("AudioProModule", "App is being destroyed, stopping playback")
+
+		// Stop playback and service using the central method
+		AudioProController.stop()
+	}
+
+	override fun onCatalystInstanceDestroy() {
+		// React Native bridge is being destroyed
+		Log.d("AudioProModule", "React Native bridge is being destroyed, stopping playback")
+
+		// Stop playback and service using the central method
+		AudioProController.stop()
+
+		// Remove lifecycle listener
+		try {
+			reactContext.removeLifecycleEventListener(this)
+		} catch (e: Exception) {
+			Log.e("AudioProModule", "Error removing lifecycle listener", e)
+		}
+
+		super.onCatalystInstanceDestroy()
 	}
 }

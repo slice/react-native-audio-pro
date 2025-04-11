@@ -80,15 +80,76 @@ open class AudioProPlaybackService : MediaLibraryService() {
 		return mediaLibrarySession
 	}
 
+	/**
+	 * Called when the task is removed from the recent tasks list
+	 * This happens when the user swipes away the app from the recent apps list
+	 */
+	override fun onTaskRemoved(rootIntent: android.content.Intent?) {
+		android.util.Log.d("AudioProPlaybackService", "Task removed, stopping service")
+
+		// Force stop playback and release resources
+		try {
+			if (::mediaLibrarySession.isInitialized) {
+				// Stop playback
+				mediaLibrarySession.player.stop()
+				// Release player and session
+				mediaLibrarySession.player.release()
+				mediaLibrarySession.release()
+			}
+		} catch (e: Exception) {
+			android.util.Log.e("AudioProPlaybackService", "Error stopping playback", e)
+		}
+
+		// Remove notification and stop service
+		removeNotificationAndStopService()
+
+		super.onTaskRemoved(rootIntent)
+	}
+
 	// MediaSession.setSessionActivity
 	// MediaSessionService.clearListener
 	@OptIn(UnstableApi::class)
 	override fun onDestroy() {
-		getBackStackedActivity()?.let { mediaLibrarySession.setSessionActivity(it) }
-		mediaLibrarySession.release()
-		mediaLibrarySession.player.release()
-		clearListener()
+		android.util.Log.d("AudioProPlaybackService", "Service being destroyed")
+
+		// Make sure to release all resources
+		try {
+			if (::mediaLibrarySession.isInitialized) {
+				// Stop playback first
+				mediaLibrarySession.player.stop()
+				// Release session and player
+				mediaLibrarySession.release()
+				mediaLibrarySession.player.release()
+			}
+			clearListener()
+		} catch (e: Exception) {
+			android.util.Log.e("AudioProPlaybackService", "Error during service destruction", e)
+		}
+
+		// Remove notification
+		removeNotificationAndStopService()
+
 		super.onDestroy()
+	}
+
+	/**
+	 * Helper method to remove notification and stop the service
+	 * Centralizes the notification removal and service stopping logic
+	 */
+	private fun removeNotificationAndStopService() {
+		try {
+			// Remove notification directly
+			val notificationManager = getSystemService(NOTIFICATION_SERVICE) as android.app.NotificationManager
+			notificationManager.cancel(NOTIFICATION_ID)
+
+			// Stop foreground service
+			stopForeground(true)
+
+			// Stop the service
+			stopSelf()
+		} catch (e: Exception) {
+			android.util.Log.e("AudioProPlaybackService", "Error stopping service", e)
+		}
 	}
 
 	@OptIn(UnstableApi::class)
