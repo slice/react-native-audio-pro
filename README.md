@@ -6,6 +6,14 @@ Modern, background-capable audio playback for React Native — built for podcast
 [![website](https://img.shields.io/badge/website-rnap.dev-grey?logo=google-chrome&logoColor=white&color=blue)](https://rnap.dev)
 [![GitHub](https://img.shields.io/badge/evergrace--co-react--native--audio--pro-grey?logo=github&logoColor=white&labelColor=grey&color=blue)](https://github.com/evergrace-co/react-native-audio-pro)
 
+> ⚠️ **Warning: Rapid API Evolution**
+>
+> This is a new and rapidly evolving library. The API is still being refined, and we are making frequent breaking changes as we lock in core behavior.
+>
+> If you're using or testing this library, **always refer to the README for the specific [release](https://github.com/evergrace-co/react-native-audio-pro/releases) you're installing.**
+>
+> For current update status and context, see [Pinned Issue: API Stability Notice](https://github.com/evergrace-co/react-native-audio-pro/issues/18)
+
 ## Table of Contents
 
 - [🚀 Installation](#-installation)
