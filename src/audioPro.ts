@@ -44,11 +44,22 @@ export const AudioPro = {
 		logDebug('AudioPro: play()', track);
 
 		const resolvedTrack = { ...track };
+
+		// Resolve artwork if it's a number (require result)
 		if (typeof track.artwork === 'number') {
 			resolvedTrack.artwork = Image.resolveAssetSource(track.artwork).uri;
 			logDebug(
 				'AudioPro: Resolved require() artwork to URI',
 				resolvedTrack.artwork,
+			);
+		}
+
+		// Resolve URL if it's a number (require result)
+		if (typeof track.url === 'number') {
+			resolvedTrack.url = Image.resolveAssetSource(track.url).uri;
+			logDebug(
+				'AudioPro: Resolved require() audio URL to URI',
+				resolvedTrack.url,
 			);
 		}
 

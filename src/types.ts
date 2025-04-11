@@ -12,7 +12,7 @@ export type AudioProArtwork = string | number;
 
 export type AudioProTrack = {
 	id: string;
-	url: string;
+	url: string | number;
 	title: string;
 	artwork: AudioProArtwork;
 	album?: string;

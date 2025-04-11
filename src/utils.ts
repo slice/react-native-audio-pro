@@ -4,7 +4,12 @@ import { emitter } from './emitter';
 import { AudioProEventType } from './values';
 import { Platform } from 'react-native';
 
-export function isValidMediaUrl(url: string): boolean {
+export function isValidMediaUrl(url: string | number): boolean {
+	// If URL is a number (require() result), it's valid
+	if (typeof url === 'number') {
+		return true;
+	}
+
 	if (!url || typeof url !== 'string' || !url.trim()) {
 		logDebug('URL validation failed: URL is empty or not a string');
 		return false;
@@ -124,8 +129,8 @@ export function validateTrack(track: AudioProTrack): boolean {
 		!track ||
 		typeof track.id !== 'string' ||
 		!track.id.trim() ||
-		typeof track.url !== 'string' ||
-		!track.url.trim() ||
+		!(typeof track.url === 'string' || typeof track.url === 'number') ||
+		(typeof track.url === 'string' && !track.url.trim()) ||
 		typeof track.title !== 'string' ||
 		!track.title.trim() ||
 		!(
@@ -143,14 +148,17 @@ export function validateTrack(track: AudioProTrack): boolean {
 		return false;
 	}
 
-	if (!isValidMediaUrl(track.url)) {
+	if (typeof track.url === 'string' && !isValidMediaUrl(track.url)) {
 		logDebug(
 			`Track validation failed: Invalid media URL format: ${track.url}`,
 		);
 		return false;
 	}
 
-	if (!isValidArtworkUrl(track.artwork)) {
+	if (
+		typeof track.artwork === 'string' &&
+		!isValidArtworkUrl(track.artwork)
+	) {
 		logDebug(
 			`Track validation failed: Invalid artwork URL format: ${track.artwork}`,
 		);

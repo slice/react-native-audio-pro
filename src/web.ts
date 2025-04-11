@@ -196,6 +196,15 @@ class WebAudioProImpl implements WebAudioProInterface {
 			return;
 		}
 
+		// Web implementation doesn't support local audio files via require()
+		if (typeof track.url === 'number') {
+			this.emitError(
+				'Local audio files via require() are not supported in web environment',
+				-1,
+			);
+			return;
+		}
+
 		// Reset and configure the audio element
 		this.audio.src = track.url;
 		this.audio.playbackRate = this.playbackSpeed;

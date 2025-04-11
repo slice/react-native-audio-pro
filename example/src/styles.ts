@@ -11,10 +11,10 @@ const scale = needsSmallerUI ? (aspectRatio > 2 ? 0.8 : 0.85) : 1;
 let artworkScale = 1;
 if (needsSmallerUI) {
 	if (aspectRatio > 2.1)
-		artworkScale = 0.65; // Very tall phones
+		artworkScale = 0.7; // Very tall phones
 	else if (aspectRatio > 1.9)
-		artworkScale = 0.7; // Tall phones like Pixel
-	else artworkScale = 0.75; // Other small devices
+		artworkScale = 0.75; // Tall phones like Pixel
+	else artworkScale = 0.8; // Other small devices
 }
 
 console.log(
