@@ -1,4 +1,4 @@
-name: 🐛 Bug report
+name: Bug report 🐛
 description: Report a reproducible bug or regression in this library.
 labels: [bug]
 body:
