@@ -33,7 +33,7 @@ yarn add react-native-audio-pro
 - **TypeScript:** 5.0 or higher
 - **React Native:** 0.72 or higher
 - **iOS:** iOS 15.1 or higher
-- **Android:** Android 7.0 (API 24) or higher (tested on API 28+)
+- **Android:** Android 7.0 (API 26) or higher (tested on API 28+)
 
 ## 🔧 Platform-Specific Setup
 
@@ -50,7 +50,7 @@ yarn add react-native-audio-pro
 <details>
 <summary><b>🤖 Android Setup</b></summary>
 
-> **SDK Support:** Android 7.0 (API 24)+
+> **SDK Support:** Android 7.0 (API 26)+
 > Media3 APIs are supported from API 21+, but testing is focused on API 28+.
 
 > ℹ️ This library requires `compileSdkVersion = 35` and `targetSdkVersion = 35` to support the latest Media3 features and ensure compatibility with modern Android Studio tooling.
@@ -62,7 +62,7 @@ In `android/build.gradle`:
 ```gradle
 buildscript {
     ext {
-        minSdkVersion = 24
+        minSdkVersion = 26
         compileSdkVersion = 35
         targetSdkVersion = 35
         // ...

@@ -82,12 +82,11 @@ dependencies {
 	implementation "androidx.media3:media3-exoplayer-hls:1.6.0"
 	implementation "androidx.media3:media3-exoplayer-dash:1.6.0"
 	implementation "androidx.media3:media3-exoplayer-smoothstreaming:1.6.0"
-	
 	implementation "androidx.media3:media3-session:1.6.0"
 	implementation "androidx.media3:media3-common:1.6.0"
 	implementation "androidx.media3:media3-common-ktx:1.6.0"
 
-	implementation "androidx.core:core-ktx:1.15.0"
+	implementation "androidx.core:core-ktx:1.16.0"
 	implementation "androidx.lifecycle:lifecycle-runtime-ktx:2.8.7"
 
 	testImplementation "junit:junit:4.13.2"

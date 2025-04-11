@@ -45,6 +45,7 @@ class AudioPro: RCTEventEmitter {
     private var currentTrack: NSDictionary?
 
     private var debugLog: Bool = false
+    private var isInErrorState: Bool = false
 
     ////////////////////////////////////////////////////////////
     // MARK: - React Native Event Emitter Overrides
@@ -129,6 +130,8 @@ class AudioPro: RCTEventEmitter {
 
     @objc(play:withOptions:)
     func play(track: NSDictionary, options: NSDictionary) {
+        // Reset error state when playing a new track
+        isInErrorState = false
         currentTrack = track
         debugLog = options["debug"] as? Bool ?? false
         let speed = options["playbackSpeed"] as? Float ?? 1.0
@@ -226,6 +229,12 @@ class AudioPro: RCTEventEmitter {
         }
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            // Don't emit PLAYING state if we're in an error state
+            if self.isInErrorState {
+                self.log("Ignoring delayed PLAYING state after ERROR")
+                return
+            }
+
             if self.player?.rate != 0 && self.hasListeners {
                 let info = self.getPlaybackInfo()
                 let payload: [String: Any] = [
@@ -280,6 +289,8 @@ class AudioPro: RCTEventEmitter {
     /// such as artwork and remote control settings. This allows the lock screen/Control Center
     /// to continue displaying the track details for a potential resume.
     @objc func stop() {
+        // Reset error state when explicitly stopping
+        isInErrorState = false
         shouldBePlaying = false
 
         player?.pause()
@@ -317,8 +328,8 @@ class AudioPro: RCTEventEmitter {
         stopTimer()
         currentTrack = nil
 
-        // Only emit state change if requested
-        if emitStateChange {
+        // Only emit state change if requested and not in error state
+        if emitStateChange && !isInErrorState {
             sendStoppedStateEvent()
         }
 
@@ -467,6 +478,13 @@ class AudioPro: RCTEventEmitter {
 
     @objc private func playerItemDidPlayToEndTime(_ notification: Notification) {
         guard let _ = player?.currentItem else { return }
+
+        // Don't process track end if we're in an error state
+        if isInErrorState {
+            log("Ignoring track end notification while in ERROR state")
+            return
+        }
+
         let info = getPlaybackInfo()
 
         if hasListeners {
@@ -487,6 +505,12 @@ class AudioPro: RCTEventEmitter {
         change: [NSKeyValueChangeKey : Any]?,
         context: UnsafeMutableRawPointer?
     ) {
+        // Don't process any KVO notifications if we're in an error state
+        if isInErrorState {
+            log("Ignoring KVO notification while in ERROR state: \(keyPath ?? "unknown")")
+            return
+        }
+
         if keyPath == "rate" {
             if let newRate = change?[.newKey] as? Float {
                 if newRate == 0 {
@@ -543,6 +567,12 @@ class AudioPro: RCTEventEmitter {
 
     private func sendStateEvent(state: String, position: Int? = nil, duration: Int? = nil, track: NSDictionary? = nil) {
         guard hasListeners else { return }
+
+        // When in error state, only allow ERROR state to be emitted
+        if isInErrorState && state != STATE_ERROR {
+            log("Ignoring \(state) state after ERROR")
+            return
+        }
 
         let info = position == nil || duration == nil ? getPlaybackInfo() : (position: position!, duration: duration!, track: track)
 
@@ -617,6 +647,15 @@ class AudioPro: RCTEventEmitter {
     }
 
     func onError(_ errorMessage: String) {
+        // If we're already in an error state, just log and return
+        if isInErrorState {
+            log("Already in error state, ignoring additional error: \(errorMessage)")
+            return
+        }
+
+        // Set error state flag
+        isInErrorState = true
+
         if hasListeners {
             // Send the error payload
             let errorPayload: [String: Any] = [
@@ -633,9 +672,16 @@ class AudioPro: RCTEventEmitter {
             ]
             sendEvent(type: EVENT_TYPE_STATE_CHANGED, track: currentTrack, payload: statePayload)
         }
+
+        // Store the current track before cleanup
+        let trackBeforeCleanup = currentTrack
+
         // Don't call cleanup() which would emit STOPPED state
         // Just stop playback and timers without changing state
         stopPlaybackWithoutStateChange()
+
+        // Restore the track after cleanup (since cleanup sets it to nil)
+        currentTrack = trackBeforeCleanup
     }
 
     private func setupRemoteTransportControls() {

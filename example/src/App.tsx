@@ -30,9 +30,22 @@ export default function App() {
 		const index = getCurrentTrackIndex();
 		if (index !== currentIndex) {
 			setLocalIndex(index);
+			// Mark that we need to load the track if it changed
+			if (state !== AudioProState.PLAYING) {
+				setNeedsTrackLoad(true);
+			}
 		}
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [state]); // Re-sync when playback state changes
+
+	// Reset needsTrackLoad when the track actually changes
+	useEffect(() => {
+		// @ts-ignore
+		if (track?.id === currentTrack.id) {
+			setNeedsTrackLoad(false);
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [track?.id]);
 
 	// Update both local state and player service when changing tracks
 	const updateCurrentIndex = (index: number) => {
@@ -40,20 +53,29 @@ export default function App() {
 		setCurrentTrackIndex(index);
 	};
 
+	// Track whether we need to load a new track before playing
+	const [needsTrackLoad, setNeedsTrackLoad] = useState(true);
+
 	if (!currentTrack) return null;
 
+	// Handle play/pause button press
 	const handlePlayPause = () => {
 		if (state === AudioProState.PLAYING) {
+			// If playing, simply pause
 			AudioPro.pause();
-		} else if (state === AudioProState.PAUSED) {
+		} else if (state === AudioProState.PAUSED && !needsTrackLoad) {
+			// If paused and we don't need to load a new track, resume
 			AudioPro.resume();
 		} else {
+			// If stopped, or we need to load a new track, play the current track
 			AudioPro.play(currentTrack);
+			setNeedsTrackLoad(false);
 		}
 	};
 
 	const handleStop = () => {
 		AudioPro.stop();
+		setNeedsTrackLoad(true);
 	};
 
 	const handleSeek = (value: number) => {
@@ -70,22 +92,41 @@ export default function App() {
 
 	const handlePrevious = () => {
 		if (position > 5000) {
+			// If we're more than 5 seconds into the track, seek to beginning
 			AudioPro.seekTo(0);
 		} else {
+			// Otherwise, go to previous track
 			const newIndex =
 				currentIndex > 0 ? currentIndex - 1 : playlist.length - 1;
+
+			// Update the track index
 			updateCurrentIndex(newIndex);
+
+			// If we're currently playing, immediately play the new track
 			if (state === AudioProState.PLAYING) {
 				AudioPro.play(playlist[newIndex] as AudioProTrack);
+				setNeedsTrackLoad(false);
+			} else {
+				// Otherwise, mark that we need to load the track when play is pressed
+				setNeedsTrackLoad(true);
 			}
 		}
 	};
 
 	const handleNext = () => {
+		// Calculate the new index
 		const newIndex = (currentIndex + 1) % playlist.length;
+
+		// Update the track index
 		updateCurrentIndex(newIndex);
+
+		// If we're currently playing, immediately play the new track
 		if (state === AudioProState.PLAYING) {
 			AudioPro.play(playlist[newIndex] as AudioProTrack);
+			setNeedsTrackLoad(false);
+		} else {
+			// Otherwise, mark that we need to load the track when play is pressed
+			setNeedsTrackLoad(true);
 		}
 	};
 

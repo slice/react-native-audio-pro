@@ -35,6 +35,7 @@ object AudioProController {
 	private var lastEmittedState: String = AudioProModule.STATE_STOPPED
 	private var currentPlaybackSpeed: Float = 1.0f
 	private var currentTrack: ReadableMap? = null
+	private var isInErrorState: Boolean = false
 
 	private fun log(vararg args: Any?) {
 		if (debug) Log.d("AudioPro", "~~~ ${args.joinToString(" ")}")
@@ -66,6 +67,8 @@ object AudioProController {
 	}
 
 	suspend fun play(track: ReadableMap, options: ReadableMap) {
+		// Reset error state when playing a new track
+		isInErrorState = false
 		currentTrack = track
 		val contentType = if (options.hasKey("contentType")) {
 			options.getString("contentType") ?: "MUSIC"
@@ -147,6 +150,8 @@ object AudioProController {
 	}
 
 	fun stop() {
+		// Reset error state when explicitly stopping
+		isInErrorState = false
 		ensureSession()
 		runOnUiThread {
 			detachPlayerListener()
@@ -272,7 +277,14 @@ object AudioProController {
 			}
 
 			override fun onPlayerError(error: PlaybackException) {
+				// If we're already in an error state, just log and return
+				if (isInErrorState) {
+					log("Already in error state, ignoring additional error: ${error.message}")
+					return
+				}
+
 				val message = error.message ?: "Unknown error"
+				isInErrorState = true
 				emitError(message, 500)
 				emitState(AudioProModule.STATE_ERROR, 0L, 0L)
 			}
@@ -334,6 +346,12 @@ object AudioProController {
 		// Don't emit PAUSED if we've already emitted STOPPED
 		if (state == AudioProModule.STATE_PAUSED && lastEmittedState == AudioProModule.STATE_STOPPED) {
 			log("Ignoring PAUSED state after STOPPED")
+			return
+		}
+
+		// Don't emit STOPPED if we're in an error state
+		if (state == AudioProModule.STATE_STOPPED && isInErrorState) {
+			log("Ignoring STOPPED state after ERROR")
 			return
 		}
 

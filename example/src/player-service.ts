@@ -45,19 +45,31 @@ export function setupAudioPro(): void {
 function playNextTrack(): void {
 	if (playlist.length === 0) return;
 
+	// Store current state before changing tracks
+	const isPlaying = AudioPro.getState() === 'PLAYING';
+
 	currentIndex = (currentIndex + 1) % playlist.length;
 	const nextTrack = playlist[currentIndex];
 
-	AudioPro.play(nextTrack as AudioProTrack);
+	// Only play the new track if we were already playing
+	if (isPlaying) {
+		AudioPro.play(nextTrack as AudioProTrack);
+	}
 }
 
 function playPreviousTrack(): void {
 	if (playlist.length === 0) return;
 
+	// Store current state before changing tracks
+	const isPlaying = AudioPro.getState() === 'PLAYING';
+
 	currentIndex = currentIndex > 0 ? currentIndex - 1 : playlist.length - 1;
 	const prevTrack = playlist[currentIndex];
 
-	AudioPro.play(prevTrack as AudioProTrack);
+	// Only play the new track if we were already playing
+	if (isPlaying) {
+		AudioPro.play(prevTrack as AudioProTrack);
+	}
 }
 
 // Export functions that can be called from React components

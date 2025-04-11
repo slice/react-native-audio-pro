@@ -14,7 +14,9 @@ import androidx.core.os.bundleOf
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.exoplayer.util.EventLogger
 import androidx.media3.session.MediaConstants
 import androidx.media3.session.MediaLibraryService
@@ -89,9 +91,14 @@ open class AudioProPlaybackService : MediaLibraryService() {
 		super.onDestroy()
 	}
 
+	@OptIn(UnstableApi::class)
 	private fun initializeSessionAndPlayer() {
+		val dataSourceFactory = DefaultHttpDataSource.Factory()
+		val mediaSourceFactory = DefaultMediaSourceFactory(dataSourceFactory)
+
 		val player =
 			ExoPlayer.Builder(this)
+				.setMediaSourceFactory(mediaSourceFactory)
 				.setAudioAttributes(
 					AudioAttributes.Builder()
 						.setUsage(C.USAGE_MEDIA)
@@ -143,11 +150,11 @@ open class AudioProPlaybackService : MediaLibraryService() {
 			ensureNotificationChannel(notificationManagerCompat)
 			val builder =
 				NotificationCompat.Builder(this@AudioProPlaybackService, CHANNEL_ID)
-//          .setSmallIcon(R.drawable.media3_notification_small_icon)
-//          .setContentTitle(getString(R.string.notification_content_title))
-//          .setStyle(
-//            NotificationCompat.BigTextStyle().bigText(getString(R.string.notification_content_text))
-//          )
+					//.setSmallIcon(R.drawable.media3_notification_small_icon)
+					//.setContentTitle(getString(R.string.notification_content_title))
+					//.setStyle(
+					//  NotificationCompat.BigTextStyle().bigText(getString(R.string.notification_content_text))
+					//)
 					.setPriority(NotificationCompat.PRIORITY_DEFAULT)
 					.setAutoCancel(true)
 					.also { builder -> getBackStackedActivity()?.let { builder.setContentIntent(it) } }
@@ -159,8 +166,7 @@ open class AudioProPlaybackService : MediaLibraryService() {
 		val channel =
 			NotificationChannel(
 				CHANNEL_ID,
-//        getString(R.string.notification_channel_name),
-				"foobar_od",
+				"audio_pro_notification_channel",
 				NotificationManager.IMPORTANCE_DEFAULT,
 			)
 		notificationManagerCompat.createNotificationChannel(channel)

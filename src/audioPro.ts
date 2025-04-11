@@ -67,8 +67,14 @@ export const AudioPro = {
 		}
 
 		// Clear errors and set track as playing
-		const { error, setError, configureOptions, playbackSpeed } =
-			useInternalStore.getState();
+		const {
+			error,
+			setError,
+			configureOptions,
+			playbackSpeed,
+			setTrackPlaying,
+		} = useInternalStore.getState();
+		setTrackPlaying(resolvedTrack);
 		if (error) {
 			setError(null);
 		}

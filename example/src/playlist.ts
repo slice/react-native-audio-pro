@@ -16,11 +16,11 @@ export const playlist: AudioProTrack[] = [
 		artist: 'T. Schurger',
 	},
 	{
-		id: 'stream-1',
-		url: 'https://audio-edge-d34v9.syd.o.radiomast.io/ref-128k-mp3-stereo-preroll',
-		title: 'Radio Mast Stream',
+		id: 'stream-1-hls',
+		url: 'https://stream-akamai.castr.com/5b9352dbda7b8c769937e459/live_2361c920455111ea85db6911fe397b9e/index.fmp4.m3u8',
+		title: 'Castr Stream (HLS)',
 		artwork: 'https://rnap.dev/artwork-usgs-8tfu4320oxI-unsplash.jpg',
-		artist: 'Radio Mast',
+		artist: 'Castr',
 	},
 	{
 		id: 'error-track',
