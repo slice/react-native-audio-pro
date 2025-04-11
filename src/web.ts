@@ -2,7 +2,7 @@ import type { AudioProTrack } from './types';
 import { emitter } from './emitter';
 import { AudioProEventType, AudioProState } from './values';
 
-interface WebAudioProInterface {
+export interface WebAudioProInterface {
 	play(track: AudioProTrack, options: any): void;
 	pause(): void;
 	resume(): void;
