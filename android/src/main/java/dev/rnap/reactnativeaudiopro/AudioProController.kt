@@ -77,6 +77,9 @@ object AudioProController {
 		val speed = if (options.hasKey("playbackSpeed")) {
 			options.getDouble("playbackSpeed").toFloat()
 		} else 1.0f
+		val autoplay = if (options.hasKey("autoplay")) {
+			options.getBoolean("autoplay")
+		} else true
 
 		debug = enableDebug
 		audioContentType = when (contentType) {
@@ -85,7 +88,7 @@ object AudioProController {
 		}
 		currentPlaybackSpeed = speed
 
-		log("Configured with contentType=$contentType debug=$debug speed=$speed")
+		log("Configured with contentType=$contentType debug=$debug speed=$speed autoplay=$autoplay")
 
 		internalPrepareSession()
 		val url = track.getString("url") ?: run {
@@ -119,8 +122,14 @@ object AudioProController {
 			browser?.let {
 				it.setMediaItem(mediaItem)
 				it.prepare()
-				it.play()
+				// Set playback speed regardless of autoplay
 				it.setPlaybackSpeed(currentPlaybackSpeed)
+
+				if (autoplay) {
+					it.play()
+				} else {
+					emitState(AudioProModule.STATE_PAUSED, 0L, 0L)
+				}
 			} ?: Log.w("AudioProController", "MediaBrowser not ready")
 		}
 	}

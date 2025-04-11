@@ -7,6 +7,8 @@ import {
 	TouchableOpacity,
 	View,
 	Alert,
+	Switch,
+	ActivityIndicator,
 } from 'react-native';
 import Slider from '@react-native-community/slider';
 import { type AudioProTrack, useAudioPro } from 'react-native-audio-pro';
@@ -55,6 +57,9 @@ export default function App() {
 	// Track whether we need to load a new track before playing
 	const [needsTrackLoad, setNeedsTrackLoad] = useState(true);
 
+	// Track whether to autoplay when loading a track
+	const [autoplay, setAutoplay] = useState(true);
+
 	if (!currentTrack) return null;
 
 	// Handle play/pause button press
@@ -67,7 +72,7 @@ export default function App() {
 			AudioPro.resume();
 		} else {
 			// If stopped, or we need to load a new track, play the current track
-			AudioPro.play(currentTrack);
+			AudioPro.play(currentTrack, autoplay);
 			setNeedsTrackLoad(false);
 		}
 	};
@@ -101,9 +106,12 @@ export default function App() {
 			// Update the track index
 			updateCurrentIndex(newIndex);
 
-			// If we're currently playing, immediately play the new track
-			if (state === AudioProState.PLAYING) {
-				AudioPro.play(playlist[newIndex] as AudioProTrack);
+			// If we're currently playing or paused (but loaded), immediately load the new track
+			if (
+				state === AudioProState.PLAYING ||
+				state === AudioProState.PAUSED
+			) {
+				AudioPro.play(playlist[newIndex] as AudioProTrack, autoplay);
 				setNeedsTrackLoad(false);
 			} else {
 				// Otherwise, mark that we need to load the track when play is pressed
@@ -119,9 +127,9 @@ export default function App() {
 		// Update the track index
 		updateCurrentIndex(newIndex);
 
-		// If we're currently playing, immediately play the new track
-		if (state === AudioProState.PLAYING) {
-			AudioPro.play(playlist[newIndex] as AudioProTrack);
+		// If we're currently playing or paused (but loaded), immediately load the new track
+		if (state === AudioProState.PLAYING || state === AudioProState.PAUSED) {
+			AudioPro.play(playlist[newIndex] as AudioProTrack, autoplay);
 			setNeedsTrackLoad(false);
 		} else {
 			// Otherwise, mark that we need to load the track when play is pressed
@@ -184,11 +192,19 @@ export default function App() {
 					<TouchableOpacity onPress={handlePrevious}>
 						<Text style={styles.controlText}>Prev</Text>
 					</TouchableOpacity>
-					<TouchableOpacity onPress={handlePlayPause}>
-						<Text style={styles.playPauseText}>
-							{state === AudioProState.PLAYING ? 'Pause' : 'Play'}
-						</Text>
-					</TouchableOpacity>
+					{state === AudioProState.LOADING ? (
+						<View style={styles.loadingContainer}>
+							<ActivityIndicator size="large" color="#1EB1FC" />
+						</View>
+					) : (
+						<TouchableOpacity onPress={handlePlayPause}>
+							<Text style={styles.playPauseText}>
+								{state === AudioProState.PLAYING
+									? 'Pause'
+									: 'Play'}
+							</Text>
+						</TouchableOpacity>
+					)}
 					<TouchableOpacity onPress={handleNext}>
 						<Text style={styles.controlText}>Next</Text>
 					</TouchableOpacity>
@@ -221,6 +237,16 @@ export default function App() {
 						Track ID: {playingTrack.id}
 					</Text>
 				)}
+
+				<View style={styles.optionRow}>
+					<Text style={styles.optionText}>Autoplay:</Text>
+					<Switch
+						value={autoplay}
+						onValueChange={setAutoplay}
+						trackColor={{ false: '#767577', true: '#81b0ff' }}
+						thumbColor={autoplay ? '#1EB1FC' : '#f4f3f4'}
+					/>
+				</View>
 
 				{/* Error display and handling */}
 				{error && (

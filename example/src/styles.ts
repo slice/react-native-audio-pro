@@ -33,8 +33,8 @@ export const styles = StyleSheet.create({
 		padding: needsSmallerUI ? 12 : 20,
 	},
 	artwork: {
-		width: 300 * artworkScale,
-		height: 300 * artworkScale,
+		width: 360 * artworkScale, // Increased by 20%
+		height: 360 * artworkScale, // Increased by 20%
 		marginBottom: needsSmallerUI ? 8 : 15,
 		borderRadius: 15,
 	},
@@ -110,10 +110,29 @@ export const styles = StyleSheet.create({
 		fontWeight: 'bold',
 		color: '#fff',
 	},
+	loadingContainer: {
+		width: 80,
+		height: 40,
+		justifyContent: 'center',
+		alignItems: 'center',
+	},
 	stateText: {
 		fontSize: 12 * scale,
 		color: '#ccc',
 		marginBottom: needsSmallerUI ? 2 : 4,
+	},
+	optionRow: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		justifyContent: 'space-between',
+		width: needsSmallerUI ? '60%' : '50%',
+		marginBottom: needsSmallerUI ? 8 : 15,
+		paddingHorizontal: 10,
+	},
+	optionText: {
+		fontSize: 16 * scale,
+		color: '#ccc',
+		marginRight: 10,
 	},
 	// Error display styles
 	errorContainer: {

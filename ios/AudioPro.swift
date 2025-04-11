@@ -135,8 +135,9 @@ class AudioPro: RCTEventEmitter {
         currentTrack = track
         debugLog = options["debug"] as? Bool ?? false
         let speed = options["playbackSpeed"] as? Float ?? 1.0
+        let autoplay = options["autoplay"] as? Bool ?? true
         currentPlaybackSpeed = speed
-        log("Play", track["title"] ?? "Unknown", "speed:", speed)
+        log("Play", track["title"] ?? "Unknown", "speed:", speed, "autoplay:", autoplay)
 
         if player != nil {
             DispatchQueue.main.sync {
@@ -174,7 +175,7 @@ class AudioPro: RCTEventEmitter {
             ]
             sendEvent(type: EVENT_TYPE_STATE_CHANGED, track: currentTrack, payload: payload)
         }
-        shouldBePlaying = true
+        shouldBePlaying = autoplay
 
         let album = track["album"] as? String
         let artist = track["artist"] as? String
@@ -218,14 +219,26 @@ class AudioPro: RCTEventEmitter {
             object: item
         )
 
-        player?.play()
-
+        // Set up playback speed
         if currentPlaybackSpeed != 1.0 {
             player?.rate = currentPlaybackSpeed
 
             var currentInfo = MPNowPlayingInfoCenter.default().nowPlayingInfo ?? [:]
             currentInfo[MPNowPlayingInfoPropertyPlaybackRate] = Double(currentPlaybackSpeed)
             MPNowPlayingInfoCenter.default().nowPlayingInfo = currentInfo
+        }
+
+        if autoplay {
+            player?.play()
+        } else {
+            DispatchQueue.main.async {
+                let payload: [String: Any] = [
+                    "state": self.STATE_PAUSED,
+                    "position": 0,
+                    "duration": 0
+                ]
+                self.sendEvent(type: self.EVENT_TYPE_STATE_CHANGED, track: self.currentTrack, payload: payload)
+            }
         }
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {

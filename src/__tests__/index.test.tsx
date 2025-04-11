@@ -75,9 +75,20 @@ describe('AudioPro Module', () => {
 	});
 
 	describe('play', () => {
-		it('should call native play method with track', () => {
+		it('should call native play method with track and default autoplay=true', () => {
 			AudioPro.play(mockTrack);
-			expect(NativeModules.AudioPro.play).toHaveBeenCalled();
+			expect(NativeModules.AudioPro.play).toHaveBeenCalledWith(
+				expect.anything(),
+				expect.objectContaining({ autoplay: true }),
+			);
+		});
+
+		it('should respect autoplay=false parameter', () => {
+			AudioPro.play(mockTrack, false);
+			expect(NativeModules.AudioPro.play).toHaveBeenCalledWith(
+				expect.anything(),
+				expect.objectContaining({ autoplay: false }),
+			);
 		});
 
 		it('should validate track before playing', () => {

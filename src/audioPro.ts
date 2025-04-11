@@ -40,8 +40,8 @@ export const AudioPro = {
 		logDebug('AudioPro: configure()', options);
 	},
 
-	play(track: AudioProTrack) {
-		logDebug('AudioPro: play()', track);
+	play(track: AudioProTrack, autoplay: boolean = true) {
+		logDebug('AudioPro: play()', track, 'autoplay:', autoplay);
 
 		const resolvedTrack = { ...track };
 
@@ -89,7 +89,7 @@ export const AudioPro = {
 		if (error) {
 			setError(null);
 		}
-		const options = { ...configureOptions, playbackSpeed };
+		const options = { ...configureOptions, playbackSpeed, autoplay };
 		NativeAudioPro.play(resolvedTrack, options);
 	},
 

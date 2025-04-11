@@ -186,7 +186,9 @@ class WebAudioProImpl implements WebAudioProInterface {
 	// Public API methods that match the native implementations
 
 	play(track: AudioProTrack, options: any): void {
-		this.log('Play', track, options);
+		const autoplay =
+			options.autoplay !== undefined ? options.autoplay : true;
+		this.log('Play', track, options, 'autoplay:', autoplay);
 		this.currentTrack = track;
 		this.debug = !!options.debug;
 		this.playbackSpeed = options.playbackSpeed || 1.0;
@@ -210,10 +212,26 @@ class WebAudioProImpl implements WebAudioProInterface {
 		this.audio.playbackRate = this.playbackSpeed;
 		this.audio.load();
 
-		// Start playback
-		this.audio.play().catch((error: Error) => {
-			this.emitError(`Failed to play: ${error.message}`, -1);
-		});
+		// Emit loading state
+		this.emitStateChanged(AudioProState.LOADING);
+
+		if (!autoplay) {
+			emitter.emit('AudioProEvent', {
+				type: AudioProEventType.STATE_CHANGED,
+				track: this.currentTrack,
+				payload: {
+					state: AudioProState.PAUSED,
+					position: 0,
+					duration: 0,
+				},
+			});
+		}
+
+		if (autoplay) {
+			this.audio.play().catch((error: Error) => {
+				this.emitError(`Failed to play: ${error.message}`, -1);
+			});
+		}
 	}
 
 	pause(): void {
