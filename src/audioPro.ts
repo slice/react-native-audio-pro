@@ -146,7 +146,7 @@ export const AudioPro = {
 		return playerState;
 	},
 
-	getTrack() {
+	getPlayingTrack() {
 		const { trackPlaying } = useInternalStore.getState();
 		return trackPlaying;
 	},

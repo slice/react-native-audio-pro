@@ -22,7 +22,7 @@ export default function App() {
 	// Use the current track index from the player service
 	const [currentIndex, setLocalIndex] = useState(getCurrentTrackIndex());
 	const currentTrack = playlist[currentIndex];
-	const { position, duration, state, track, playbackSpeed, error } =
+	const { position, duration, state, playingTrack, playbackSpeed, error } =
 		useAudioPro();
 
 	// Sync the local index with the player service
@@ -40,12 +40,11 @@ export default function App() {
 
 	// Reset needsTrackLoad when the track actually changes
 	useEffect(() => {
-		// @ts-ignore
-		if (track?.id === currentTrack.id) {
+		if (playingTrack?.id === currentTrack?.id) {
 			setNeedsTrackLoad(false);
 		}
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [track?.id]);
+	}, [playingTrack?.id]);
 
 	// Update both local state and player service when changing tracks
 	const updateCurrentIndex = (index: number) => {
@@ -217,8 +216,10 @@ export default function App() {
 					</TouchableOpacity>
 				</View>
 				<Text style={styles.stateText}>State: {state}</Text>
-				{track && (
-					<Text style={styles.stateText}>Track ID: {track.id}</Text>
+				{playingTrack && (
+					<Text style={styles.stateText}>
+						Track ID: {playingTrack.id}
+					</Text>
 				)}
 
 				{/* Error display and handling */}

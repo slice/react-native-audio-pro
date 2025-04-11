@@ -105,7 +105,7 @@ React Native Audio Pro supports various audio formats including MP3, AAC, WAV, a
   - Returns the current playback position and total duration in milliseconds.
 - **getState(): AudioProState**
   - Returns the current playback state (STOPPED, LOADING, PLAYING, PAUSED, ERROR).
-- **getTrack(): AudioProTrack | null**
+- **getPlayingTrack(): AudioProTrack | null**
   - Returns the currently playing track, or null if no track is playing.
 - **setPlaybackSpeed(speed: number)**
   - Sets the playback speed rate (0.25 to 2.0). Normal speed is 1.0.
@@ -236,13 +236,13 @@ subscription.remove();
 
 ## ⚡️ useAudioPro Hook Example
 
-The `useAudioPro` hook gives you real-time access to the playback state, current position, total duration, and the currently playing track.
+The `useAudioPro` hook gives you real-time access to the playback state, current position, total duration, and the currently playing track via the `playingTrack` property.
 
 ```typescript jsx
 import { useAudioPro } from 'react-native-audio-pro';
 
 const AudioStatus = () => {
-  const { state, position, duration, track, playbackSpeed, error } = useAudioPro();
+  const { state, position, duration, playingTrack, playbackSpeed, error } = useAudioPro();
 
   return (
     <View>
@@ -256,11 +256,11 @@ const AudioStatus = () => {
           <Text style={{ color: 'red' }}>Code: {error.errorCode}</Text>
         </View>
       )}
-      {track && (
+      {playingTrack && (
         <View>
-          <Text>Track ID: {track.id}</Text>
-          <Text>Now Playing: {track.title}</Text>
-          <Text>Artist: {track.artist}</Text>
+          <Text>Track ID: {playingTrack.id}</Text>
+          <Text>Now Playing: {playingTrack.title}</Text>
+          <Text>Artist: {playingTrack.artist}</Text>
         </View>
       )}
     </View>
@@ -302,10 +302,10 @@ AudioPro.setPlaybackSpeed(0.8); // 0.8x speed for slower playback
 // Get current state without using the hook
 const { position, duration } = AudioPro.getTimings();
 const state = AudioPro.getState();
-const track = AudioPro.getTrack();
+const playingTrack = AudioPro.getPlayingTrack();
 const speed = AudioPro.getPlaybackSpeed();
 const error = AudioPro.getError();
-console.log(`Currently playing: ${track?.title} (${position}/${duration}ms) - State: ${state} - Speed: ${speed}x`);
+console.log(`Currently playing: ${playingTrack?.title} (${position}/${duration}ms) - State: ${state} - Speed: ${speed}x`);
 ```
 
 ## ⚠️ Important: Event Listeners and React Lifecycle

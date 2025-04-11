@@ -138,13 +138,13 @@ describe('AudioPro Module', () => {
 			expect(state).toBe(AudioProState.STOPPED);
 		});
 
-		it('should get current track', () => {
+		it('should get current playing track', () => {
 			// Reset the mock for this test
-			Object.defineProperty(AudioPro, 'getTrack', {
+			Object.defineProperty(AudioPro, 'getPlayingTrack', {
 				value: jest.fn().mockReturnValue(null),
 			});
-			const track = AudioPro.getTrack();
-			expect(track).toBeNull();
+			const playingTrack = AudioPro.getPlayingTrack();
+			expect(playingTrack).toBeNull();
 		});
 
 		it('should get error', () => {

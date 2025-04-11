@@ -62,7 +62,7 @@ describe('useAudioPro Hook', () => {
 		expect(result.current.state).toBe(AudioProState.STOPPED);
 		expect(result.current.position).toBe(0);
 		expect(result.current.duration).toBe(0);
-		expect(result.current.track).toBeNull();
+		expect(result.current.playingTrack).toBeNull();
 		expect(result.current.playbackSpeed).toBe(1.0);
 		expect(result.current.error).toBeNull();
 	});
