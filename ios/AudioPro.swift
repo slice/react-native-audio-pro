@@ -693,6 +693,14 @@ class AudioPro: RCTEventEmitter {
         // Just stop playback and timers without changing state
         stopPlaybackWithoutStateChange()
 
+        // Clear notification center controls when in ERROR state
+        DispatchQueue.main.async {
+            MPNowPlayingInfoCenter.default().nowPlayingInfo = [:]
+            UIApplication.shared.endReceivingRemoteControlEvents()
+        }
+        removeRemoteTransportControls()
+        isRemoteCommandCenterSetup = false
+
         // Restore the track after cleanup (since cleanup sets it to nil)
         currentTrack = trackBeforeCleanup
     }

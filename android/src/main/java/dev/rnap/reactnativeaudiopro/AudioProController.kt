@@ -324,6 +324,9 @@ object AudioProController {
 				isInErrorState = true
 				emitError(message, 500)
 				emitState(AudioProModule.STATE_ERROR, 0L, 0L)
+
+				// Remove notification when in ERROR state
+				stopPlaybackService()
 			}
 		}
 
