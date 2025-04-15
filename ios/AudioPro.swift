@@ -196,8 +196,27 @@ class AudioPro: RCTEventEmitter {
         }
         self.setupRemoteTransportControls()
 
-        // Create new player item and attach observer
-        let item = AVPlayerItem(url: url)
+        // Create new player item with custom headers if provided
+        let item: AVPlayerItem
+
+        // Check if audio headers are provided
+        if let headers = options["headers"] as? NSDictionary, let audioHeaders = headers["audio"] as? NSDictionary {
+            // Convert headers to Swift dictionary
+            var headerFields = [String: String]()
+            for (key, value) in audioHeaders {
+                if let headerField = key as? String, let headerValue = value as? String {
+                    headerFields[headerField] = headerValue
+                }
+            }
+
+            // Create an AVAsset with the headers
+            let asset = AVURLAsset(url: url, options: ["AVURLAssetHTTPHeaderFieldsKey": headerFields])
+            item = AVPlayerItem(asset: asset)
+        } else {
+            // No headers, use simple URL initialization
+            item = AVPlayerItem(url: url)
+        }
+
         item.addObserver(self, forKeyPath: "status", options: [.new], context: nil)
         isStatusObserverAdded = true
 
@@ -263,15 +282,60 @@ class AudioPro: RCTEventEmitter {
         // Fetch artwork asynchronously and update Now Playing info
         DispatchQueue.global().async {
             do {
-                let data = try Data(contentsOf: artworkUrl)
-                guard let image = UIImage(data: data) else {
-                    throw NSError(domain: "AudioPro", code: 0, userInfo: [NSLocalizedDescriptionKey: "Invalid image data"])
-                }
-                let mpmArtwork = MPMediaItemArtwork(boundsSize: image.size, requestHandler: { _ in image })
-                DispatchQueue.main.async {
-                    var currentInfo = MPNowPlayingInfoCenter.default().nowPlayingInfo ?? [String: Any]()
-                    currentInfo[MPMediaItemPropertyArtwork] = mpmArtwork
-                    MPNowPlayingInfoCenter.default().nowPlayingInfo = currentInfo
+                // Check if artwork headers are provided
+                if let headers = options["headers"] as? NSDictionary, let artworkHeaders = headers["artwork"] as? NSDictionary {
+                    // Create a simple URL request with headers
+                    var request = URLRequest(url: artworkUrl)
+                    for (key, value) in artworkHeaders {
+                        if let headerField = key as? String, let headerValue = value as? String {
+                            request.setValue(headerValue, forHTTPHeaderField: headerField)
+                        }
+                    }
+
+                    // Use a semaphore to make the async call synchronous in this background thread
+                    let semaphore = DispatchSemaphore(value: 0)
+                    var imageData: Data? = nil
+                    var requestError: Error? = nil
+
+                    URLSession.shared.dataTask(with: request) { (data, response, error) in
+                        imageData = data
+                        requestError = error
+                        semaphore.signal()
+                    }.resume()
+
+                    // Wait for the request to complete
+                    semaphore.wait()
+
+                    if let error = requestError {
+                        throw error
+                    }
+
+                    guard let data = imageData else {
+                        throw NSError(domain: "AudioPro", code: 0, userInfo: [NSLocalizedDescriptionKey: "No image data received"])
+                    }
+
+                    guard let image = UIImage(data: data) else {
+                        throw NSError(domain: "AudioPro", code: 0, userInfo: [NSLocalizedDescriptionKey: "Invalid image data"])
+                    }
+
+                    let mpmArtwork = MPMediaItemArtwork(boundsSize: image.size, requestHandler: { _ in image })
+                    DispatchQueue.main.async {
+                        var currentInfo = MPNowPlayingInfoCenter.default().nowPlayingInfo ?? [String: Any]()
+                        currentInfo[MPMediaItemPropertyArtwork] = mpmArtwork
+                        MPNowPlayingInfoCenter.default().nowPlayingInfo = currentInfo
+                    }
+                } else {
+                    // No headers, use simple Data initialization
+                    let data = try Data(contentsOf: artworkUrl)
+                    guard let image = UIImage(data: data) else {
+                        throw NSError(domain: "AudioPro", code: 0, userInfo: [NSLocalizedDescriptionKey: "Invalid image data"])
+                    }
+                    let mpmArtwork = MPMediaItemArtwork(boundsSize: image.size, requestHandler: { _ in image })
+                    DispatchQueue.main.async {
+                        var currentInfo = MPNowPlayingInfoCenter.default().nowPlayingInfo ?? [String: Any]()
+                        currentInfo[MPMediaItemPropertyArtwork] = mpmArtwork
+                        MPNowPlayingInfoCenter.default().nowPlayingInfo = currentInfo
+                    }
                 }
             } catch {
                 DispatchQueue.main.async {

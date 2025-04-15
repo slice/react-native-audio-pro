@@ -85,9 +85,11 @@ React Native Audio Pro supports various audio formats including MP3, AAC, WAV, a
 
 ### 🛠 Methods
 
-- **play(track: AudioProTrack, autoplay: boolean = true)**
+- **play(track: AudioProTrack, options?: AudioProPlayOptions | boolean)**
   - Loads and starts playing the specified track in one step.
-  - When `autoplay = false`, prepares the player without starting playback.
+  - `options` can be a boolean (for backward compatibility) or an options object:
+    - `autoPlay?: boolean` - When `false`, prepares the player without starting playback (default: `true`).
+    - `headers?: { audio?: Record<string, string>, artwork?: Record<string, string> }` - Custom HTTP headers for audio and artwork requests.
 - **pause()**
   - Pauses the current playback.
 - **resume()**

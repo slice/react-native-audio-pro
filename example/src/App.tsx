@@ -57,8 +57,8 @@ export default function App() {
 	// Track whether we need to load a new track before playing
 	const [needsTrackLoad, setNeedsTrackLoad] = useState(true);
 
-	// Track whether to autoplay when loading a track
-	const [autoplay, setAutoplay] = useState(true);
+	// Track whether to autoPlay when loading a track
+	const [autoPlay, setAutoPlay] = useState(true);
 
 	if (!currentTrack) return null;
 
@@ -72,7 +72,7 @@ export default function App() {
 			AudioPro.resume();
 		} else {
 			// If stopped, or we need to load a new track, play the current track
-			AudioPro.play(currentTrack, autoplay);
+			AudioPro.play(currentTrack, { autoPlay });
 			setNeedsTrackLoad(false);
 		}
 	};
@@ -111,7 +111,9 @@ export default function App() {
 				state === AudioProState.PLAYING ||
 				state === AudioProState.PAUSED
 			) {
-				AudioPro.play(playlist[newIndex] as AudioProTrack, autoplay);
+				AudioPro.play(playlist[newIndex] as AudioProTrack, {
+					autoPlay,
+				});
 				setNeedsTrackLoad(false);
 			} else {
 				// Otherwise, mark that we need to load the track when play is pressed
@@ -129,7 +131,7 @@ export default function App() {
 
 		// If we're currently playing or paused (but loaded), immediately load the new track
 		if (state === AudioProState.PLAYING || state === AudioProState.PAUSED) {
-			AudioPro.play(playlist[newIndex] as AudioProTrack, autoplay);
+			AudioPro.play(playlist[newIndex] as AudioProTrack, { autoPlay });
 			setNeedsTrackLoad(false);
 		} else {
 			// Otherwise, mark that we need to load the track when play is pressed
@@ -239,12 +241,12 @@ export default function App() {
 				)}
 
 				<View style={styles.optionRow}>
-					<Text style={styles.optionText}>Autoplay:</Text>
+					<Text style={styles.optionText}>AutoPlay:</Text>
 					<Switch
-						value={autoplay}
-						onValueChange={setAutoplay}
+						value={autoPlay}
+						onValueChange={setAutoPlay}
 						trackColor={{ false: '#767577', true: '#81b0ff' }}
-						thumbColor={autoplay ? '#1EB1FC' : '#f4f3f4'}
+						thumbColor={autoPlay ? '#1EB1FC' : '#f4f3f4'}
 					/>
 				</View>
 

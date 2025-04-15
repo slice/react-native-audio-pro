@@ -154,7 +154,17 @@ open class AudioProPlaybackService : MediaLibraryService() {
 
 	@OptIn(UnstableApi::class)
 	private fun initializeSessionAndPlayer() {
+		// Create data source factory with custom headers if available
 		val dataSourceFactory = DefaultHttpDataSource.Factory()
+
+		// Apply custom headers if they exist
+		AudioProController.audioHeaders?.let { headers ->
+			if (headers.isNotEmpty()) {
+				dataSourceFactory.setDefaultRequestProperties(headers)
+				android.util.Log.d("AudioProPlaybackService", "Applied custom headers: $headers")
+			}
+		}
+
 		val mediaSourceFactory = DefaultMediaSourceFactory(dataSourceFactory)
 
 		val player =

@@ -10,6 +10,7 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
+import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.session.MediaBrowser
 import androidx.media3.session.SessionToken
 import com.facebook.react.bridge.Arguments
@@ -36,6 +37,8 @@ object AudioProController {
 	private var currentPlaybackSpeed: Float = 1.0f
 	private var currentTrack: ReadableMap? = null
 	private var isInErrorState: Boolean = false
+	var audioHeaders: Map<String, String>? = null
+	var artworkHeaders: Map<String, String>? = null
 
 	private fun log(vararg args: Any?) {
 		if (debug) Log.d("AudioPro", "~~~ ${args.joinToString(" ")}")
@@ -80,6 +83,44 @@ object AudioProController {
 		val autoplay = if (options.hasKey("autoplay")) {
 			options.getBoolean("autoplay")
 		} else true
+
+		// Helper function to extract headers from a ReadableMap
+		fun extractHeaders(headersMap: ReadableMap?): Map<String, String>? {
+			if (headersMap == null) return null
+
+			val headerMap = mutableMapOf<String, String>()
+			val iterator = headersMap.keySetIterator()
+			while (iterator.hasNextKey()) {
+				val key = iterator.nextKey()
+				val value = headersMap.getString(key)
+				if (value != null) {
+					headerMap[key] = value
+				}
+			}
+			return if (headerMap.isNotEmpty()) headerMap else null
+		}
+
+		// Process custom headers if provided
+		audioHeaders = null
+		artworkHeaders = null
+		if (options.hasKey("headers")) {
+			val headers = options.getMap("headers")
+			if (headers != null) {
+				// Process audio headers
+				if (headers.hasKey("audio")) {
+					audioHeaders = extractHeaders(headers.getMap("audio"))?.also {
+						log("Custom audio headers provided: $it")
+					}
+				}
+
+				// Process artwork headers
+				if (headers.hasKey("artwork")) {
+					artworkHeaders = extractHeaders(headers.getMap("artwork"))?.also {
+						log("Custom artwork headers provided: $it")
+					}
+				}
+			}
+		}
 
 		debug = enableDebug
 		audioContentType = when (contentType) {

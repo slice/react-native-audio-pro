@@ -1,6 +1,7 @@
 import type {
 	AudioProConfigureOptions,
 	AudioProEventCallback,
+	AudioProPlayOptions,
 	AudioProTrack,
 } from './types';
 import { guardTrackPlaying, logDebug, validateTrack } from './utils';
@@ -40,8 +41,9 @@ export const AudioPro = {
 		logDebug('AudioPro: configure()', options);
 	},
 
-	play(track: AudioProTrack, autoplay: boolean = true) {
-		logDebug('AudioPro: play()', track, 'autoplay:', autoplay);
+	play(track: AudioProTrack, options?: AudioProPlayOptions) {
+		let playOptions: AudioProPlayOptions = options || {};
+		logDebug('AudioPro: play()', track, 'options:', options);
 
 		const resolvedTrack = { ...track };
 
@@ -89,8 +91,16 @@ export const AudioPro = {
 		if (error) {
 			setError(null);
 		}
-		const options = { ...configureOptions, playbackSpeed, autoplay };
-		NativeAudioPro.play(resolvedTrack, options);
+
+		// Prepare options for native module
+		const nativeOptions = {
+			...configureOptions,
+			playbackSpeed,
+			autoplay: playOptions.autoPlay ?? true,
+			headers: playOptions.headers,
+		};
+
+		NativeAudioPro.play(resolvedTrack, nativeOptions);
 	},
 
 	pause() {

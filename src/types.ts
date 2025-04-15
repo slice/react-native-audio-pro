@@ -29,6 +29,20 @@ export type AudioProConfigureOptions = {
 };
 
 // ==============================
+// PLAY OPTIONS
+// ==============================
+
+export type AudioProHeaders = {
+	audio?: Record<string, string>;
+	artwork?: Record<string, string>;
+};
+
+export type AudioProPlayOptions = {
+	autoPlay?: boolean;
+	headers?: AudioProHeaders;
+} & AudioProConfigureOptions;
+
+// ==============================
 // EVENTS
 // ==============================
 
