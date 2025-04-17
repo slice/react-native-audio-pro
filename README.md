@@ -1,6 +1,6 @@
 # React Native Audio Pro
 
-Modern, background-capable audio playback for React Native — built for podcasts, audiobooks, live streams, and long-form media. Works out of the box with background playback, lock screen controls, and clean hooks-based state. Under the hood: Android uses Media3 (not old-school ExoPlayer), giving you up-to-date media session support without any of the legacy baggage. iOS uses AVFoundation, Apple's native audio engine for professional-grade media playback. Web uses the HTML5 Audio API for cross-browser compatibility. Supports both static audio files and live streaming URLs across all platforms.
+Modern, background-capable audio playback for React Native — built for podcasts, audiobooks, live streams, and long-form media. Works out of the box with background playback, lock screen controls, and clean hooks-based state. Under the hood: Android uses Media3 (not old-school ExoPlayer), giving you up-to-date media session support without any of the legacy baggage. iOS uses AVFoundation, Apple's native audio engine for professional-grade media playback. Web uses the HTML5 Audio API for cross-browser compatibility. Supports static remote files, live streaming URLs, and local files (for both audio and artwork) across all platforms.
 
 [![npm version](https://img.shields.io/npm/v/react-native-audio-pro?logo=npm&logoColor=white&labelColor=grey&color=blue)](https://www.npmjs.com/package/react-native-audio-pro)
 [![website](https://img.shields.io/badge/website-rnap.dev-grey?logo=google-chrome&logoColor=white&color=blue)](https://rnap.dev)
@@ -85,9 +85,9 @@ React Native Audio Pro supports various audio formats including MP3, AAC, WAV, a
 
 ### 🛠 Methods
 
-- **play(track: AudioProTrack, options?: AudioProPlayOptions | boolean)**
+- **play(track: AudioProTrack, options?: AudioProPlayOptions)**
   - Loads and starts playing the specified track in one step.
-  - `options` can be a boolean (for backward compatibility) or an options object:
+  - `options` is an object with the following properties:
     - `autoPlay?: boolean` - When `false`, prepares the player without starting playback (default: `true`).
     - `headers?: { audio?: Record<string, string>, artwork?: Record<string, string> }` - Custom HTTP headers for audio and artwork requests.
 - **pause()**
@@ -140,7 +140,7 @@ Both iOS and Android support lock screen and notification controls for play/paus
 ```typescript
 type AudioProTrack = {
     id: string;
-    url: string; // the media url (mp3, m4a, streaming URLs)
+    url: string | number; // the media url (mp3, m4a, streaming URLs) or local asset via require()
     title: string;
     artwork: string | number; // the image url (jpg, png), or local asset via require()
     album?: string;
@@ -281,12 +281,12 @@ import { AudioPro, AudioProContentType } from 'react-native-audio-pro';
 // Optional: Set playback config
 AudioPro.configure({ contentType: AudioProContentType.MUSIC, debug: __DEV__ });
 
-// Define an audio track (supports both static files and live streams)
+// Define an audio track (supports static remote files, live streams, and local files)
 const track = {
   id: 'track-001',
-  url: 'https://example.com/audio.mp3', // Can also be a live stream URL
+  url: 'https://example.com/audio.mp3', // Remote file, live stream URL, or local file via require()
   title: 'My Track',
-  artwork: 'https://example.com/artwork.jpg', // Can also be a local asset via require()
+  artwork: 'https://example.com/artwork.jpg', // Remote image or local image via require()
   artist: 'Artist Name',
 };
 
@@ -294,7 +294,7 @@ const track = {
 AudioPro.play(track);
 
 // Or load without auto-playing (prepare only)
-AudioPro.play(track, false);
+AudioPro.play(track, { autoPlay: false });
 
 // Control playback
 AudioPro.pause();

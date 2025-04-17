@@ -9,6 +9,7 @@
   <style>
     :root {
       --spacing: 1rem;
+      --border-color: #444;
     }
 
     body {
@@ -58,7 +59,7 @@
 <body>
 <header>
   <h1>React Native Audio Pro</h1>
-  <p>A React Native module for robust audio playback from remote URLs and live streams. Ideal for music, audiobook, podcast, and streaming apps.</p>
+  <p>A React Native module for robust audio playback from remote URLs, live streams, and local files. Ideal for music, audiobook, podcast, and streaming apps.</p>
   <div class="badge-container">
     <a href="https://www.npmjs.com/package/react-native-audio-pro">
       <img src="https://img.shields.io/npm/v/react-native-audio-pro?logo=npm&logoColor=white&labelColor=grey&color=blue" alt="npm version" />
@@ -79,7 +80,7 @@
       <li>🎵 Powered by Media3 (Android) & AVFoundation (iOS)</li>
       <li>🔒 Lock screen controls & background playback</li>
       <li>🔔 Automatic handling of notification center (Android & iOS)</li>
-      <li>📡 Support for both static audio files and live streams (HLS, DASH, RTSP, RTMP)</li>
+      <li>📡 Support for static remote files, live streams (HLS, DASH, RTSP, RTMP), and local files (for both audio and artwork)</li>
       <li>📦 Built fully in TypeScript – no JS wrappers</li>
       <li>🧠 Simple React hook & module interface</li>
       <li>⚡️ Lightweight, fast, and production-ready</li>
@@ -108,15 +109,26 @@ export default function Player() {
 
 AudioPro.configure({ contentType: 'speech' });
 
-// Works with both static files and live streams
-AudioPro.load({
-  url: 'https://example.com/audio.mp3', // or 'https://example.com/livestream'
+// Works with static remote files, live streams, and local files
+const track = {
+  id: 'track-001',
+  url: 'https://example.com/audio.mp3', // Remote file: 'https://example.com/livestream' or local file
   title: 'Sample Track',
-  artwork: 'https://example.com/image.jpg',
+  artwork: 'https://example.com/image.jpg', // Remote image or local image
   artist: 'Narrator Name',
-});
+};
 
-AudioPro.play();
+// Play with default options
+AudioPro.play(track);
+
+// With custom options
+AudioPro.play(track, {
+  autoPlay: false,
+  headers: {
+    audio: { 'Authorization': 'Bearer token123' },
+    artwork: { 'Cache-Control': 'max-age=3600' }
+  }
+});
 </code></pre>
   </section>
   <section id="api-reference">
