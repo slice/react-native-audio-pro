@@ -637,9 +637,16 @@ class AudioPro: RCTEventEmitter {
         let durationSec = currentItem.duration.seconds
         let validCurrentTimeSec = (currentTimeSec.isNaN || currentTimeSec.isInfinite) ? 0 : currentTimeSec
         let validDurationSec = (durationSec.isNaN || durationSec.isInfinite) ? 0 : durationSec
+
+        // Calculate position and duration in milliseconds
         let positionMs = Int(round(validCurrentTimeSec * 1000))
         let durationMs = Int(round(validDurationSec * 1000))
-        return (position: positionMs, duration: durationMs, track: currentTrack)
+
+        // Sanitize negative values
+        let sanitizedPositionMs = positionMs < 0 ? 0 : positionMs
+        let sanitizedDurationMs = durationMs < 0 ? 0 : durationMs
+
+        return (position: sanitizedPositionMs, duration: sanitizedDurationMs, track: currentTrack)
     }
 
     private func sendStateEvent(state: String, position: Int? = nil, duration: Int? = nil, track: NSDictionary? = nil) {
@@ -651,6 +658,7 @@ class AudioPro: RCTEventEmitter {
             return
         }
 
+        // Use provided values or get from getPlaybackInfo() which already sanitizes values
         let info = position == nil || duration == nil ? getPlaybackInfo() : (position: position!, duration: duration!, track: track)
 
         let payload: [String: Any] = [

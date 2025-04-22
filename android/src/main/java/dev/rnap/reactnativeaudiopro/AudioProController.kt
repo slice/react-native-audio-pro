@@ -436,10 +436,14 @@ object AudioProController {
 			return
 		}
 
+		// Sanitize negative values
+		val sanitizedPosition = if (position < 0) 0L else position
+		val sanitizedDuration = if (duration < 0) 0L else duration
+
 		val payload = Arguments.createMap().apply {
 			putString("state", state)
-			putDouble("position", position.toDouble())
-			putDouble("duration", duration.toDouble())
+			putDouble("position", sanitizedPosition.toDouble())
+			putDouble("duration", sanitizedDuration.toDouble())
 		}
 		emitEvent(AudioProModule.EVENT_TYPE_STATE_CHANGED, currentTrack, payload)
 
@@ -448,9 +452,13 @@ object AudioProController {
 	}
 
 	private fun emitNotice(eventType: String, position: Long, duration: Long) {
+		// Sanitize negative values
+		val sanitizedPosition = if (position < 0) 0L else position
+		val sanitizedDuration = if (duration < 0) 0L else duration
+
 		val payload = Arguments.createMap().apply {
-			putDouble("position", position.toDouble())
-			putDouble("duration", duration.toDouble())
+			putDouble("position", sanitizedPosition.toDouble())
+			putDouble("duration", sanitizedDuration.toDouble())
 		}
 		emitEvent(eventType, currentTrack, payload)
 	}
