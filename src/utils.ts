@@ -51,23 +51,41 @@ export function isValidMediaUrl(url: string | number): boolean {
 				'.opus',
 				'.webm',
 			];
+
+			// Check for supported extensions in pathname or query parameters
 			const hasValidExtension = supportedFormats.some(
 				(ext) =>
 					urlObj.pathname.toLowerCase().endsWith(ext) ||
-					urlObj.pathname.toLowerCase().includes(`${ext}?`),
+					urlObj.pathname.toLowerCase().includes(`${ext}?`) ||
+					url.toLowerCase().includes(`format=${ext.substring(1)}`) ||
+					url.toLowerCase().includes(`type=${ext.substring(1)}`),
 			);
 
-			if (!hasValidExtension && !urlObj.pathname.includes('stream')) {
-				console.warn(
-					`AudioPro: URL doesn't have a supported audio extension: ${url}. This may not work in all browsers.`,
+			// Check for common streaming indicators
+			const isStreamingUrl =
+				urlObj.pathname.toLowerCase().includes('stream') ||
+				urlObj.pathname.toLowerCase().includes('audio') ||
+				urlObj.pathname.toLowerCase().includes('media') ||
+				urlObj.pathname.toLowerCase().includes('sound') ||
+				urlObj.pathname.toLowerCase().includes('music') ||
+				urlObj.pathname.toLowerCase().includes('podcast') ||
+				urlObj.pathname.toLowerCase().includes('hls') ||
+				urlObj.pathname.toLowerCase().includes('m3u8');
+
+			if (!hasValidExtension && !isStreamingUrl) {
+				// Only warn for web platform where format compatibility matters more
+				logDebug(
+					`URL doesn't have a recognized audio format: ${url}. This may not work in all browsers.`,
 				);
 			}
 		}
 
 		return true;
 	} catch (e) {
-		console.warn(
-			`AudioPro: URL format may be invalid but will attempt to play: ${url}`,
+		// If the URL is a string but not a valid URL object, it might be a relative path
+		// or a custom URI scheme. We'll allow it but log a debug message.
+		logDebug(
+			`URL format may be non-standard but will attempt to play: ${url}`,
 		);
 		return true;
 	}
@@ -95,29 +113,49 @@ export function isValidArtworkUrl(artworkUrl: string | number): boolean {
 			'.svg',
 		];
 
-		// Check if the URL has a supported image extension
+		// Check if the URL has a supported image extension in pathname or query parameters
 		const isImageFormatSupported = supportedImageFormats.some(
 			(format) =>
 				urlObj.pathname.toLowerCase().endsWith(format) ||
-				urlObj.pathname.toLowerCase().includes(`${format}?`),
+				urlObj.pathname.toLowerCase().includes(`${format}?`) ||
+				artworkUrl
+					.toLowerCase()
+					.includes(`format=${format.substring(1)}`) ||
+				artworkUrl
+					.toLowerCase()
+					.includes(`type=${format.substring(1)}`),
 		);
 
-		// For web, also accept data URLs for images
+		// Accept data URLs for images
 		const isDataUrl =
 			urlObj.protocol === 'data:' &&
 			(artworkUrl.startsWith('data:image/') ||
 				artworkUrl.includes('base64'));
 
-		if (!isImageFormatSupported && !isDataUrl) {
-			console.warn(
-				`AudioPro: Artwork URL doesn't have a supported image extension: ${artworkUrl}. Supported formats: ${supportedImageFormats.join(', ')}`,
+		// Check for common image indicators in the URL
+		const isImageUrl =
+			urlObj.pathname.toLowerCase().includes('image') ||
+			urlObj.pathname.toLowerCase().includes('img') ||
+			urlObj.pathname.toLowerCase().includes('photo') ||
+			urlObj.pathname.toLowerCase().includes('picture') ||
+			urlObj.pathname.toLowerCase().includes('artwork') ||
+			urlObj.pathname.toLowerCase().includes('cover') ||
+			urlObj.pathname.toLowerCase().includes('thumbnail') ||
+			urlObj.pathname.toLowerCase().includes('avatar');
+
+		if (!isImageFormatSupported && !isDataUrl && !isImageUrl) {
+			// Use logDebug instead of console.warn to avoid unnecessary warnings
+			logDebug(
+				`Artwork URL doesn't have a recognized image format: ${artworkUrl}. Supported formats: ${supportedImageFormats.join(', ')}`,
 			);
 		}
 
 		return true;
 	} catch (e) {
-		console.warn(
-			`AudioPro: Artwork URL format may be invalid but will attempt to use it: ${artworkUrl}`,
+		// If the URL is a string but not a valid URL object, it might be a relative path
+		// or a custom URI scheme. We'll allow it but log a debug message.
+		logDebug(
+			`Artwork URL format may be non-standard but will attempt to use it: ${artworkUrl}`,
 		);
 		return true;
 	}
