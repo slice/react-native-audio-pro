@@ -10,7 +10,6 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
-import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.session.MediaBrowser
 import androidx.media3.session.SessionToken
 import com.facebook.react.bridge.Arguments
@@ -39,6 +38,14 @@ object AudioProController {
 	private var isInErrorState: Boolean = false
 	var audioHeaders: Map<String, String>? = null
 	var artworkHeaders: Map<String, String>? = null
+
+	// Variables to track seek operations
+	private var pendingSeek: Boolean = false
+	private var pendingSeekPosition: Long = 0
+	private var pendingSeekDuration: Long = 0
+	private var seekTimeoutHandler: Handler? = null
+	private var seekTimeoutRunnable: Runnable? = null
+	private val SEEK_TIMEOUT_MS = 1000L // 1 second timeout for seek operations
 
 	private fun log(vararg args: Any?) {
 		if (debug) Log.d("AudioPro", "~~~ ${args.joinToString(" ")}")
@@ -218,6 +225,13 @@ object AudioProController {
 			}
 		}
 		stopProgressTimer()
+
+		// Cancel any pending seek operations
+		cancelSeekTimeout()
+		pendingSeek = false
+		pendingSeekPosition = 0
+		pendingSeekDuration = 0
+
 		release()
 
 		// Stop the service to remove notification
@@ -230,6 +244,9 @@ object AudioProController {
 				MediaBrowser.releaseFuture(browserFuture)
 			}
 			browser = null
+
+			// Cancel any pending seek operations
+			cancelSeekTimeout()
 		}
 	}
 
@@ -243,7 +260,8 @@ object AudioProController {
 			reactContext?.let { context ->
 				// Try to cancel notification directly
 				try {
-					val notificationManager = context.getSystemService(android.content.Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
+					val notificationManager =
+						context.getSystemService(android.content.Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
 					notificationManager.cancel(789) // Using the same NOTIFICATION_ID as in AudioProPlaybackService
 				} catch (e: Exception) {
 					Log.e("AudioProController", "Error canceling notification", e)
@@ -258,6 +276,43 @@ object AudioProController {
 		}
 	}
 
+	/**
+	 * Helper method to start a seek timeout that will emit SEEK_COMPLETE if
+	 * onPositionDiscontinuity is not called within the timeout period
+	 */
+	private fun startSeekTimeout() {
+		// Cancel any existing timeout
+		cancelSeekTimeout()
+
+		// Create a new timeout
+		seekTimeoutHandler = Handler(Looper.getMainLooper())
+		seekTimeoutRunnable = Runnable {
+			if (pendingSeek) {
+				log("Seek timeout reached, emitting SEEK_COMPLETE")
+				emitNotice(
+					AudioProModule.EVENT_TYPE_SEEK_COMPLETE,
+					pendingSeekPosition,
+					pendingSeekDuration
+				)
+				pendingSeek = false
+				pendingSeekPosition = 0
+				pendingSeekDuration = 0
+			}
+		}
+
+		// Schedule the timeout
+		seekTimeoutRunnable?.let { seekTimeoutHandler?.postDelayed(it, SEEK_TIMEOUT_MS) }
+	}
+
+	/**
+	 * Helper method to cancel a seek timeout
+	 */
+	private fun cancelSeekTimeout() {
+		seekTimeoutRunnable?.let { seekTimeoutHandler?.removeCallbacks(it) }
+		seekTimeoutHandler = null
+		seekTimeoutRunnable = null
+	}
+
 	fun seekTo(position: Long) {
 		ensureSession()
 		runOnUiThread {
@@ -267,8 +322,19 @@ object AudioProController {
 				position > dur -> dur
 				else -> position
 			}
+
+			// Set pending seek variables
+			pendingSeek = true
+			pendingSeekPosition = validPosition
+			pendingSeekDuration = dur
+
+			log("Seeking to position: $validPosition")
 			browser?.seekTo(validPosition)
-			emitNotice(AudioProModule.EVENT_TYPE_SEEK_COMPLETE, validPosition, dur)
+
+			// Start seek timeout
+			startSeekTimeout()
+
+			// SEEK_COMPLETE will be emitted in onPositionDiscontinuity or when timeout is reached
 		}
 	}
 
@@ -278,8 +344,19 @@ object AudioProController {
 			val current = browser?.currentPosition ?: 0L
 			val dur = browser?.duration ?: 0L
 			val newPos = (current + amount).coerceAtMost(dur)
+
+			// Set pending seek variables
+			pendingSeek = true
+			pendingSeekPosition = newPos
+			pendingSeekDuration = dur
+
+			log("Seeking forward to position: $newPos")
 			browser?.seekTo(newPos)
-			emitNotice(AudioProModule.EVENT_TYPE_SEEK_COMPLETE, newPos, dur)
+
+			// Start seek timeout
+			startSeekTimeout()
+
+			// SEEK_COMPLETE will be emitted in onPositionDiscontinuity or when timeout is reached
 		}
 	}
 
@@ -289,8 +366,19 @@ object AudioProController {
 			val current = browser?.currentPosition ?: 0L
 			val newPos = (current - amount).coerceAtLeast(0L)
 			val dur = browser?.duration ?: 0L
+
+			// Set pending seek variables
+			pendingSeek = true
+			pendingSeekPosition = newPos
+			pendingSeekDuration = dur
+
+			log("Seeking back to position: $newPos")
 			browser?.seekTo(newPos)
-			emitNotice(AudioProModule.EVENT_TYPE_SEEK_COMPLETE, newPos, dur)
+
+			// Start seek timeout
+			startSeekTimeout()
+
+			// SEEK_COMPLETE will be emitted in onPositionDiscontinuity or when timeout is reached
 		}
 	}
 
@@ -356,6 +444,32 @@ object AudioProController {
 						stopProgressTimer()
 						emitState(AudioProModule.STATE_STOPPED, 0L, 0L)
 					}
+				}
+			}
+
+			override fun onPositionDiscontinuity(
+				oldPosition: Player.PositionInfo,
+				newPosition: Player.PositionInfo,
+				reason: Int
+			) {
+				// Check if this is a seek operation
+				if (pendingSeek && (reason == Player.DISCONTINUITY_REASON_SEEK || reason == Player.DISCONTINUITY_REASON_SEEK_ADJUSTMENT)) {
+					log("Seek completed: position=${newPosition.positionMs}, reason=$reason")
+
+					// Cancel the seek timeout
+					cancelSeekTimeout()
+
+					// Emit SEEK_COMPLETE event
+					emitNotice(
+						AudioProModule.EVENT_TYPE_SEEK_COMPLETE,
+						pendingSeekPosition,
+						pendingSeekDuration
+					)
+
+					// Reset pending seek variables
+					pendingSeek = false
+					pendingSeekPosition = 0
+					pendingSeekDuration = 0
 				}
 			}
 
