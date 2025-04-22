@@ -569,6 +569,11 @@ class AudioPro: RCTEventEmitter {
 
         let info = getPlaybackInfo()
 
+        // When a track naturally finishes, call stop (not cleanup)
+        // so that Now Playing info (artwork, track details) remains visible.
+        // Call stop() first to ensure STOPPED state is emitted before TRACK_ENDED
+        stop()
+
         if hasListeners {
             let payload: [String: Any] = [
                 "position": info.duration,
@@ -576,9 +581,6 @@ class AudioPro: RCTEventEmitter {
             ]
             sendEvent(type: EVENT_TYPE_TRACK_ENDED, track: info.track, payload: payload)
         }
-		// When a track naturally finishes, call stop (not cleanup)
-		// so that Now Playing info (artwork, track details) remains visible.
-        stop()
     }
 
     override func observeValue(

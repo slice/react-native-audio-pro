@@ -347,8 +347,9 @@ object AudioProController {
 
 					Player.STATE_ENDED -> {
 						stopProgressTimer()
-						emitNotice(AudioProModule.EVENT_TYPE_TRACK_ENDED, dur, dur)
+						// Emit STOPPED state before TRACK_ENDED to ensure correct event ordering
 						emitState(AudioProModule.STATE_STOPPED, dur, dur)
+						emitNotice(AudioProModule.EVENT_TYPE_TRACK_ENDED, dur, dur)
 					}
 
 					Player.STATE_IDLE -> {
