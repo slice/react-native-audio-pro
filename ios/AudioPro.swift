@@ -46,6 +46,7 @@ class AudioPro: RCTEventEmitter {
 
     private var debugLog: Bool = false
     private var isInErrorState: Bool = false
+    private var lastEmittedState: String = ""
 
     ////////////////////////////////////////////////////////////
     // MARK: - React Native Event Emitter Overrides
@@ -132,6 +133,8 @@ class AudioPro: RCTEventEmitter {
     func play(track: NSDictionary, options: NSDictionary) {
         // Reset error state when playing a new track
         isInErrorState = false
+        // Reset last emitted state when playing a new track
+        lastEmittedState = ""
         currentTrack = track
         debugLog = options["debug"] as? Bool ?? false
         let speed = options["playbackSpeed"] as? Float ?? 1.0
@@ -368,6 +371,8 @@ class AudioPro: RCTEventEmitter {
     @objc func stop() {
         // Reset error state when explicitly stopping
         isInErrorState = false
+        // Reset last emitted state when stopping playback
+        lastEmittedState = ""
         shouldBePlaying = false
 
         player?.pause()
@@ -658,6 +663,13 @@ class AudioPro: RCTEventEmitter {
             return
         }
 
+        // Filter out duplicate state emissions
+        // This prevents rapid-fire transitions of the same state being emitted repeatedly
+        if state == lastEmittedState {
+            log("Ignoring duplicate \(state) state emission")
+            return
+        }
+
         // Use provided values or get from getPlaybackInfo() which already sanitizes values
         let info = position == nil || duration == nil ? getPlaybackInfo() : (position: position!, duration: duration!, track: track)
 
@@ -667,6 +679,9 @@ class AudioPro: RCTEventEmitter {
             "duration": info.duration
         ]
         sendEvent(type: EVENT_TYPE_STATE_CHANGED, track: info.track, payload: payload)
+
+        // Track the last emitted state
+        lastEmittedState = state
     }
 
     private func sendStoppedStateEvent() {

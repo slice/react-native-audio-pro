@@ -33,7 +33,7 @@ object AudioProController {
 	private var debug: Boolean = false
 	private var reactContext: ReactApplicationContext? = null
 	private var playerListener: Player.Listener? = null
-	private var lastEmittedState: String = AudioProModule.STATE_STOPPED
+	private var lastEmittedState: String = ""
 	private var currentPlaybackSpeed: Float = 1.0f
 	private var currentTrack: ReadableMap? = null
 	private var isInErrorState: Boolean = false
@@ -72,6 +72,8 @@ object AudioProController {
 	suspend fun play(track: ReadableMap, options: ReadableMap) {
 		// Reset error state when playing a new track
 		isInErrorState = false
+		// Reset last emitted state when playing a new track
+		lastEmittedState = ""
 		currentTrack = track
 		val contentType = if (options.hasKey("contentType")) {
 			options.getString("contentType") ?: "MUSIC"
@@ -202,6 +204,8 @@ object AudioProController {
 	fun stop() {
 		// Reset error state when explicitly stopping
 		isInErrorState = false
+		// Reset last emitted state when stopping playback
+		lastEmittedState = ""
 		ensureSession()
 		runOnUiThread {
 			detachPlayerListener()
@@ -433,6 +437,13 @@ object AudioProController {
 		// Don't emit STOPPED if we're in an error state
 		if (state == AudioProModule.STATE_STOPPED && isInErrorState) {
 			log("Ignoring STOPPED state after ERROR")
+			return
+		}
+
+		// Filter out duplicate state emissions
+		// This prevents rapid-fire transitions of the same state being emitted repeatedly
+		if (state == lastEmittedState) {
+			log("Ignoring duplicate $state state emission")
 			return
 		}
 
