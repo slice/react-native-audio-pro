@@ -181,14 +181,8 @@ class AudioPro: RCTEventEmitter {
             return
         }
 
-        if hasListeners {
-            let payload: [String: Any] = [
-                "state": STATE_LOADING,
-                "position": 0,
-                "duration": 0
-            ]
-            sendEvent(type: EVENT_TYPE_STATE_CHANGED, track: currentTrack, payload: payload)
-        }
+        // Use sendStateEvent to ensure lastEmittedState is updated
+        sendStateEvent(state: STATE_LOADING, position: 0, duration: 0)
         shouldBePlaying = autoplay
 
         let album = track["album"] as? String
@@ -265,12 +259,8 @@ class AudioPro: RCTEventEmitter {
             player?.play()
         } else {
             DispatchQueue.main.async {
-                let payload: [String: Any] = [
-                    "state": self.STATE_PAUSED,
-                    "position": 0,
-                    "duration": 0
-                ]
-                self.sendEvent(type: self.EVENT_TYPE_STATE_CHANGED, track: self.currentTrack, payload: payload)
+                // Use sendStateEvent to ensure lastEmittedState is updated
+                self.sendStateEvent(state: self.STATE_PAUSED, position: 0, duration: 0)
             }
         }
 
@@ -282,13 +272,8 @@ class AudioPro: RCTEventEmitter {
             }
 
             if self.player?.rate != 0 && self.hasListeners {
-                let info = self.getPlaybackInfo()
-                let payload: [String: Any] = [
-                    "state": self.STATE_PLAYING,
-                    "position": info.position,
-                    "duration": info.duration
-                ]
-                self.sendEvent(type: self.EVENT_TYPE_STATE_CHANGED, track: info.track, payload: payload)
+                // Use sendPlayingStateEvent to ensure lastEmittedState is updated
+                self.sendPlayingStateEvent()
                 self.startProgressTimer()
             }
         }
@@ -374,6 +359,8 @@ class AudioPro: RCTEventEmitter {
         shouldBePlaying = true
         player?.play()
         updateNowPlayingInfo(time: player?.currentTime().seconds ?? 0, rate: 1.0)
+        // Note: We don't need to call sendPlayingStateEvent() here because
+        // the rate change will trigger observeValue which now calls sendPlayingStateEvent()
     }
 
     /// stop is meant to halt playback and update the state without destroying persistent info
@@ -610,23 +597,14 @@ class AudioPro: RCTEventEmitter {
             if let newRate = change?[.newKey] as? Float {
                 if newRate == 0 {
                     if shouldBePlaying && hasListeners {
-                        let payload: [String: Any] = [
-                            "state": STATE_LOADING,
-                            "position": 0,
-                            "duration": 0
-                        ]
-                        sendEvent(type: EVENT_TYPE_STATE_CHANGED, track: currentTrack, payload: payload)
+                        // Use sendStateEvent to ensure lastEmittedState is updated
+                        sendStateEvent(state: STATE_LOADING, position: 0, duration: 0)
                         stopTimer()
                     }
                 } else {
                     if shouldBePlaying && hasListeners {
-                        let info = getPlaybackInfo()
-                        let payload: [String: Any] = [
-                            "state": STATE_PLAYING,
-                            "position": info.position,
-                            "duration": info.duration
-                        ]
-                        sendEvent(type: EVENT_TYPE_STATE_CHANGED, track: info.track, payload: payload)
+                        // Use sendPlayingStateEvent to ensure lastEmittedState is updated
+                        sendPlayingStateEvent()
                         startProgressTimer()
                     }
                 }
@@ -777,13 +755,10 @@ class AudioPro: RCTEventEmitter {
             ]
             sendEvent(type: EVENT_TYPE_PLAYBACK_ERROR, track: currentTrack, payload: errorPayload)
 
-            // Also send a state change to ERROR
-            let statePayload: [String: Any] = [
-                "state": STATE_ERROR,
-                "position": player?.currentTime().seconds.isNaN ?? true ? 0 : Int(player?.currentTime().seconds ?? 0) * 1000,
-                "duration": player?.currentItem?.duration.seconds.isNaN ?? true ? 0 : Int(player?.currentItem?.duration.seconds ?? 0) * 1000
-            ]
-            sendEvent(type: EVENT_TYPE_STATE_CHANGED, track: currentTrack, payload: statePayload)
+            // Also send a state change to ERROR using sendStateEvent to ensure lastEmittedState is updated
+            let position = player?.currentTime().seconds.isNaN ?? true ? 0 : Int(player?.currentTime().seconds ?? 0) * 1000
+            let duration = player?.currentItem?.duration.seconds.isNaN ?? true ? 0 : Int(player?.currentItem?.duration.seconds ?? 0) * 1000
+            sendStateEvent(state: STATE_ERROR, position: position, duration: duration)
         }
 
         // Store the current track before cleanup
