@@ -137,6 +137,7 @@ type AudioProTrack = {
 type AudioProSetupOptions = {
     contentType?: AudioProContentType; // MUSIC or SPEECH
     debug?: boolean; // Verbose logging
+    debugIncludesProgress?: boolean; // Whether to include progress events in debug logs (default: false)
 };
 ```
 </details>
@@ -189,6 +190,13 @@ interface AudioProPlaybackSpeedChangedPayload {
 <summary><b>About contentType</b></summary>
 
 Use `AudioProContentType.SPEECH` for podcasts or audiobooks, `AudioProContentType.MUSIC` for songs or music-heavy audio. This optimizes playback behavior like audio focus and routing. Defaults to `AudioProContentType.MUSIC`.
+</details>
+
+<details>
+<summary><b>About debug options</b></summary>
+
+- `debug`: When set to `true`, enables verbose logging of all audio events. Useful for development and troubleshooting.
+- `debugIncludesProgress`: When set to `true`, includes PROGRESS events in debug logs. PROGRESS events occur every second during playback and can flood the logs, making it harder to see other important events. Defaults to `false`.
 </details>
 
 ### Handling Remote Events
@@ -266,7 +274,11 @@ export default AudioStatus;
 import { AudioPro, AudioProContentType } from 'react-native-audio-pro';
 
 // Optional: Set playback config
-AudioPro.configure({ contentType: AudioProContentType.MUSIC, debug: __DEV__ });
+AudioPro.configure({
+  contentType: AudioProContentType.MUSIC,
+  debug: __DEV__,
+  debugIncludesProgress: false // Set to true to include progress events in debug logs
+});
 
 // Define an audio track (supports static remote files, live streams, and local files)
 const track = {
@@ -329,7 +341,8 @@ export function setupAudio() {
   // Configure audio settings
   AudioPro.configure({
     contentType: AudioProContentType.MUSIC,
-    debug: __DEV__
+    debug: __DEV__,
+    debugIncludesProgress: false // Set to true to include progress events in debug logs
   });
 
   // Set up event listeners that persist for the app's lifetime
