@@ -45,6 +45,7 @@ class AudioPro: RCTEventEmitter {
     private var currentTrack: NSDictionary?
 
     private var debugLog: Bool = false
+    private var debugIncludesProgress: Bool = false
     private var isInErrorState: Bool = false
     private var lastEmittedState: String = ""
 
@@ -74,6 +75,13 @@ class AudioPro: RCTEventEmitter {
 
     private func log(_ items: Any...) {
         guard debugLog else { return }
+
+        if !debugIncludesProgress && items.count > 0 {
+            if let firstItem = items.first, "\(firstItem)" == EVENT_TYPE_PROGRESS {
+                return
+            }
+        }
+
         print("~~~ [AudioPro]", items.map { "\($0)" }.joined(separator: " "))
     }
 
@@ -88,6 +96,8 @@ class AudioPro: RCTEventEmitter {
         if let payload = payload {
             body["payload"] = payload
         }
+
+        log(type)
 
         sendEvent(withName: EVENT_NAME, body: body)
     }
@@ -137,6 +147,7 @@ class AudioPro: RCTEventEmitter {
         lastEmittedState = ""
         currentTrack = track
         debugLog = options["debug"] as? Bool ?? false
+        debugIncludesProgress = options["debugIncludesProgress"] as? Bool ?? false
         let speed = options["playbackSpeed"] as? Float ?? 1.0
         let autoplay = options["autoplay"] as? Bool ?? true
         currentPlaybackSpeed = speed

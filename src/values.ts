@@ -29,4 +29,5 @@ export enum AudioProEventType {
 export const DEFAULT_CONFIG: AudioProConfigureOptions = {
 	contentType: AudioProContentType.MUSIC,
 	debug: false,
+	debugIncludesProgress: false,
 };

@@ -13,10 +13,12 @@ export interface AudioProStore {
 	duration: number;
 	playbackSpeed: number;
 	debug: boolean;
+	debugIncludesProgress: boolean;
 	trackPlaying: AudioProTrack | null;
 	configureOptions: AudioProConfigureOptions;
 	error: AudioProPlaybackErrorPayload | null;
 	setDebug: (debug: boolean) => void;
+	setDebugIncludesProgress: (includeProgress: boolean) => void;
 	setTrackPlaying: (track: AudioProTrack | null) => void;
 	setConfigureOptions: (options: AudioProConfigureOptions) => void;
 	setPlaybackSpeed: (speed: number) => void;
@@ -30,10 +32,13 @@ export const useInternalStore = create<AudioProStore>((set, get) => ({
 	duration: 0,
 	playbackSpeed: 1.0,
 	debug: false,
+	debugIncludesProgress: false,
 	trackPlaying: null,
 	configureOptions: { ...DEFAULT_CONFIG },
 	error: null,
 	setDebug: (debug) => set({ debug }),
+	setDebugIncludesProgress: (includeProgress) =>
+		set({ debugIncludesProgress: includeProgress }),
 	setTrackPlaying: (track) => set({ trackPlaying: track }),
 	setConfigureOptions: (options) => set({ configureOptions: options }),
 	setPlaybackSpeed: (speed) => set({ playbackSpeed: speed }),

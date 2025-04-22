@@ -35,9 +35,11 @@ function isValidPlayerStateForOperation(operation: string): boolean {
 
 export const AudioPro = {
 	configure(options: AudioProConfigureOptions): void {
-		const { setConfigureOptions, setDebug } = useInternalStore.getState();
+		const { setConfigureOptions, setDebug, setDebugIncludesProgress } =
+			useInternalStore.getState();
 		setConfigureOptions({ ...DEFAULT_CONFIG, ...options });
 		setDebug(!!options.debug);
+		setDebugIncludesProgress(options.debugIncludesProgress ?? false);
 		logDebug('AudioPro: configure()', options);
 	},
 

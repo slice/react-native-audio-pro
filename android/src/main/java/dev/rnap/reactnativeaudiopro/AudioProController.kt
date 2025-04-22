@@ -30,6 +30,7 @@ object AudioProController {
 	private var progressRunnable: Runnable? = null
 	var audioContentType: Int = C.AUDIO_CONTENT_TYPE_MUSIC
 	private var debug: Boolean = false
+	private var debugIncludesProgress: Boolean = false
 	private var reactContext: ReactApplicationContext? = null
 	private var playerListener: Player.Listener? = null
 	private var lastEmittedState: String = ""
@@ -48,7 +49,13 @@ object AudioProController {
 	private val SEEK_TIMEOUT_MS = 1000L // 1 second timeout for seek operations
 
 	private fun log(vararg args: Any?) {
-		if (debug) Log.d("AudioPro", "~~~ ${args.joinToString(" ")}")
+		if (debug) {
+			// Skip logging PROGRESS events if debugIncludesProgress is false
+			if (!debugIncludesProgress && args.isNotEmpty() && args[0] == AudioProModule.EVENT_TYPE_PROGRESS) {
+				return
+			}
+			Log.d("AudioPro", "~~~ ${args.joinToString(" ")}")
+		}
 	}
 
 	fun setReactContext(context: ReactApplicationContext) {
@@ -86,6 +93,7 @@ object AudioProController {
 			options.getString("contentType") ?: "MUSIC"
 		} else "MUSIC"
 		val enableDebug = options.hasKey("debug") && options.getBoolean("debug")
+		val includeProgressInDebug = options.hasKey("debugIncludesProgress") && options.getBoolean("debugIncludesProgress")
 		val speed = if (options.hasKey("playbackSpeed")) {
 			options.getDouble("playbackSpeed").toFloat()
 		} else 1.0f
@@ -132,6 +140,7 @@ object AudioProController {
 		}
 
 		debug = enableDebug
+		debugIncludesProgress = includeProgressInDebug
 		audioContentType = when (contentType) {
 			"SPEECH" -> C.AUDIO_CONTENT_TYPE_SPEECH
 			else -> C.AUDIO_CONTENT_TYPE_MUSIC
