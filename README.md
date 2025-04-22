@@ -16,15 +16,21 @@ Modern, background-capable audio playback for React Native — built for podcast
 
 ## Table of Contents
 
-- [🚀 Installation](#-installation)
 - [⚙️ Requirements](#-requirements)
-- [🔧 Platform-Specific Setup](#-platform-specific-setup)
+- [🚀 Installation](#-installation)
 - [📚 API Overview](#api-overview)
 - [⚡️ useAudioPro Hook Example](#useaudiopro-hook-example)
 - [📦 API Usage Example](#api-usage-example)
 - [📱 Example App](#-example-app)
 - [🤝 Contributing](#contributing)
 - [🪪 License](#license)
+
+## ⚙️ Requirements
+
+- **TypeScript:** 5.0 or higher
+- **React Native:** 0.72 or higher
+- **iOS:** iOS 15.1 or higher
+- **Android:** Android 7.0 (API 26) or higher (tested on API 28+)
 
 ## 🚀 Installation
 
@@ -36,32 +42,22 @@ or
 yarn add react-native-audio-pro
 ```
 
-## ⚙️ Requirements
+### 🍎 iOS Installation
 
-- **TypeScript:** 5.0 or higher
-- **React Native:** 0.72 or higher
-- **iOS:** iOS 15.1 or higher
-- **Android:** Android 7.0 (API 26) or higher (tested on API 28+)
-
-## 🔧 Platform-Specific Setup
-
-<details>
-<summary><b>🍎 iOS Setup</b></summary>
+Install the CocoaPods dependencies:
+```bash
+npx pod-install
+```
 
 #### Enable Background Modes
 
 1. Open your project settings in Xcode.
 2. Go to **Signing & Capabilities**.
 3. Add **Background Modes** and enable **Audio, AirPlay, and Picture in Picture**.
-</details>
 
-<details>
-<summary><b>🤖 Android Setup</b></summary>
+### 🤖 Android Installation
 
-> **SDK Support:** Android 7.0 (API 26)+
-> Media3 APIs are supported from API 21+, but testing is focused on API 28+.
-
-> ℹ️ This library requires `compileSdkVersion = 35` and `targetSdkVersion = 35` to support the latest Media3 features and ensure compatibility with modern Android Studio tooling.
+> **Note:** This library requires Android 7.0 (API 26)+ and `compileSdkVersion = 35` and `targetSdkVersion = 35` to support the latest Media3 features. While Media3 APIs are supported from API 21+, testing is focused on API 28+.
 
 #### Gradle Configuration
 
@@ -77,7 +73,6 @@ buildscript {
     }
 }
 ```
-</details>
 
 ## 📚 API Overview
 
