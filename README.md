@@ -1,6 +1,6 @@
 # React Native Audio Pro
 
-Modern, background-capable audio playback for React Native — built for podcasts, audiobooks, live streams, and long-form media. Works out of the box with background playback, lock screen controls, and clean hooks-based state. Under the hood: Android uses Media3 (not old-school ExoPlayer), giving you up-to-date media session support without any of the legacy baggage. iOS uses AVFoundation, Apple's native audio engine for professional-grade media playback. Web uses the HTML5 Audio API for cross-browser compatibility. Supports static remote files, live streaming URLs, and local files (for both audio and artwork) across all platforms.
+Modern, background-capable audio playback for React Native — built for podcasts, audiobooks, live streams, and long-form media. Works out of the box with background playback, lock screen controls, and clean hooks-based state. Under the hood: Android uses Media3 (not old-school ExoPlayer), giving you up-to-date media session support without any of the legacy baggage. iOS uses AVFoundation, Apple's native audio engine for professional-grade media playback. Supports static remote files, live streaming URLs, and local files (for both audio and artwork) across all platforms.
 
 [![npm version](https://img.shields.io/npm/v/react-native-audio-pro?logo=npm&logoColor=white&labelColor=grey&color=blue)](https://www.npmjs.com/package/react-native-audio-pro)
 [![website](https://img.shields.io/badge/website-rnap.dev-grey?logo=google-chrome&logoColor=white&color=blue)](https://rnap.dev)
@@ -399,29 +399,6 @@ yarn example android
 ```
 
 **OR** open the `./example/ios` folder in XCode, or the `./example/android` folder in Android Studio and run the app on a simulator or physical device.
-</details>
-
-## 🌐 Web Support
-
-<details>
-<summary><b>Web Platform Information</b></summary>
-
-This library supports web environments through react-native-web. The API is identical to the native version.
-
-### Web Limitations
-
-- Lock screen controls are not available on web platforms
-- Some streaming protocols may have limited support depending on the browser
-- Autoplay policies may require user interaction before playback can begin
-- Supported audio formats depend on the browser (MP3, AAC, WAV, Ogg, Opus, WebM are generally well-supported)
-
-### Running the Web Example
-
-To run the included web example:
-
-```bash
-yarn example web
-```
 </details>
 
 ---
