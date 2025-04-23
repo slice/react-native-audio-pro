@@ -2,163 +2,42 @@ import type { AudioProTrack } from './types';
 import { useInternalStore } from './useInternalStore';
 import { emitter } from './emitter';
 import { AudioProEventType } from './values';
-import { Platform } from 'react-native';
 
-export function isValidMediaUrl(url: string | number): boolean {
+/**
+ * A simplified URL validation function that doesn't rely on the URL constructor.
+ * It performs basic checks on the URL string to determine if it's valid.
+ */
+export function isValidUrl(url: string | number): boolean {
 	// If URL is a number (require() result), it's valid
 	if (typeof url === 'number') {
 		return true;
 	}
 
+	// Check if URL is empty or not a string
 	if (!url || typeof url !== 'string' || !url.trim()) {
 		logDebug('URL validation failed: URL is empty or not a string');
 		return false;
 	}
 
-	try {
-		const urlObj = new URL(url);
-		const supportedProtocols = [
-			'https:',
-			'http:',
-			'rtsp:',
-			'rtmp:',
-			'rtp:',
-			'file:',
-			'blob:',
-			'data:',
-		];
-
-		if (
-			!supportedProtocols.includes(urlObj.protocol) &&
-			urlObj.protocol !== 'http:'
-		) {
-			logDebug(
-				`URL validation failed: Unsupported protocol: ${urlObj.protocol}`,
-			);
-			return false;
-		}
-
-		// For web, check if the file extension is supported
-		if (Platform.OS === 'web') {
-			const supportedFormats = [
-				'.mp3',
-				'.mp4',
-				'.m4a',
-				'.aac',
-				'.wav',
-				'.ogg',
-				'.oga',
-				'.opus',
-				'.webm',
-			];
-
-			// Check for supported extensions in pathname or query parameters
-			const hasValidExtension = supportedFormats.some(
-				(ext) =>
-					urlObj.pathname.toLowerCase().endsWith(ext) ||
-					urlObj.pathname.toLowerCase().includes(`${ext}?`) ||
-					url.toLowerCase().includes(`format=${ext.substring(1)}`) ||
-					url.toLowerCase().includes(`type=${ext.substring(1)}`),
-			);
-
-			// Check for common streaming indicators
-			const isStreamingUrl =
-				urlObj.pathname.toLowerCase().includes('stream') ||
-				urlObj.pathname.toLowerCase().includes('audio') ||
-				urlObj.pathname.toLowerCase().includes('media') ||
-				urlObj.pathname.toLowerCase().includes('sound') ||
-				urlObj.pathname.toLowerCase().includes('music') ||
-				urlObj.pathname.toLowerCase().includes('podcast') ||
-				urlObj.pathname.toLowerCase().includes('hls') ||
-				urlObj.pathname.toLowerCase().includes('m3u8');
-
-			if (!hasValidExtension && !isStreamingUrl) {
-				// Only warn for web platform where format compatibility matters more
-				logDebug(
-					`URL doesn't have a recognized audio format: ${url}. This may not work in all browsers.`,
-				);
-			}
-		}
-
-		return true;
-	} catch (e) {
-		// If the URL is a string but not a valid URL object, it might be a relative path
-		// or a custom URI scheme. We'll allow it but log a debug message.
-		logDebug(
-			`URL format may be non-standard but will attempt to play: ${url}`,
-		);
+	// Basic check for common URL schemes
+	if (
+		url.startsWith('http://') ||
+		url.startsWith('https://') ||
+		url.startsWith('rtsp://') ||
+		url.startsWith('rtmp://') ||
+		url.startsWith('file://') ||
+		url.startsWith('data:') ||
+		url.startsWith('blob:')
+	) {
 		return true;
 	}
-}
 
-export function isValidArtworkUrl(artworkUrl: string | number): boolean {
-	// If artwork is a number (require() result), it's valid
-	if (typeof artworkUrl === 'number') {
-		return true;
-	}
-	if (!artworkUrl || typeof artworkUrl !== 'string' || !artworkUrl.trim()) {
-		logDebug('Artwork URL validation failed: URL is empty or not a string');
-		return false;
-	}
-
-	try {
-		const urlObj = new URL(artworkUrl);
-
-		const supportedImageFormats = [
-			'.jpg',
-			'.jpeg',
-			'.png',
-			'.webp',
-			'.gif',
-			'.svg',
-		];
-
-		// Check if the URL has a supported image extension in pathname or query parameters
-		const isImageFormatSupported = supportedImageFormats.some(
-			(format) =>
-				urlObj.pathname.toLowerCase().endsWith(format) ||
-				urlObj.pathname.toLowerCase().includes(`${format}?`) ||
-				artworkUrl
-					.toLowerCase()
-					.includes(`format=${format.substring(1)}`) ||
-				artworkUrl
-					.toLowerCase()
-					.includes(`type=${format.substring(1)}`),
-		);
-
-		// Accept data URLs for images
-		const isDataUrl =
-			urlObj.protocol === 'data:' &&
-			(artworkUrl.startsWith('data:image/') ||
-				artworkUrl.includes('base64'));
-
-		// Check for common image indicators in the URL
-		const isImageUrl =
-			urlObj.pathname.toLowerCase().includes('image') ||
-			urlObj.pathname.toLowerCase().includes('img') ||
-			urlObj.pathname.toLowerCase().includes('photo') ||
-			urlObj.pathname.toLowerCase().includes('picture') ||
-			urlObj.pathname.toLowerCase().includes('artwork') ||
-			urlObj.pathname.toLowerCase().includes('cover') ||
-			urlObj.pathname.toLowerCase().includes('thumbnail') ||
-			urlObj.pathname.toLowerCase().includes('avatar');
-
-		if (!isImageFormatSupported && !isDataUrl && !isImageUrl) {
-			// Use logDebug instead of console.warn to avoid unnecessary warnings
-			logDebug(
-				`Artwork URL doesn't have a recognized image format: ${artworkUrl}. Supported formats: ${supportedImageFormats.join(', ')}`,
-			);
-		}
-
-		return true;
-	} catch (e) {
-		// If the URL is a string but not a valid URL object, it might be a relative path
-		// or a custom URI scheme. We'll allow it but log a debug message.
-		logDebug(
-			`Artwork URL format may be non-standard but will attempt to use it: ${artworkUrl}`,
-		);
-		return true;
-	}
+	// If it's not a standard URL, it might be a relative path
+	// or a custom URI scheme. We'll allow it but log a debug message.
+	logDebug(
+		`URL format may be non-standard but will attempt to use it: ${url}`,
+	);
+	return true;
 }
 
 export function validateTrack(track: AudioProTrack): boolean {
@@ -186,17 +65,14 @@ export function validateTrack(track: AudioProTrack): boolean {
 		return false;
 	}
 
-	if (typeof track.url === 'string' && !isValidMediaUrl(track.url)) {
+	if (typeof track.url === 'string' && !isValidUrl(track.url)) {
 		logDebug(
 			`Track validation failed: Invalid media URL format: ${track.url}`,
 		);
 		return false;
 	}
 
-	if (
-		typeof track.artwork === 'string' &&
-		!isValidArtworkUrl(track.artwork)
-	) {
+	if (typeof track.artwork === 'string' && !isValidUrl(track.artwork)) {
 		logDebug(
 			`Track validation failed: Invalid artwork URL format: ${track.artwork}`,
 		);
