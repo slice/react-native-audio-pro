@@ -4,8 +4,9 @@ import {
 	type AudioProEvent,
 	type AudioProTrack,
 } from 'react-native-audio-pro';
-import { AudioPro } from '../../src/audioPro';
+
 import { playlist } from './playlist';
+import { AudioPro } from '../../src/audioPro';
 
 // Track the current playlist position
 let currentIndex = 0;

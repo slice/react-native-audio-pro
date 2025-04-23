@@ -34,6 +34,7 @@ jest.mock('../emitter', () => ({
 
 // Import after mocks
 import { validateTrack, isValidUrl } from '../utils';
+
 import type { AudioProTrack } from '../types';
 
 describe('Utils', () => {

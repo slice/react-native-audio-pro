@@ -89,10 +89,6 @@ export interface AudioProSeekCompletePayload {
 	duration: number;
 }
 
-export interface AudioProRemoteNextPayload {}
-
-export interface AudioProRemotePrevPayload {}
-
 export interface AudioProPlaybackSpeedChangedPayload {
 	speed: number;
 }

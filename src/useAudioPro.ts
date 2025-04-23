@@ -1,5 +1,6 @@
-import { useInternalStore } from './useInternalStore';
 import { useShallow } from 'zustand/react/shallow';
+
+import { useInternalStore } from './useInternalStore';
 
 export const useAudioPro = () => {
 	const { state, position, duration, playingTrack, playbackSpeed, error } =

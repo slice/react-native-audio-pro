@@ -1,5 +1,7 @@
 import { create } from 'zustand';
+
 import { AudioProEventType, AudioProState, DEFAULT_CONFIG } from './values';
+
 import type {
 	AudioProConfigureOptions,
 	AudioProEvent,

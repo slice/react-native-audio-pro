@@ -52,8 +52,9 @@ jest.mock('../useInternalStore', () => {
 
 // Import after mocks
 import { renderHook } from '@testing-library/react-hooks';
-import { AudioProState } from '../values';
+
 import { useAudioPro } from '../useAudioPro';
+import { AudioProState } from '../values';
 
 describe('useAudioPro Hook', () => {
 	it('should return the current state', () => {

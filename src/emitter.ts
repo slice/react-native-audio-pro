@@ -1,7 +1,8 @@
 import { NativeModules, NativeEventEmitter } from 'react-native';
+
 import { useInternalStore } from './useInternalStore';
-import { AudioProEventType } from './values';
 import { logDebug } from './utils';
+import { AudioProEventType } from './values';
 
 import type { AudioProEvent } from './types';
 

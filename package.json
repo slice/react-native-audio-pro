@@ -72,10 +72,15 @@
     "@testing-library/react-hooks": "^8.0.1",
     "@types/jest": "^29.5.5",
     "@types/react": "^18.2.44",
+    "@typescript-eslint/eslint-plugin": "^8.31.0",
+    "@typescript-eslint/parser": "^8.31.0",
     "commitlint": "^19.6.1",
     "del-cli": "^5.1.0",
     "eslint": "^8.51.0",
     "eslint-config-prettier": "^9.0.0",
+    "eslint-import-resolver-typescript": "^4.3.4",
+    "eslint-plugin-import": "^2.31.0",
+    "eslint-plugin-jest": "^28.11.0",
     "eslint-plugin-prettier": "^5.0.1",
     "jest": "^29.7.0",
     "prettier": "^3.0.3",
@@ -136,11 +141,20 @@
     "root": true,
     "extends": [
       "@react-native",
-      "prettier"
+      "prettier",
+      "plugin:import/recommended",
+      "plugin:import/typescript",
+      "plugin:@typescript-eslint/recommended"
     ],
+    "plugins": [
+      "import",
+      "@typescript-eslint"
+    ],
+    "parser": "@typescript-eslint/parser",
     "rules": {
       "react/react-in-jsx-scope": "off",
       "react-hooks/exhaustive-deps": "warn",
+      "@typescript-eslint/no-require-imports": "off",
       "prettier/prettier": [
         "error",
         {
@@ -150,7 +164,50 @@
           "trailingComma": "all",
           "useTabs": true
         }
+      ],
+      "import/order": [
+        "error",
+        {
+          "groups": [
+            "builtin",
+            "external",
+            "internal",
+            [
+              "parent",
+              "sibling"
+            ],
+            "index",
+            "object",
+            "type"
+          ],
+          "pathGroups": [
+            {
+              "pattern": "react",
+              "group": "builtin",
+              "position": "before"
+            },
+            {
+              "pattern": "react-native",
+              "group": "builtin",
+              "position": "before"
+            }
+          ],
+          "pathGroupsExcludedImportTypes": [
+            "react",
+            "react-native"
+          ],
+          "alphabetize": {
+            "order": "asc",
+            "caseInsensitive": true
+          },
+          "newlines-between": "always"
+        }
       ]
+    },
+    "settings": {
+      "import/resolver": {
+        "typescript": {}
+      }
     }
   },
   "eslintIgnore": [

@@ -1,19 +1,21 @@
 import { Image, NativeModules } from 'react-native';
-import type {
-	AudioProConfigureOptions,
-	AudioProEventCallback,
-	AudioProPlayOptions,
-	AudioProTrack,
-} from './types';
-import { guardTrackPlaying, logDebug, validateTrack } from './utils';
+
+import { emitter } from './emitter';
 import { useInternalStore } from './useInternalStore';
+import { guardTrackPlaying, logDebug, validateTrack } from './utils';
 import {
 	AudioProEventType,
 	AudioProState,
 	DEFAULT_CONFIG,
 	DEFAULT_SEEK_MS,
 } from './values';
-import { emitter } from './emitter';
+
+import type {
+	AudioProConfigureOptions,
+	AudioProEventCallback,
+	AudioProPlayOptions,
+	AudioProTrack,
+} from './types';
 
 const NativeAudioPro = NativeModules.AudioPro;
 
@@ -44,7 +46,7 @@ export const AudioPro = {
 	},
 
 	play(track: AudioProTrack, options?: AudioProPlayOptions) {
-		let playOptions: AudioProPlayOptions = options || {};
+		const playOptions: AudioProPlayOptions = options || {};
 		logDebug('AudioPro: play()', track, 'options:', options);
 
 		const resolvedTrack = { ...track };

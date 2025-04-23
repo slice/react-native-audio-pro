@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+
 import {
 	Image,
 	SafeAreaView,
@@ -10,15 +11,16 @@ import {
 	Switch,
 	ActivityIndicator,
 } from 'react-native';
+
 import Slider from '@react-native-community/slider';
 import { type AudioProTrack, useAudioPro } from 'react-native-audio-pro';
 
-import { formatTime } from './utils';
+import { getCurrentTrackIndex, setCurrentTrackIndex } from './player-service';
 import { playlist } from './playlist';
 import { styles } from './styles';
-import { AudioProState } from '../../src/values';
+import { formatTime } from './utils';
 import { AudioPro } from '../../src/audioPro';
-import { getCurrentTrackIndex, setCurrentTrackIndex } from './player-service';
+import { AudioProState } from '../../src/values';
 
 export default function App() {
 	// Use the current track index from the player service

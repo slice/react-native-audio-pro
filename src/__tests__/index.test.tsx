@@ -43,9 +43,11 @@ jest.mock('../utils', () => {
 
 // Import after mocks
 import { NativeModules } from 'react-native';
-import { AudioPro, AudioProState, AudioProContentType } from '../index';
-import type { AudioProTrack } from '../types';
+
 import { emitter } from '../emitter';
+import { AudioPro, AudioProState, AudioProContentType } from '../index';
+
+import type { AudioProTrack } from '../types';
 
 describe('AudioPro Module', () => {
 	const mockTrack: AudioProTrack = {

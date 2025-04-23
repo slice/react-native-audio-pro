@@ -12,8 +12,11 @@ jest.mock('../emitter', () => {
 });
 
 // Mock dependencies
+// @ts-expect-error accepted for test purposes
 const mockUpdateFromEvent = jest.fn();
+// @ts-expect-error accepted for test purposes
 let mockDebug = false;
+// @ts-expect-error accepted for test purposes
 let mockDebugIncludesProgress = false;
 
 // Mock useInternalStore

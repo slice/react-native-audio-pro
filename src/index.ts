@@ -1,9 +1,7 @@
 /**
  * REACT NATIVE AUDIO PRO
  */
-
 export { AudioPro } from './audioPro';
-
 export { useAudioPro } from './useAudioPro';
 
 export type {
@@ -15,8 +13,6 @@ export type {
 	AudioProPlaybackErrorPayload,
 	AudioProProgressPayload,
 	AudioProSeekCompletePayload,
-	AudioProRemoteNextPayload,
-	AudioProRemotePrevPayload,
 	AudioProPlaybackSpeedChangedPayload,
 } from './types';
 

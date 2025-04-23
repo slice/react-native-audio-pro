@@ -1,7 +1,8 @@
-import type { AudioProTrack } from './types';
-import { useInternalStore } from './useInternalStore';
 import { emitter } from './emitter';
+import { useInternalStore } from './useInternalStore';
 import { AudioProEventType } from './values';
+
+import type { AudioProTrack } from './types';
 
 /**
  * A simplified URL validation function that doesn't rely on the URL constructor.
@@ -82,7 +83,7 @@ export function validateTrack(track: AudioProTrack): boolean {
 	return true;
 }
 
-export function logDebug(...args: any[]) {
+export function logDebug(...args: unknown[]) {
 	if (useInternalStore.getState().debug) {
 		console.log('~~~', ...args);
 	}
