@@ -1,3 +1,4 @@
+import { Image, NativeModules } from 'react-native';
 import type {
 	AudioProConfigureOptions,
 	AudioProEventCallback,
@@ -13,9 +14,8 @@ import {
 	DEFAULT_SEEK_MS,
 } from './values';
 import { emitter } from './emitter';
-import { Image } from 'react-native';
 
-import { NativeAudioPro } from './index';
+const NativeAudioPro = NativeModules.AudioPro;
 
 function isValidPlayerStateForOperation(operation: string): boolean {
 	const { playerState } = useInternalStore.getState();

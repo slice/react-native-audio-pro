@@ -83,18 +83,7 @@ export function validateTrack(track: AudioProTrack): boolean {
 }
 
 export function logDebug(...args: any[]) {
-	const { debug, debugIncludesProgress } = useInternalStore.getState();
-	if (debug) {
-		// Skip logging PROGRESS events if debugIncludesProgress is false
-		if (
-			!debugIncludesProgress &&
-			args.length >= 2 &&
-			args[0] === 'AudioProEvent' &&
-			typeof args[1] === 'string' &&
-			args[1].includes('"type":"PROGRESS"')
-		) {
-			return;
-		}
+	if (useInternalStore.getState().debug) {
 		console.log('~~~', ...args);
 	}
 }
