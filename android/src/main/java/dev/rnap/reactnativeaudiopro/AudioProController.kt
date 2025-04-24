@@ -84,6 +84,32 @@ object AudioProController {
 		log("MediaBrowser is ready")
 	}
 
+	/**
+	 * Prepares the player for new playback without emitting state changes or destroying the media session
+	 * - This function:
+	 * - Pauses the player if it's playing
+	 * - Stops the progress timer
+	 * - Does not emit any state or clear currentTrack
+	 * - Does not destroy the media session
+	 */
+	private fun prepareForNewPlayback() {
+		log("Preparing for new playback")
+
+		// Pause the player if it's playing
+		runOnUiThread {
+			browser?.pause()
+		}
+
+		// Stop the progress timer
+		stopProgressTimer()
+
+		// Cancel any pending seek operations
+		cancelSeekTimeout()
+		pendingSeek = false
+		pendingSeekPosition = 0
+		pendingSeekDuration = 0
+	}
+
 	suspend fun play(track: ReadableMap, options: ReadableMap) {
 		// Reset error state when playing a new track
 		isInErrorState = false
@@ -152,13 +178,20 @@ object AudioProController {
 		currentPlaybackSpeed = speed
 		currentVolume = volume
 
-		log("Configured with contentType=$contentType debug=$debug speed=$speed volume=$volume autoplay=$autoplay")
+ 	log("Configured with contentType=$contentType debug=$debug speed=$speed volume=$volume autoplay=$autoplay")
 
-		internalPrepareSession()
-		val url = track.getString("url") ?: run {
-			log("Missing track URL")
-			return
-		}
+ 	// If browser already exists, prepare it for new playback
+ 	// Otherwise, create a new browser
+ 	if (browser != null) {
+ 		prepareForNewPlayback()
+ 	} else {
+ 		internalPrepareSession()
+ 	}
+
+ 	val url = track.getString("url") ?: run {
+ 		log("Missing track URL")
+ 		return
+ 	}
 		val title = track.getString("title") ?: "Unknown Title"
 		val artist = track.getString("artist") ?: "Unknown Artist"
 		val album = track.getString("album") ?: "Unknown Album"
@@ -184,8 +217,10 @@ object AudioProController {
 			emitState(AudioProModule.STATE_LOADING, 0L, 0L)
 
 			browser?.let {
+				// Set the new media item and prepare the player
 				it.setMediaItem(mediaItem)
 				it.prepare()
+
 				// Set playback speed regardless of autoplay
 				it.setPlaybackSpeed(currentPlaybackSpeed)
 				// Set volume regardless of autoplay
@@ -517,11 +552,8 @@ object AudioProController {
 						isInErrorState = false
 						lastEmittedState = ""
 
-						// Detach player listener and stop browser
-						detachPlayerListener()
-						browser?.stop()
-
-						// Do not clear current track as STOPPED state should preserve track metadata
+						// Seek to position 0
+						browser?.seekTo(0)
 
 						// Cancel any pending seek operations
 						cancelSeekTimeout()
@@ -529,15 +561,8 @@ object AudioProController {
 						pendingSeekPosition = 0
 						pendingSeekDuration = 0
 
-						// Do not call release() as only clear() and unrecoverable onError() should call release()
-
-						// Destroy the playback service to remove notification and tear down the media session
-						destroyPlaybackService()
-
-						// Emit both events as required by the contract
 						// First, emit STATE_CHANGED: STOPPED
 						emitState(AudioProModule.STATE_STOPPED, 0L, dur)
-
 						// Then, emit TRACK_ENDED
 						emitNotice(AudioProModule.EVENT_TYPE_TRACK_ENDED, dur, dur)
 					}
