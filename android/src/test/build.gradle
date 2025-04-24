@@ -1,5 +1,5 @@
 plugins {
-    id 'org.jetbrains.kotlin.jvm' version '2.1.0'
+    id 'org.jetbrains.kotlin.jvm' version '1.8.0'
 }
 
 repositories {
@@ -16,11 +16,17 @@ sourceSets {
 }
 
 dependencies {
-    implementation "org.jetbrains.kotlin:kotlin-stdlib:2.1.0"
+    implementation "org.jetbrains.kotlin:kotlin-stdlib:1.8.0"
     testImplementation "junit:junit:4.13.2"
-    testImplementation "org.mockito:mockito-core:5.10.0"
-    testImplementation "org.mockito.kotlin:mockito-kotlin:5.2.1"
-    testImplementation "org.jetbrains.kotlinx:kotlinx-coroutines-test:1.9.0"
+    testImplementation "org.mockito:mockito-core:4.0.0"
+    testImplementation "org.mockito.kotlin:mockito-kotlin:4.0.0"
+    testImplementation "org.jetbrains.kotlinx:kotlinx-coroutines-test:1.6.4"
+
+    // We'll use mocks instead of actual dependencies for React Native and Media3
+    // This avoids the complex dependency resolution issues
+
+    // Guava for ListenableFuture
+    testImplementation "com.google.guava:guava:31.1-jre"
 }
 
 test {

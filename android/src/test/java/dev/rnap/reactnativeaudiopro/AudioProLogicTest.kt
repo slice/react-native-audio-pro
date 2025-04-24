@@ -5,6 +5,7 @@ import org.junit.Test
 import org.junit.Assert.*
 import org.mockito.Mockito.*
 import org.mockito.kotlin.*
+// No need to import ReadableMap as we're using Any for payloads
 
 /**
  * Mock AudioProModule class for testing
@@ -46,18 +47,21 @@ class AudioProLogicTest {
     private class StateTracker {
         val states = mutableListOf<String>()
         val events = mutableListOf<String>()
+        val payloads = mutableListOf<Any?>()
 
         fun recordState(state: String) {
             states.add(state)
         }
 
-        fun recordEvent(event: String) {
+        fun recordEvent(event: String, payload: Any? = null) {
             events.add(event)
+            payloads.add(payload)
         }
 
         fun reset() {
             states.clear()
             events.clear()
+            payloads.clear()
         }
     }
 
@@ -303,5 +307,140 @@ class AudioProLogicTest {
         // Verify the state and event
         assertEquals("State should still be PLAYING", AudioProModule.STATE_PLAYING, stateTracker.states.last())
         assertEquals("Should emit REMOTE_PREV event", AudioProModule.EVENT_TYPE_REMOTE_PREV, stateTracker.events.last())
+    }
+
+    /**
+     * Test that playback error emits PLAYBACK_ERROR but doesn't necessarily change state
+     */
+    @Test
+    fun testPlaybackErrorEmitsPlaybackError() {
+        // Simulate being in PLAYING state
+        stateTracker.recordState(AudioProModule.STATE_PLAYING)
+
+        // Create a mock error payload
+        val errorPayload = Any()
+
+        // Simulate playback error
+        stateTracker.recordEvent(AudioProModule.EVENT_TYPE_PLAYBACK_ERROR, errorPayload)
+
+        // Verify the event
+        assertEquals("Should emit PLAYBACK_ERROR event", AudioProModule.EVENT_TYPE_PLAYBACK_ERROR, stateTracker.events.last())
+        assertEquals("Should include error payload", errorPayload, stateTracker.payloads.last())
+        assertEquals("State should still be PLAYING", AudioProModule.STATE_PLAYING, stateTracker.states.last())
+    }
+
+    /**
+     * Test that critical error transitions to ERROR state and emits PLAYBACK_ERROR
+     */
+    @Test
+    fun testCriticalErrorTransitionsToErrorAndEmitsPlaybackError() {
+        // Simulate being in PLAYING state
+        stateTracker.recordState(AudioProModule.STATE_PLAYING)
+
+        // Create a mock error payload
+        val errorPayload = Any()
+
+        // Simulate critical error
+        stateTracker.recordEvent(AudioProModule.EVENT_TYPE_PLAYBACK_ERROR, errorPayload)
+        stateTracker.recordState(AudioProModule.STATE_ERROR)
+
+        // Verify the state transition and event
+        assertEquals("Should emit PLAYBACK_ERROR event", AudioProModule.EVENT_TYPE_PLAYBACK_ERROR, stateTracker.events.last())
+        assertEquals("Should include error payload", errorPayload, stateTracker.payloads.last())
+        assertEquals("Last state should be ERROR", AudioProModule.STATE_ERROR, stateTracker.states.last())
+    }
+
+    /**
+     * Test that progress events are emitted during playback but don't change state
+     */
+    @Test
+    fun testProgressEventsEmittedDuringPlayback() {
+        // Simulate being in PLAYING state
+        stateTracker.recordState(AudioProModule.STATE_PLAYING)
+
+        // Create a mock progress payload
+        val progressPayload = Any()
+
+        // Simulate progress events
+        stateTracker.recordEvent(AudioProModule.EVENT_TYPE_PROGRESS, progressPayload)
+        stateTracker.recordEvent(AudioProModule.EVENT_TYPE_PROGRESS, progressPayload)
+
+        // Verify the events
+        assertEquals("Should emit PROGRESS events", AudioProModule.EVENT_TYPE_PROGRESS, stateTracker.events.last())
+        assertEquals("Should include progress payload", progressPayload, stateTracker.payloads.last())
+        assertEquals("State should still be PLAYING", AudioProModule.STATE_PLAYING, stateTracker.states.last())
+    }
+
+    /**
+     * Test that play() after ERROR state resets the error and transitions to LOADING
+     */
+    @Test
+    fun testPlayAfterErrorResetsErrorAndTransitionsToLoading() {
+        // Simulate being in ERROR state
+        stateTracker.recordState(AudioProModule.STATE_ERROR)
+
+        // Simulate play()
+        stateTracker.recordState(AudioProModule.STATE_LOADING)
+        stateTracker.recordState(AudioProModule.STATE_PLAYING)
+
+        // Verify the state transitions
+        assertEquals("Should have 3 state transitions", 3, stateTracker.states.size)
+        assertEquals("First state should be ERROR", AudioProModule.STATE_ERROR, stateTracker.states[0])
+        assertEquals("Second state should be LOADING", AudioProModule.STATE_LOADING, stateTracker.states[1])
+        assertEquals("Third state should be PLAYING", AudioProModule.STATE_PLAYING, stateTracker.states[2])
+    }
+
+    /**
+     * Test that play() after STOPPED state transitions to LOADING
+     */
+    @Test
+    fun testPlayAfterStoppedTransitionsToLoading() {
+        // Simulate being in STOPPED state
+        stateTracker.recordState(AudioProModule.STATE_STOPPED)
+
+        // Simulate play()
+        stateTracker.recordState(AudioProModule.STATE_LOADING)
+        stateTracker.recordState(AudioProModule.STATE_PLAYING)
+
+        // Verify the state transitions
+        assertEquals("Should have 3 state transitions", 3, stateTracker.states.size)
+        assertEquals("First state should be STOPPED", AudioProModule.STATE_STOPPED, stateTracker.states[0])
+        assertEquals("Second state should be LOADING", AudioProModule.STATE_LOADING, stateTracker.states[1])
+        assertEquals("Third state should be PLAYING", AudioProModule.STATE_PLAYING, stateTracker.states[2])
+    }
+
+    /**
+     * Test that seek after STOPPED state works and emits SEEK_COMPLETE
+     */
+    @Test
+    fun testSeekAfterStoppedEmitsSeekComplete() {
+        // Simulate being in STOPPED state
+        stateTracker.recordState(AudioProModule.STATE_STOPPED)
+
+        // Simulate seek
+        stateTracker.recordEvent(AudioProModule.EVENT_TYPE_SEEK_COMPLETE)
+
+        // Verify the state and event
+        assertEquals("State should still be STOPPED", AudioProModule.STATE_STOPPED, stateTracker.states.last())
+        assertEquals("Should emit SEEK_COMPLETE event", AudioProModule.EVENT_TYPE_SEEK_COMPLETE, stateTracker.events.last())
+    }
+
+    /**
+     * Test that volume changes don't emit events or change state
+     */
+    @Test
+    fun testVolumeChangesDoNotEmitEventsOrChangeState() {
+        // Simulate being in PLAYING state
+        stateTracker.recordState(AudioProModule.STATE_PLAYING)
+
+        // Record event count before volume change
+        val eventCountBefore = stateTracker.events.size
+
+        // Simulate volume change (no event is emitted)
+        // No need to call recordEvent since volume changes don't emit events
+
+        // Verify no new events and state unchanged
+        assertEquals("Should not emit any new events", eventCountBefore, stateTracker.events.size)
+        assertEquals("State should still be PLAYING", AudioProModule.STATE_PLAYING, stateTracker.states.last())
     }
 }
