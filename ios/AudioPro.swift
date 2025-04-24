@@ -208,8 +208,8 @@ class AudioPro: RCTEventEmitter {
         DispatchQueue.main.async {
             UIApplication.shared.endReceivingRemoteControlEvents()
             UIApplication.shared.beginReceivingRemoteControlEvents()
+            self.setupRemoteTransportControls()
         }
-        self.setupRemoteTransportControls()
 
         // Create new player item with custom headers if provided
         let item: AVPlayerItem
@@ -469,9 +469,9 @@ class AudioPro: RCTEventEmitter {
         DispatchQueue.main.async {
             MPNowPlayingInfoCenter.default().nowPlayingInfo = [:]
             UIApplication.shared.endReceivingRemoteControlEvents()
+            self.removeRemoteTransportControls()
+            self.isRemoteCommandCenterSetup = false
         }
-        removeRemoteTransportControls()
-        isRemoteCommandCenterSetup = false
     }
 
     ////////////////////////////////////////////////////////////
