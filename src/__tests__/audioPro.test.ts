@@ -6,11 +6,15 @@ jest.mock('react-native', () => ({
 			pause: jest.fn(),
 			resume: jest.fn(),
 			stop: jest.fn(),
+			clear: jest.fn(),
 			seekTo: jest.fn(),
 			seekForward: jest.fn(),
 			seekBack: jest.fn(),
 			setPlaybackSpeed: jest.fn(),
 		},
+	},
+	Platform: {
+		OS: 'ios', // Mock as iOS to use NativeModules.AudioPro
 	},
 	NativeEventEmitter: jest.fn().mockImplementation(() => ({
 		addListener: jest.fn().mockReturnValue({ remove: jest.fn() }),

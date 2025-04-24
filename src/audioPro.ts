@@ -1,4 +1,4 @@
-import { Image, NativeModules } from 'react-native';
+import { Image, NativeModules, Platform } from 'react-native';
 
 import { emitter } from './emitter';
 import { useInternalStore } from './useInternalStore';
@@ -12,7 +12,8 @@ import type {
 	AudioProTrack,
 } from './types';
 
-const NativeAudioPro = NativeModules.AudioPro;
+const NativeAudioPro =
+	Platform.OS === 'web' ? require('./web').WebAudioPro : NativeModules.AudioPro;
 
 function isValidPlayerStateForOperation(operation: string): boolean {
 	const { playerState } = useInternalStore.getState();
