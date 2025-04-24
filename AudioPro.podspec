@@ -14,6 +14,7 @@ Pod::Spec.new do |s|
   s.source       = { :git => "https://github.com/evergrace-co/react-native-audio-pro.git", :tag => "#{s.version}" }
 
   s.source_files = "ios/**/*.{h,m,mm,swift}"
+  s.exclude_files = "ios/Tests/**/*"
 
   s.frameworks = 'AVFoundation'
 

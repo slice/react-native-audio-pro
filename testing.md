@@ -111,6 +111,7 @@ Note: The Android tests use a separate build configuration to avoid dependencies
 
 - **Error: swift command not found**: Make sure Swift is installed on your system.
 - **Error: XCTest not found**: Make sure XCTest is installed with your Swift installation.
+- **Error: No such module 'XCTest'**: This error occurs when building an app that includes this library. The test files are excluded from the main build via the `exclude_files` setting in the podspec file, so this error should not occur. If it does, make sure you're using the latest version of the library.
 
 ## Current Status and Future Improvements
 
