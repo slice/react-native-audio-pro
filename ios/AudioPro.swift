@@ -188,8 +188,7 @@ class AudioPro: RCTEventEmitter {
             return
         }
 
-        // Use sendStateEvent to ensure lastEmittedState is updated
-        sendStateEvent(state: STATE_LOADING, position: 0, duration: 0)
+        sendStateEvent(state: STATE_LOADING, position: 0, duration: 0, track: currentTrack)
         shouldBePlaying = autoplay
 
         let album = track["album"] as? String
@@ -269,8 +268,7 @@ class AudioPro: RCTEventEmitter {
             player?.play()
         } else {
             DispatchQueue.main.async {
-                // Use sendStateEvent to ensure lastEmittedState is updated
-                self.sendStateEvent(state: self.STATE_PAUSED, position: 0, duration: 0)
+                self.sendStateEvent(state: self.STATE_PAUSED, position: 0, duration: 0, track: self.currentTrack)
             }
         }
 
@@ -631,7 +629,6 @@ class AudioPro: RCTEventEmitter {
     @objc private func playerItemDidPlayToEndTime(_ notification: Notification) {
         guard let _ = player?.currentItem else { return }
 
-        // Don't process track end if we're in an error state
         if isInErrorState {
             log("Ignoring track end notification while in ERROR state")
             return
@@ -639,32 +636,24 @@ class AudioPro: RCTEventEmitter {
 
         let info = getPlaybackInfo()
 
-        // Reset error state and last emitted state
         isInErrorState = false
         lastEmittedState = ""
         shouldBePlaying = false
 
-        // Pause playback and seek to beginning
         player?.pause()
         player?.seek(to: .zero)
         stopTimer()
 
-        // Do not clear current track as STOPPED state should preserve track metadata
-
-        // Update now playing info to reflect a stopped state but keep the artwork intact
         updateNowPlayingInfo(time: 0, rate: 0)
 
-        // Emit both events as required by the contract
-        // First, emit STATE_CHANGED: STOPPED
-        sendStateEvent(state: STATE_STOPPED, position: 0, duration: info.duration)
+        sendStateEvent(state: STATE_STOPPED, position: 0, duration: info.duration, track: currentTrack)
 
-        // Then, emit TRACK_ENDED
         if hasListeners {
             let payload: [String: Any] = [
                 "position": info.duration,
                 "duration": info.duration
             ]
-            sendEvent(type: EVENT_TYPE_TRACK_ENDED, track: info.track, payload: payload)
+            sendEvent(type: EVENT_TYPE_TRACK_ENDED, track: currentTrack, payload: payload)
         }
     }
 
@@ -684,11 +673,9 @@ class AudioPro: RCTEventEmitter {
             if let newRate = change?[.newKey] as? Float {
                 if newRate == 0 {
                     if shouldBePlaying && hasListeners {
-                        // Use sendStateEvent to ensure lastEmittedState is updated
-                        // Get current position and duration for accurate buffering state
                         let info = getPlaybackInfo()
-                        sendStateEvent(state: STATE_LOADING, position: info.position, duration: info.duration)
-                        stopTimer()
+						sendStateEvent(state: STATE_LOADING, position: info.position, duration: info.duration, track: info.track)
+						stopTimer()
                     }
                 } else {
                     if shouldBePlaying && hasListeners {
@@ -716,7 +703,7 @@ class AudioPro: RCTEventEmitter {
 
     private func getPlaybackInfo() -> (position: Int, duration: Int, track: NSDictionary?) {
         guard let player = player, let currentItem = player.currentItem else {
-            return (0, 0, nil)
+            return (0, 0, currentTrack)
         }
         let currentTimeSec = player.currentTime().seconds
         let durationSec = currentItem.duration.seconds
@@ -759,7 +746,7 @@ class AudioPro: RCTEventEmitter {
             "position": info.position,
             "duration": info.duration
         ]
-        sendEvent(type: EVENT_TYPE_STATE_CHANGED, track: info.track, payload: payload)
+        sendEvent(type: EVENT_TYPE_STATE_CHANGED, track: info.track ?? track, payload: payload)
 
         // Track the last emitted state
         lastEmittedState = state
@@ -770,11 +757,11 @@ class AudioPro: RCTEventEmitter {
     }
 
     private func sendPlayingStateEvent() {
-        sendStateEvent(state: STATE_PLAYING)
+        sendStateEvent(state: STATE_PLAYING, track: currentTrack)
     }
 
     private func sendPausedStateEvent() {
-        sendStateEvent(state: STATE_PAUSED)
+        sendStateEvent(state: STATE_PAUSED, track: currentTrack)
     }
 
     /// Stops playback without emitting a state change event
