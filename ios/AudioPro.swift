@@ -653,7 +653,9 @@ class AudioPro: RCTEventEmitter {
                 if newRate == 0 {
                     if shouldBePlaying && hasListeners {
                         // Use sendStateEvent to ensure lastEmittedState is updated
-                        sendStateEvent(state: STATE_LOADING, position: 0, duration: 0)
+                        // Get current position and duration for accurate buffering state
+                        let info = getPlaybackInfo()
+                        sendStateEvent(state: STATE_LOADING, position: info.position, duration: info.duration)
                         stopTimer()
                     }
                 } else {
