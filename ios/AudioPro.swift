@@ -377,7 +377,7 @@ class AudioPro: RCTEventEmitter {
         player?.pause()
         player?.seek(to: .zero)
         stopTimer()
-        currentTrack = nil
+        // Do not set currentTrack = nil as STOPPED state should preserve track metadata
         sendStoppedStateEvent()
 
         // Update now playing info to reflect a stopped state but keep the artwork intact.
@@ -589,6 +589,13 @@ class AudioPro: RCTEventEmitter {
     // MARK: - KVO & Notification Handlers
     ////////////////////////////////////////////////////////////
 
+    /**
+     * Handles track completion according to the contract in logic.md:
+     * - Native is responsible for detecting the end of a track
+     * - Native must pause the player, seek to position 0, and emit both:
+     *   - STATE_CHANGED: STOPPED
+     *   - TRACK_ENDED
+     */
     @objc private func playerItemDidPlayToEndTime(_ notification: Notification) {
         guard let _ = player?.currentItem else { return }
 
@@ -600,11 +607,26 @@ class AudioPro: RCTEventEmitter {
 
         let info = getPlaybackInfo()
 
-        // When a track naturally finishes, call stop (not cleanup)
-        // so that Now Playing info (artwork, track details) remains visible.
-        // Call stop() first to ensure STOPPED state is emitted before TRACK_ENDED
-        stop()
+        // Reset error state and last emitted state
+        isInErrorState = false
+        lastEmittedState = ""
+        shouldBePlaying = false
 
+        // Pause playback and seek to beginning
+        player?.pause()
+        player?.seek(to: .zero)
+        stopTimer()
+
+        // Do not clear current track as STOPPED state should preserve track metadata
+
+        // Update now playing info to reflect a stopped state but keep the artwork intact
+        updateNowPlayingInfo(time: 0, rate: 0)
+
+        // Emit both events as required by the contract
+        // First, emit STATE_CHANGED: STOPPED
+        sendStateEvent(state: STATE_STOPPED, position: 0, duration: info.duration)
+
+        // Then, emit TRACK_ENDED
         if hasListeners {
             let payload: [String: Any] = [
                 "position": info.duration,
@@ -770,6 +792,34 @@ class AudioPro: RCTEventEmitter {
         updateNowPlayingInfo(time: time)
     }
 
+    /**
+     * Emits a PLAYBACK_ERROR event without transitioning to the ERROR state.
+     * Use this for non-critical errors that don't require player teardown.
+     *
+     * According to the contract in logic.md:
+     * - PLAYBACK_ERROR and ERROR state are separate and must not be conflated
+     * - PLAYBACK_ERROR can be emitted with or without a corresponding state change
+     * - Useful for soft errors (e.g., image fetch failed, headers issue, non-fatal network retry)
+     */
+    func emitPlaybackError(_ errorMessage: String, code: Int = GENERIC_ERROR_CODE) {
+        if hasListeners {
+            let errorPayload: [String: Any] = [
+                "error": errorMessage,
+                "errorCode": code
+            ]
+            sendEvent(type: EVENT_TYPE_PLAYBACK_ERROR, track: currentTrack, payload: errorPayload)
+        }
+    }
+
+    /**
+     * Handles critical errors according to the contract in logic.md:
+     * - onError() should transition to ERROR state
+     * - onError() should emit STATE_CHANGED: ERROR and PLAYBACK_ERROR
+     * - onError() should clear the player state just like clear()
+     *
+     * This method is for unrecoverable player failures that require player teardown.
+     * For non-critical errors that don't require state transition, use emitPlaybackError() instead.
+     */
     func onError(_ errorMessage: String) {
         // If we're already in an error state, just log and return
         if isInErrorState {
@@ -778,7 +828,7 @@ class AudioPro: RCTEventEmitter {
         }
 
         if hasListeners {
-            // Send the error payload
+            // First, emit PLAYBACK_ERROR event with error details
             let errorPayload: [String: Any] = [
                 "error": errorMessage,
                 "errorCode": GENERIC_ERROR_CODE
@@ -786,7 +836,9 @@ class AudioPro: RCTEventEmitter {
             sendEvent(type: EVENT_TYPE_PLAYBACK_ERROR, track: currentTrack, payload: errorPayload)
         }
 
-        // Use the shared resetInternal function to handle the error state
+        // Then use the shared resetInternal function to:
+        // 1. Clear the player state (like clear())
+        // 2. Emit STATE_CHANGED: ERROR
         resetInternal(STATE_ERROR)
     }
 

@@ -229,7 +229,7 @@ object AudioProController {
 			browser?.let {
 				val pos = it.currentPosition
 				val dur = it.duration.takeIf { d -> d > 0 } ?: 0L
-				currentTrack = null
+				// Do not set currentTrack = null as STOPPED state should preserve track metadata
 				emitState(AudioProModule.STATE_STOPPED, pos, dur)
 			}
 		}
@@ -241,7 +241,8 @@ object AudioProController {
 		pendingSeekPosition = 0
 		pendingSeekDuration = 0
 
-		release()
+		// Do not call release() as stop() should not tear down the player
+		// Only clear() and unrecoverable onError() should call release()
 
 		// Stop the service to remove notification
 		stopPlaybackService()
@@ -486,10 +487,42 @@ object AudioProController {
 						}
 					}
 
+					/**
+					 * Handles track completion according to the contract in logic.md:
+					 * - Native is responsible for detecting the end of a track
+					 * - Native must pause the player, seek to position 0, and emit both:
+					 *   - STATE_CHANGED: STOPPED
+					 *   - TRACK_ENDED
+					 */
 					Player.STATE_ENDED -> {
 						stopProgressTimer()
-						// Emit STOPPED state before TRACK_ENDED to ensure correct event ordering
-						emitState(AudioProModule.STATE_STOPPED, dur, dur)
+
+						// Reset error state and last emitted state
+						isInErrorState = false
+						lastEmittedState = ""
+
+						// Detach player listener and stop browser
+						detachPlayerListener()
+						browser?.stop()
+
+						// Do not clear current track as STOPPED state should preserve track metadata
+
+						// Cancel any pending seek operations
+						cancelSeekTimeout()
+						pendingSeek = false
+						pendingSeekPosition = 0
+						pendingSeekDuration = 0
+
+						// Do not call release() as only clear() and unrecoverable onError() should call release()
+
+						// Stop the service to remove notification
+						stopPlaybackService()
+
+						// Emit both events as required by the contract
+						// First, emit STATE_CHANGED: STOPPED
+						emitState(AudioProModule.STATE_STOPPED, 0L, dur)
+
+						// Then, emit TRACK_ENDED
 						emitNotice(AudioProModule.EVENT_TYPE_TRACK_ENDED, dur, dur)
 					}
 
@@ -526,6 +559,15 @@ object AudioProController {
 				}
 			}
 
+			/**
+			 * Handles critical errors according to the contract in logic.md:
+			 * - onError() should transition to ERROR state
+			 * - onError() should emit STATE_CHANGED: ERROR and PLAYBACK_ERROR
+			 * - onError() should clear the player state just like clear()
+			 *
+			 * This method is for unrecoverable player failures that require player teardown.
+			 * For non-critical errors that don't require state transition, use emitError() directly.
+			 */
 			override fun onPlayerError(error: PlaybackException) {
 				// If we're already in an error state, just log and return
 				if (isInErrorState) {
@@ -534,10 +576,12 @@ object AudioProController {
 				}
 
 				val message = error.message ?: "Unknown error"
-				// Emit the error event before resetting
+				// First, emit PLAYBACK_ERROR event with error details
 				emitError(message, 500)
 
-				// Use the shared resetInternal function to handle the error state
+				// Then use the shared resetInternal function to:
+				// 1. Clear the player state (like clear())
+				// 2. Emit STATE_CHANGED: ERROR
 				resetInternal(AudioProModule.STATE_ERROR)
 			}
 		}
@@ -641,6 +685,15 @@ object AudioProController {
 		emitEvent(eventType, currentTrack, payload)
 	}
 
+	/**
+	 * Emits a PLAYBACK_ERROR event without transitioning to the ERROR state.
+	 * Use this for non-critical errors that don't require player teardown.
+	 *
+	 * According to the contract in logic.md:
+	 * - PLAYBACK_ERROR and ERROR state are separate and must not be conflated
+	 * - PLAYBACK_ERROR can be emitted with or without a corresponding state change
+	 * - Useful for soft errors (e.g., image fetch failed, headers issue, non-fatal network retry)
+	 */
 	private fun emitError(message: String, code: Int) {
 		val payload = Arguments.createMap().apply {
 			putString("error", message)

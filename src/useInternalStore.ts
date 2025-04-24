@@ -76,12 +76,28 @@ export const useInternalStore = create<AudioProStore>((set, get) => ({
 		}
 
 		// 2. Playback errors
+		// According to the contract in logic.md:
+		// - PLAYBACK_ERROR and ERROR state are separate and must not be conflated
+		// - ERROR state must be explicitly triggered by native logic
+		// - PLAYBACK_ERROR events should not automatically imply or trigger a STATE_CHANGED: ERROR
 		if (type === AudioProEventType.PLAYBACK_ERROR && payload?.error) {
-			updates.playerState = AudioProState.ERROR;
 			updates.error = {
 				error: payload.error,
 				errorCode: payload.errorCode,
 			};
+			// Note: We do NOT automatically transition to ERROR state here
+			// Native code is responsible for emitting STATE_CHANGED: ERROR if needed
+		}
+
+		// 2.5 Track ended
+		// According to the contract in logic.md:
+		// - Native is responsible for detecting the end of a track
+		// - Native must emit both STATE_CHANGED: STOPPED and TRACK_ENDED
+		// - TypeScript should not infer or emit state transitions on its own
+		if (type === AudioProEventType.TRACK_ENDED) {
+			// Note: We do NOT automatically transition to STOPPED state here
+			// Native code is responsible for emitting STATE_CHANGED: STOPPED
+			// We only receive the TRACK_ENDED event for informational purposes
 		}
 
 		// 3. Speed changes
