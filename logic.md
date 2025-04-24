@@ -25,14 +25,14 @@ This document defines the contract between `react-native-audio-pro`'s native med
 
 ## 📊 Playback States
 
-| State | Emitted When | Represents |
-|-------|--------------|------------|
-| `IDLE` | After `clear()` | No track loaded, session removed |
-| `STOPPED` | After `stop()` or `TRACK_ENDED` | Track loaded, position reset, session active |
-| `LOADING` | After `play()` or mid-track buffer | Track fetching/buffering |
-| `PLAYING` | Playback is active | Audio playing, rate > 0 |
-| `PAUSED` | After `pause()` or `play({ autoplay: false })` | Audio paused, track retained |
-| `ERROR` | After `onError()` | Failure encountered, all cleared |
+| State | Emitted When | Represents                                                                                |
+|-------|--------------|-------------------------------------------------------------------------------------------|
+| `IDLE` | After `clear()` | No track loaded, session removed                                                          |
+| `STOPPED` | After `stop()` or `TRACK_ENDED` | Track loaded, session active, position reset to 0 (duration remains the track’s duration) |
+| `LOADING` | After `play()` or mid-track buffer | Track fetching/buffering                                                                  |
+| `PLAYING` | Playback is active | Audio playing, rate > 0                                                                   |
+| `PAUSED` | After `pause()` or `play({ autoplay: false })` | Audio paused, track retained                                                              |
+| `ERROR` | After `onError()` | Failure encountered, all cleared                                                          |
 
 > `IDLE` is never emitted on startup — it is assumed as the implicit default.
 > `clear()` emits `STATE_CHANGED: IDLE`.

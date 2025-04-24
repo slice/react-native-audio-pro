@@ -17,6 +17,7 @@ export function setupAudioPro(): void {
 	AudioPro.configure({
 		contentType: AudioProContentType.MUSIC,
 		debug: __DEV__,
+		debugIncludesProgress: true,
 	});
 
 	// Set up event listeners that persist for the app's lifetime

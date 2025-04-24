@@ -248,8 +248,9 @@ object AudioProController {
 		// Do not call release() as stop() should not tear down the player
 		// Only clear() and unrecoverable onError() should call release()
 
-		// Stop the service to remove notification
-		stopPlaybackService()
+		// Do not destroy the playback service in stop() as it should maintain the media session
+		// stop() is a non-destructive state that stops playback and seeks to 0,
+		// but retains lock screen info, current track, and player state
 	}
 
 	/**
@@ -266,7 +267,7 @@ object AudioProController {
 	 */
 	private fun resetInternal(finalState: String) {
 		// Reset error state
-		isInErrorState = finalState != AudioProModule.STATE_ERROR
+		isInErrorState = finalState == AudioProModule.STATE_ERROR
 		// Reset last emitted state
 		lastEmittedState = ""
 
@@ -289,8 +290,8 @@ object AudioProController {
 		// Release resources
 		release()
 
-		// Stop the service to remove notification
-		stopPlaybackService()
+		// Destroy the playback service to remove notification and tear down the media session
+		destroyPlaybackService()
 
 		// Emit the final state
 		emitState(finalState, 0L, 0L)
@@ -309,11 +310,12 @@ object AudioProController {
 	}
 
 	/**
-	 * Explicitly stops the AudioProPlaybackService to remove notification
-	 * This is the central method for stopping the service and removing the notification
+	 * Explicitly destroys the AudioProPlaybackService to remove notification and tear down the media session
+	 * This is the central method for destroying the service and removing the notification
+	 * It should only be called from clear() and unrecoverable error scenarios, not from stop()
 	 */
-	fun stopPlaybackService() {
-		log("Stopping AudioProPlaybackService")
+	fun destroyPlaybackService() {
+		log("Destroying AudioProPlaybackService")
 		try {
 			reactContext?.let { context ->
 				// Try to cancel notification directly
@@ -519,8 +521,8 @@ object AudioProController {
 
 						// Do not call release() as only clear() and unrecoverable onError() should call release()
 
-						// Stop the service to remove notification
-						stopPlaybackService()
+						// Destroy the playback service to remove notification and tear down the media session
+						destroyPlaybackService()
 
 						// Emit both events as required by the contract
 						// First, emit STATE_CHANGED: STOPPED

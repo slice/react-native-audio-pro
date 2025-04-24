@@ -156,7 +156,10 @@ class AudioPro: RCTEventEmitter {
 
         if player != nil {
             DispatchQueue.main.sync {
-                cleanup()
+                // Don't clear the track when cleaning up before playing a new track
+                // This ensures that if we're in a stop -> seek -> play sequence,
+                // we don't lose track information between cleanup and setting the new track
+                cleanup(clearTrack: false)
             }
         }
 
@@ -397,7 +400,7 @@ class AudioPro: RCTEventEmitter {
     /// - Parameter finalState: The state to emit after resetting (IDLE or ERROR)
     private func resetInternal(_ finalState: String) {
         // Reset error state
-        isInErrorState = finalState != STATE_ERROR
+        isInErrorState = finalState == STATE_ERROR
         // Reset last emitted state
         lastEmittedState = ""
         shouldBePlaying = false
@@ -410,16 +413,19 @@ class AudioPro: RCTEventEmitter {
         currentTrack = nil
 
         // Release resources and remove observers
-        cleanup(emitStateChange: false)
+        // We've already cleared currentTrack, so we don't need to do it again in cleanup
+        cleanup(emitStateChange: false, clearTrack: false)
 
         // Emit the final state
-        sendStateEvent(state: finalState, position: 0, duration: 0)
+        // Explicitly pass nil as the track parameter to ensure the state is emitted consistently
+        sendStateEvent(state: finalState, position: 0, duration: 0, track: nil)
     }
 
     /// cleanup fully tears down the player instance and removes observers and remote controls.
     /// This is used when switching tracks or recovering from an error.
     /// - Parameter emitStateChange: Whether to emit a STOPPED state change event (default: true)
-    @objc func cleanup(emitStateChange: Bool = true) {
+    /// - Parameter clearTrack: Whether to clear the currentTrack (default: true)
+    @objc func cleanup(emitStateChange: Bool = true, clearTrack: Bool = true) {
         shouldBePlaying = false
 
         NotificationCenter.default.removeObserver(self)
@@ -439,7 +445,11 @@ class AudioPro: RCTEventEmitter {
         player = nil
 
         stopTimer()
-        currentTrack = nil
+
+        // Only clear the track if requested
+        if clearTrack {
+            currentTrack = nil
+        }
 
         // Only emit state change if requested and not in error state
         if emitStateChange && !isInErrorState {
@@ -705,8 +715,9 @@ class AudioPro: RCTEventEmitter {
     private func sendStateEvent(state: String, position: Int? = nil, duration: Int? = nil, track: NSDictionary? = nil) {
         guard hasListeners else { return }
 
-        // When in error state, only allow ERROR state to be emitted
-        if isInErrorState && state != STATE_ERROR {
+        // When in error state, only allow ERROR or IDLE states to be emitted
+        // IDLE is allowed because clear() should reset the player regardless of previous state
+        if isInErrorState && state != STATE_ERROR && state != STATE_IDLE {
             log("Ignoring \(state) state after ERROR")
             return
         }
@@ -733,7 +744,7 @@ class AudioPro: RCTEventEmitter {
     }
 
     private func sendStoppedStateEvent() {
-        sendStateEvent(state: STATE_STOPPED, position: 0, duration: 0, track: nil)
+        sendStateEvent(state: STATE_STOPPED, position: 0, duration: 0, track: currentTrack)
     }
 
     private func sendPlayingStateEvent() {
@@ -803,7 +814,7 @@ class AudioPro: RCTEventEmitter {
      * - PLAYBACK_ERROR can be emitted with or without a corresponding state change
      * - Useful for soft errors (e.g., image fetch failed, headers issue, non-fatal network retry)
      */
-    func emitPlaybackError(_ errorMessage: String, code: Int = GENERIC_ERROR_CODE) {
+    func emitPlaybackError(_ errorMessage: String, code: Int = 900) {
         if hasListeners {
             let errorPayload: [String: Any] = [
                 "error": errorMessage,
