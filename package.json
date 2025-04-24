@@ -9,6 +9,9 @@
 	"scripts": {
 		"example": "yarn workspace react-native-audio-pro-example",
 		"test": "jest",
+		"test:android": "bash scripts/test-android.sh",
+		"test:ios": "bash scripts/test-ios.sh",
+		"test:native": "bash scripts/test-native.sh",
 		"typecheck": "tsc",
 		"lint": "eslint \"**/*.{js,ts,tsx}\"",
 		"clean": "del-cli android/build example/android/build example/android/app/build example/ios/build lib",
