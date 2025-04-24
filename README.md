@@ -98,6 +98,8 @@ React Native Audio Pro supports various audio formats including MP3, AAC, WAV, a
 | **getPlayingTrack()** | Returns the currently playing track, or null if no track is playing. | `AudioProTrack \| null` |
 | **setPlaybackSpeed(speed: number)** | Sets the playback speed rate (0.25 to 2.0). Normal speed is 1.0. | `void` |
 | **getPlaybackSpeed()** | Returns the current playback speed rate. | `number` |
+| **setVolume(volume: number)** | Sets the playback volume from 0.0 (mute) to 1.0 (full output). This affects only Audio Pro playback, not the device's system volume. | `void` |
+| **getVolume()** | Returns the current relative volume (0.0 to 1.0). | `number` |
 | **getError()** | Returns the last error that occurred, or null if no error has occurred. | `AudioProPlaybackErrorPayload \| null` |
 
 ### ⚡️ React Hook
@@ -105,7 +107,7 @@ React Native Audio Pro supports various audio formats including MP3, AAC, WAV, a
 The `useAudioPro` hook provides real-time access to the audio player state within your React components.
 
 ```typescript jsx
-const { state, position, duration, playingTrack, playbackSpeed, error } = useAudioPro();
+const { state, position, duration, playingTrack, playbackSpeed, volume, error } = useAudioPro();
 ```
 
 | Value | Description | Type |
@@ -115,6 +117,7 @@ const { state, position, duration, playingTrack, playbackSpeed, error } = useAud
 | **duration** | Total duration of the current track in milliseconds. | `number` |
 | **playingTrack** | Currently playing track object, or null if no track is loaded. | `AudioProTrack \| null` |
 | **playbackSpeed** | Current playback speed rate (0.25 to 2.0). | `number` |
+| **volume** | Current playback volume (0.0 to 1.0). | `number` |
 | **error** | Last error that occurred, or null if no error has occurred. | `AudioProPlaybackErrorPayload \| null` |
 
 ### 🎧 Event Listeners
@@ -281,7 +284,7 @@ The `useAudioPro` hook gives you real-time access to the playback state, current
 import { useAudioPro } from 'react-native-audio-pro';
 
 const AudioStatus = () => {
-  const { state, position, duration, playingTrack, playbackSpeed, error } = useAudioPro();
+  const { state, position, duration, playingTrack, playbackSpeed, volume, error } = useAudioPro();
 
   return (
     <View>
@@ -289,6 +292,7 @@ const AudioStatus = () => {
       <Text>Current Position: {position}ms</Text>
       <Text>Total Duration: {duration}ms</Text>
       <Text>Playback Speed: {playbackSpeed}x</Text>
+      <Text>Volume: {Math.round(volume * 100)}%</Text>
       {error && (
         <View style={{ backgroundColor: '#ffeeee', padding: 10, borderRadius: 5 }}>
           <Text style={{ color: 'red' }}>Error: {error.error}</Text>
@@ -344,13 +348,18 @@ AudioPro.seekTo(60);
 AudioPro.setPlaybackSpeed(1.5); // 1.5x speed for faster playback
 AudioPro.setPlaybackSpeed(0.8); // 0.8x speed for slower playback
 
+// Control volume (independent of device volume)
+AudioPro.setVolume(0.5); // 50% volume
+AudioPro.setVolume(1.0); // 100% volume (default)
+
 // Get current state without using the hook
 const { position, duration } = AudioPro.getTimings();
 const state = AudioPro.getState();
 const playingTrack = AudioPro.getPlayingTrack();
 const speed = AudioPro.getPlaybackSpeed();
+const volume = AudioPro.getVolume();
 const error = AudioPro.getError();
-console.log(`Currently playing: ${playingTrack?.title} (${position}/${duration}ms) - State: ${state} - Speed: ${speed}x`);
+console.log(`Currently playing: ${playingTrack?.title} (${position}/${duration}ms) - State: ${state} - Speed: ${speed}x - Volume: ${Math.round(volume * 100)}%`);
 ```
 
 ## ⚠️ Important: Event Listeners and React Lifecycle

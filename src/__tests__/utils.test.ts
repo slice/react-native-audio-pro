@@ -33,7 +33,7 @@ jest.mock('../emitter', () => ({
 }));
 
 // Import after mocks
-import { validateTrack, isValidUrl } from '../utils';
+import { validateTrack, isValidUrl, normalizeVolume } from '../utils';
 
 import type { AudioProTrack } from '../types';
 
@@ -157,6 +157,45 @@ describe('Utils', () => {
 			} as AudioProTrack;
 
 			expect(validateTrack(invalidTrack)).toBe(false);
+		});
+	});
+
+	describe('normalizeVolume', () => {
+		it('should clamp values between 0 and 1', () => {
+			expect(normalizeVolume(-0.5)).toBe(0);
+			expect(normalizeVolume(1.5)).toBe(1);
+		});
+
+		it('should format values to 2 decimal places', () => {
+			expect(normalizeVolume(0.123456)).toBe(0.12);
+			expect(normalizeVolume(0.56789)).toBe(0.57);
+		});
+
+		it('should handle zero correctly', () => {
+			expect(normalizeVolume(0)).toBe(0);
+			// Test for floating point artifacts that should be converted to 0
+			expect(normalizeVolume(1.3877787807814457e-16)).toBe(0);
+		});
+
+		it('should handle values close to 0 correctly', () => {
+			expect(normalizeVolume(0.0001)).toBe(0);
+			expect(normalizeVolume(0.001)).toBe(0);
+			expect(normalizeVolume(0.0011)).toBe(0);
+		});
+
+		it('should handle values close to 1 correctly', () => {
+			// These should be rounded to 1 based on our threshold (> 0.995)
+			expect(normalizeVolume(0.996)).toBe(1);
+			expect(normalizeVolume(0.999)).toBe(1);
+			// This is exactly at our threshold, so it should be formatted to 2 decimal places
+			expect(normalizeVolume(0.995)).toBe(0.99);
+		});
+
+		it('should handle common volume values correctly', () => {
+			expect(normalizeVolume(0.1)).toBe(0.1);
+			expect(normalizeVolume(0.10000000000000014)).toBe(0.1); // Fix floating point noise
+			expect(normalizeVolume(0.5)).toBe(0.5);
+			expect(normalizeVolume(0.7)).toBe(0.7);
 		});
 	});
 });

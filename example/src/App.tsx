@@ -23,7 +23,7 @@ import { AudioProState } from '../../src/values';
 export default function App() {
 	const [currentIndex, setLocalIndex] = useState(getCurrentTrackIndex());
 	const currentTrack = playlist[currentIndex];
-	const { position, duration, state, playingTrack, playbackSpeed, error } = useAudioPro();
+	const { position, duration, state, playingTrack, playbackSpeed, volume, error } = useAudioPro();
 
 	// Sync the local index with the player service
 	useEffect(() => {
@@ -145,6 +145,16 @@ export default function App() {
 		AudioPro.setPlaybackSpeed(newSpeed);
 	};
 
+	const handleIncreaseVolume = () => {
+		const newVolume = Math.min(1.0, volume + 0.1);
+		AudioPro.setVolume(newVolume);
+	};
+
+	const handleDecreaseVolume = () => {
+		const newVolume = Math.max(0.0, volume - 0.1);
+		AudioPro.setVolume(newVolume);
+	};
+
 	return (
 		<SafeAreaView style={styles.container}>
 			<ScrollView
@@ -212,8 +222,17 @@ export default function App() {
 					<TouchableOpacity onPress={handleDecreaseSpeed}>
 						<Text style={styles.controlText}>-</Text>
 					</TouchableOpacity>
-					<Text style={styles.speedText}>{playbackSpeed}x</Text>
+					<Text style={styles.speedText}>Speed: {playbackSpeed}x</Text>
 					<TouchableOpacity onPress={handleIncreaseSpeed}>
+						<Text style={styles.controlText}>+</Text>
+					</TouchableOpacity>
+				</View>
+				<View style={styles.speedRow}>
+					<TouchableOpacity onPress={handleDecreaseVolume}>
+						<Text style={styles.controlText}>-</Text>
+					</TouchableOpacity>
+					<Text style={styles.speedText}>Vol: {Math.round(volume * 100)}%</Text>
+					<TouchableOpacity onPress={handleIncreaseVolume}>
 						<Text style={styles.controlText}>+</Text>
 					</TouchableOpacity>
 				</View>

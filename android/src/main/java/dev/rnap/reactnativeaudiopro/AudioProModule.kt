@@ -84,6 +84,11 @@ class AudioProModule(private val reactContext: ReactApplicationContext) :
 	}
 
 	@ReactMethod
+	fun setVolume(volume: Double) {
+		AudioProController.setVolume(volume.toFloat())
+	}
+
+	@ReactMethod
 	fun clear() {
 		AudioProController.clear()
 	}

@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 
+import { normalizeVolume } from './utils';
 import { AudioProEventType, AudioProState, DEFAULT_CONFIG } from './values';
 
 import type {
@@ -14,6 +15,7 @@ export interface AudioProStore {
 	position: number;
 	duration: number;
 	playbackSpeed: number;
+	volume: number;
 	debug: boolean;
 	debugIncludesProgress: boolean;
 	trackPlaying: AudioProTrack | null;
@@ -24,6 +26,7 @@ export interface AudioProStore {
 	setTrackPlaying: (track: AudioProTrack | null) => void;
 	setConfigureOptions: (options: AudioProConfigureOptions) => void;
 	setPlaybackSpeed: (speed: number) => void;
+	setVolume: (volume: number) => void;
 	setError: (error: AudioProPlaybackErrorPayload | null) => void;
 	updateFromEvent: (event: AudioProEvent) => void;
 }
@@ -33,6 +36,7 @@ export const useInternalStore = create<AudioProStore>((set, get) => ({
 	position: 0,
 	duration: 0,
 	playbackSpeed: 1.0,
+	volume: normalizeVolume(1.0),
 	debug: false,
 	debugIncludesProgress: false,
 	trackPlaying: null,
@@ -43,6 +47,7 @@ export const useInternalStore = create<AudioProStore>((set, get) => ({
 	setTrackPlaying: (track) => set({ trackPlaying: track }),
 	setConfigureOptions: (options) => set({ configureOptions: options }),
 	setPlaybackSpeed: (speed) => set({ playbackSpeed: speed }),
+	setVolume: (volume) => set({ volume: normalizeVolume(volume) }),
 	setError: (error) => set({ error }),
 	updateFromEvent: (event) => {
 		// Early exit for simple remote commands (no state change)

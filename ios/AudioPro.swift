@@ -49,6 +49,7 @@ class AudioPro: RCTEventEmitter {
     private var debugIncludesProgress: Bool = false
     private var isInErrorState: Bool = false
     private var lastEmittedState: String = ""
+    private var currentVolume: Float = 1.0
 
     ////////////////////////////////////////////////////////////
     // MARK: - React Native Event Emitter Overrides
@@ -150,9 +151,11 @@ class AudioPro: RCTEventEmitter {
         debugLog = options["debug"] as? Bool ?? false
         debugIncludesProgress = options["debugIncludesProgress"] as? Bool ?? false
         let speed = options["playbackSpeed"] as? Float ?? 1.0
+        let volume = options["volume"] as? Float ?? 1.0
         let autoplay = options["autoplay"] as? Bool ?? true
         currentPlaybackSpeed = speed
-        log("Play", track["title"] ?? "Unknown", "speed:", speed, "autoplay:", autoplay)
+        currentVolume = volume
+        log("Play", track["title"] ?? "Unknown", "speed:", speed, "volume:", volume, "autoplay:", autoplay)
 
         if player != nil {
             DispatchQueue.main.sync {
@@ -236,6 +239,9 @@ class AudioPro: RCTEventEmitter {
         player = AVPlayer(playerItem: item)
         player?.addObserver(self, forKeyPath: "rate", options: [.new], context: nil)
         isRateObserverAdded = true
+
+        // Set up volume immediately after player creation to ensure it's applied before playback starts
+        player?.volume = currentVolume
 
         nowPlayingInfo = MPNowPlayingInfoCenter.default().nowPlayingInfo ?? [:]
         nowPlayingInfo[MPNowPlayingInfoPropertyElapsedPlaybackTime] = 0
@@ -404,6 +410,9 @@ class AudioPro: RCTEventEmitter {
         // Reset last emitted state
         lastEmittedState = ""
         shouldBePlaying = false
+
+        // Reset volume to default
+        currentVolume = 1.0
 
         // Stop playback
         player?.pause()
@@ -593,6 +602,19 @@ class AudioPro: RCTEventEmitter {
             let payload: [String: Any] = ["speed": speed]
             sendEvent(type: EVENT_TYPE_PLAYBACK_SPEED_CHANGED, track: playbackInfo.track, payload: payload)
         }
+    }
+
+    @objc(setVolume:)
+    func setVolume(volume: Double) {
+        currentVolume = Float(volume)
+
+        guard let player = player else {
+            log("Cannot set volume: no track is playing")
+            return
+        }
+
+        log("Setting volume to ", volume)
+        player.volume = Float(volume)
     }
 
     ////////////////////////////////////////////////////////////

@@ -35,6 +35,7 @@ object AudioProController {
 	private var playerListener: Player.Listener? = null
 	private var lastEmittedState: String = ""
 	private var currentPlaybackSpeed: Float = 1.0f
+	private var currentVolume: Float = 1.0f
 	private var currentTrack: ReadableMap? = null
 	private var isInErrorState: Boolean = false
 	var audioHeaders: Map<String, String>? = null
@@ -97,6 +98,9 @@ object AudioProController {
 		val speed = if (options.hasKey("playbackSpeed")) {
 			options.getDouble("playbackSpeed").toFloat()
 		} else 1.0f
+		val volume = if (options.hasKey("volume")) {
+			options.getDouble("volume").toFloat()
+		} else 1.0f
 		val autoplay = if (options.hasKey("autoplay")) {
 			options.getBoolean("autoplay")
 		} else true
@@ -146,8 +150,9 @@ object AudioProController {
 			else -> C.AUDIO_CONTENT_TYPE_MUSIC
 		}
 		currentPlaybackSpeed = speed
+		currentVolume = volume
 
-		log("Configured with contentType=$contentType debug=$debug speed=$speed autoplay=$autoplay")
+		log("Configured with contentType=$contentType debug=$debug speed=$speed volume=$volume autoplay=$autoplay")
 
 		internalPrepareSession()
 		val url = track.getString("url") ?: run {
@@ -183,6 +188,8 @@ object AudioProController {
 				it.prepare()
 				// Set playback speed regardless of autoplay
 				it.setPlaybackSpeed(currentPlaybackSpeed)
+				// Set volume regardless of autoplay
+				it.setVolume(currentVolume)
 
 				if (autoplay) {
 					it.play()
@@ -270,6 +277,9 @@ object AudioProController {
 		isInErrorState = finalState == AudioProModule.STATE_ERROR
 		// Reset last emitted state
 		lastEmittedState = ""
+
+		// Reset volume to default
+		currentVolume = 1.0f
 
 		// Stop playback
 		runOnUiThread {
@@ -727,6 +737,18 @@ object AudioProController {
 				putDouble("speed", speed.toDouble())
 			}
 			emitEvent(AudioProModule.EVENT_TYPE_PLAYBACK_SPEED_CHANGED, currentTrack, payload)
+		}
+	}
+
+	fun setVolume(volume: Float) {
+		ensureSession()
+		currentVolume = volume
+		runOnUiThread {
+			log("Setting volume to", volume)
+			browser?.let {
+				// Set volume for both left and right channels
+				it.setVolume(volume)
+			}
 		}
 	}
 }

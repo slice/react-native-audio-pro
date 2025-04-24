@@ -2,7 +2,7 @@ import { Image, NativeModules, Platform } from 'react-native';
 
 import { emitter } from './emitter';
 import { useInternalStore } from './useInternalStore';
-import { guardTrackPlaying, logDebug, validateTrack } from './utils';
+import { guardTrackPlaying, logDebug, normalizeVolume, validateTrack } from './utils';
 import { AudioProEventType, AudioProState, DEFAULT_CONFIG, DEFAULT_SEEK_MS } from './values';
 
 import type {
@@ -34,19 +34,8 @@ export const AudioPro = {
 		logDebug('AudioPro: configure()', options);
 	},
 
-	clear() {
-		logDebug('AudioPro: clear()');
-		const { error, setError, setTrackPlaying } = useInternalStore.getState();
-		if (error) {
-			setError(null);
-		}
-		setTrackPlaying(null);
-		NativeAudioPro.clear();
-	},
-
 	play(track: AudioProTrack, options?: AudioProPlayOptions) {
 		const playOptions: AudioProPlayOptions = options || {};
-		logDebug('AudioPro: play()', track, 'options:', options);
 
 		const resolvedTrack = { ...track };
 
@@ -76,9 +65,10 @@ export const AudioPro = {
 			return;
 		}
 
-		// Clear errors and set track as playing
-		const { error, setError, configureOptions, playbackSpeed, setTrackPlaying } =
+		const { error, setError, configureOptions, playbackSpeed, setTrackPlaying, volume } =
 			useInternalStore.getState();
+
+		// Clear errors and set track as playing
 		setTrackPlaying(resolvedTrack);
 		if (error) {
 			setError(null);
@@ -88,9 +78,12 @@ export const AudioPro = {
 		const nativeOptions = {
 			...configureOptions,
 			playbackSpeed,
+			volume: normalizeVolume(volume),
 			autoplay: playOptions.autoPlay ?? true,
 			headers: playOptions.headers,
 		};
+
+		logDebug('AudioPro: play()', track, 'options:', options, 'nativeOptions:', nativeOptions);
 
 		NativeAudioPro.play(resolvedTrack, nativeOptions);
 	},
@@ -122,6 +115,18 @@ export const AudioPro = {
 			setError(null);
 		}
 		NativeAudioPro.stop();
+	},
+
+	clear() {
+		logDebug('AudioPro: clear()');
+		const { error, setError, setTrackPlaying, setVolume } = useInternalStore.getState();
+		if (error) {
+			setError(null);
+		}
+		setTrackPlaying(null);
+		// Use normalized volume for default (1.0)
+		setVolume(normalizeVolume(1.0));
+		NativeAudioPro.clear();
 	},
 
 	seekTo(positionMs: number) {
@@ -182,6 +187,30 @@ export const AudioPro = {
 
 	getPlaybackSpeed() {
 		return useInternalStore.getState().playbackSpeed;
+	},
+
+	setVolume(volume: number) {
+		// First, do basic range validation for warning purposes
+		const clampedVolume = Math.max(0, Math.min(1, volume));
+		if (clampedVolume !== volume) {
+			console.warn(`AudioPro: Volume ${volume} out of range, clamped to ${clampedVolume}`);
+		}
+
+		// Then normalize the volume to fix floating point precision issues
+		const normalizedVolume = normalizeVolume(clampedVolume);
+		logDebug('AudioPro: setVolume()', normalizedVolume);
+
+		const { setVolume, trackPlaying } = useInternalStore.getState();
+		setVolume(normalizedVolume);
+
+		if (trackPlaying) {
+			if (!isValidPlayerStateForOperation('setVolume()')) return;
+			NativeAudioPro.setVolume(normalizedVolume);
+		}
+	},
+
+	getVolume() {
+		return useInternalStore.getState().volume;
 	},
 
 	getError() {

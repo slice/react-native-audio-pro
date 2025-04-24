@@ -11,6 +11,7 @@ RCT_EXTERN_METHOD(seekTo:(double)position)
 RCT_EXTERN_METHOD(seekForward:(double)amount)
 RCT_EXTERN_METHOD(seekBack:(double)amount)
 RCT_EXTERN_METHOD(setPlaybackSpeed:(double)speed)
+RCT_EXTERN_METHOD(setVolume:(double)volume)
 RCT_EXTERN_METHOD(clear)
 
 + (BOOL)requiresMainQueueSetup
