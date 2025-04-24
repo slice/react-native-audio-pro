@@ -137,10 +137,7 @@ describe('AudioPro Module', () => {
 			const callback = jest.fn();
 			const subscription = AudioPro.addEventListener(callback);
 
-			expect(emitter.addListener).toHaveBeenCalledWith(
-				'AudioProEvent',
-				callback,
-			);
+			expect(emitter.addListener).toHaveBeenCalledWith('AudioProEvent', callback);
 			expect(subscription).toBeDefined();
 		});
 	});

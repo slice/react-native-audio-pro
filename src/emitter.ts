@@ -10,13 +10,9 @@ const NativeAudioPro = NativeModules.AudioPro;
 export const emitter = new NativeEventEmitter(NativeAudioPro);
 
 emitter.addListener('AudioProEvent', (event: AudioProEvent) => {
-	const { debug, debugIncludesProgress, updateFromEvent } =
-		useInternalStore.getState();
+	const { debug, debugIncludesProgress, updateFromEvent } = useInternalStore.getState();
 	if (debug) {
-		if (
-			event.type === AudioProEventType.PROGRESS &&
-			!debugIncludesProgress
-		) {
+		if (event.type === AudioProEventType.PROGRESS && !debugIncludesProgress) {
 			return;
 		}
 		logDebug('AudioProEvent', JSON.stringify(event));

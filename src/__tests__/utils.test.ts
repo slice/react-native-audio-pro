@@ -47,12 +47,8 @@ describe('Utils', () => {
 		});
 
 		it('should validate URLs with query parameters', () => {
-			expect(
-				isValidUrl('https://example.com/audio.mp3?param=value'),
-			).toBe(true);
-			expect(isValidUrl('https://example.com/stream?format=mp3')).toBe(
-				true,
-			);
+			expect(isValidUrl('https://example.com/audio.mp3?param=value')).toBe(true);
+			expect(isValidUrl('https://example.com/stream?format=mp3')).toBe(true);
 		});
 
 		it('should validate URLs without file extensions', () => {
@@ -89,20 +85,12 @@ describe('Utils', () => {
 		});
 
 		it('should validate URLs with query parameters', () => {
-			expect(
-				isValidUrl('https://example.com/image.jpg?param=value'),
-			).toBe(true);
-			expect(isValidUrl('https://example.com/image?format=jpg')).toBe(
-				true,
-			);
+			expect(isValidUrl('https://example.com/image.jpg?param=value')).toBe(true);
+			expect(isValidUrl('https://example.com/image?format=jpg')).toBe(true);
 		});
 
 		it('should validate data URLs', () => {
-			expect(
-				isValidUrl(
-					'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEASABIAAD',
-				),
-			).toBe(true);
+			expect(isValidUrl('data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEASABIAAD')).toBe(true);
 		});
 
 		it('should validate require() results (numbers)', () => {
