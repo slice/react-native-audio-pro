@@ -1,8 +1,7 @@
 import {
-	AudioProEventType,
 	AudioProContentType,
-	AudioProState,
 	type AudioProEvent,
+	AudioProEventType,
 	type AudioProTrack,
 } from 'react-native-audio-pro';
 
@@ -45,34 +44,23 @@ export function setupAudioPro(): void {
 	});
 }
 
-function playNextTrack(): void {
+function playNextTrack(autoPlay: boolean = true): void {
 	if (playlist.length === 0) return;
 
-	// Store current state before changing tracks
-	const isPlaying = AudioPro.getState() === AudioProState.PLAYING;
-
+	// Update the index to point to the next track
 	currentIndex = (currentIndex + 1) % playlist.length;
 	const nextTrack = playlist[currentIndex];
 
-	// Only play the new track if we were already playing
-	if (isPlaying) {
-		AudioPro.play(nextTrack as AudioProTrack);
-	}
+	AudioPro.play(nextTrack as AudioProTrack, { autoPlay });
 }
 
-function playPreviousTrack(): void {
+function playPreviousTrack(autoPlay: boolean = true): void {
 	if (playlist.length === 0) return;
-
-	// Store current state before changing tracks
-	const isPlaying = AudioPro.getState() === AudioProState.PLAYING;
 
 	currentIndex = currentIndex > 0 ? currentIndex - 1 : playlist.length - 1;
 	const prevTrack = playlist[currentIndex];
 
-	// Only play the new track if we were already playing
-	if (isPlaying) {
-		AudioPro.play(prevTrack as AudioProTrack);
-	}
+	AudioPro.play(prevTrack as AudioProTrack, { autoPlay });
 }
 
 // Export functions that can be called from React components
