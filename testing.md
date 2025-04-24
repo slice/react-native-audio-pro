@@ -39,7 +39,7 @@ The `AudioProLogicTest.kt` file contains tests that verify the audio player logi
 
 The Android tests use a separate `build.gradle` file located at `android/src/test/build.gradle` to avoid dependencies on React Native. This allows the tests to run in isolation without needing to build the entire project.
 
-The `build.gradle` file is configured to find the test source files in the `java` directory and includes detailed test logging to show the results of each test when running `yarn test:android`.
+The `build.gradle` file is configured to find the test source files in the current directory and includes detailed test logging to show the results of each test when running `yarn test:android`. The script uses the `--rerun-tasks` flag to ensure tests are always executed and their results are displayed.
 
 ### iOS Tests
 
