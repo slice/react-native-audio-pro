@@ -224,13 +224,17 @@ object AudioProController {
 		lastEmittedState = ""
 		ensureSession()
 		runOnUiThread {
-			detachPlayerListener()
+			// Do not detach player listener to ensure lock screen controls still work
+			// and state changes are emitted when playback is resumed from lock screen
+
+			// Seek to position 0 before stopping
+			browser?.seekTo(0)
 			browser?.stop()
 			browser?.let {
-				val pos = it.currentPosition
+				// Use position 0 for STOPPED state as per logic.md contract
 				val dur = it.duration.takeIf { d -> d > 0 } ?: 0L
 				// Do not set currentTrack = null as STOPPED state should preserve track metadata
-				emitState(AudioProModule.STATE_STOPPED, pos, dur)
+				emitState(AudioProModule.STATE_STOPPED, 0L, dur)
 			}
 		}
 		stopProgressTimer()
