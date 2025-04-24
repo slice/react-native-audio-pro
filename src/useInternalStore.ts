@@ -45,89 +45,87 @@ export const useInternalStore = create<AudioProStore>((set, get) => ({
 	setPlaybackSpeed: (speed) => set({ playbackSpeed: speed }),
 	setError: (error) => set({ error }),
 	updateFromEvent: (event) => {
-		// This event handler is highly optimized to minimize state updates:
-		// 1. Creates a single updates object to batch all changes
-		// 2. Performs strict equality checks before updating any value
-		// 3. Skips updates for command events entirely
-		// 4. Only updates track if specific properties have changed
-		// 5. Performs a final check to ensure an update object is not empty
-		// This ensures the minimal number of re-renders and state changes
-
-		const updates: Partial<AudioProStore> = {};
-		const { type, track, payload } = event;
-
-		// Command events don't update the state or require track
-		if (type === AudioProEventType.REMOTE_NEXT || type === AudioProEventType.REMOTE_PREV) {
-			return; // Command events don't update the state
+		// Early exit for simple remote commands (no state change)
+		if (
+			event.type === AudioProEventType.REMOTE_NEXT ||
+			event.type === AudioProEventType.REMOTE_PREV
+		) {
+			return;
 		}
 
-		// For non-command events, a track should be included
+		const { type, track, payload } = event;
+		const current = get();
+		const updates: Partial<AudioProStore> = {};
+
+		// Warn if a non-error event has no track
 		if (track === undefined && type !== AudioProEventType.PLAYBACK_ERROR) {
 			console.warn(`AudioPro: Event ${type} missing required track property`);
 		}
 
-		// Handle different event types
-		switch (type) {
-			case AudioProEventType.STATE_CHANGED:
-				if (payload?.state && payload.state !== get().playerState) {
-					updates.playerState = payload.state as AudioProState;
-
-					// Clear error when transitioning to a non-ERROR state
-					if (payload.state !== AudioProState.ERROR && get().error !== null) {
-						updates.error = null;
-					}
-				}
-				break;
-
-			case AudioProEventType.PLAYBACK_ERROR:
-				if (payload && payload.error) {
-					updates.error = {
-						error: payload.error,
-						errorCode: payload.errorCode,
-					};
-					// Set state to ERROR
-					updates.playerState = AudioProState.ERROR;
-				}
-				break;
-
-			case AudioProEventType.PLAYBACK_SPEED_CHANGED:
-				if (payload?.speed && payload.speed !== get().playbackSpeed) {
-					updates.playbackSpeed = payload.speed;
-				}
-				break;
+		// 1. State changes
+		if (
+			type === AudioProEventType.STATE_CHANGED &&
+			payload?.state &&
+			payload.state !== current.playerState
+		) {
+			updates.playerState = payload.state;
+			// Clear error when leaving ERROR state
+			if (payload.state !== AudioProState.ERROR && current.error !== null) {
+				updates.error = null;
+			}
 		}
 
-		// Update position and duration if provided in the payload
-		if (payload?.position !== undefined && payload.position !== get().position) {
+		// 2. Playback errors
+		if (type === AudioProEventType.PLAYBACK_ERROR && payload?.error) {
+			updates.playerState = AudioProState.ERROR;
+			updates.error = {
+				error: payload.error,
+				errorCode: payload.errorCode,
+			};
+		}
+
+		// 3. Speed changes
+		if (
+			type === AudioProEventType.PLAYBACK_SPEED_CHANGED &&
+			payload?.speed !== undefined &&
+			payload.speed !== current.playbackSpeed
+		) {
+			updates.playbackSpeed = payload.speed;
+		}
+
+		// 4. Progress updates
+		if (payload?.position !== undefined && payload.position !== current.position) {
 			updates.position = payload.position;
 		}
-		if (payload?.duration !== undefined && payload.duration !== get().duration) {
+		if (payload?.duration !== undefined && payload.duration !== current.duration) {
 			updates.duration = payload.duration;
 		}
 
-		// Update track if it has changed, and we're not in an error state
-		// Never clear trackPlaying on error
+		// 5. Track loading/unloading
 		if (track) {
-			const currentTrack = get().trackPlaying;
+			const prev = current.trackPlaying;
+			// Only update if the track object has changed
 			if (
-				currentTrack === null ||
-				track.id !== currentTrack.id ||
-				track.url !== currentTrack.url ||
-				track.title !== currentTrack.title ||
-				track.artwork !== currentTrack.artwork ||
-				track.album !== currentTrack.album ||
-				track.artist !== currentTrack.artist
+				!prev ||
+				track.id !== prev.id ||
+				track.url !== prev.url ||
+				track.title !== prev.title ||
+				track.artwork !== prev.artwork ||
+				track.album !== prev.album ||
+				track.artist !== prev.artist
 			) {
 				updates.trackPlaying = track;
 			}
-		} else if (track === null && type !== AudioProEventType.PLAYBACK_ERROR) {
-			// Only clear trackPlaying if explicitly set to null and not an error event
-			if (get().trackPlaying !== null) {
-				updates.trackPlaying = null;
-			}
+		} else if (
+			track === null &&
+			type !== AudioProEventType.PLAYBACK_ERROR &&
+			current.trackPlaying !== null
+		) {
+			// Explicit unload of track (not during error)
+			updates.trackPlaying = null;
 		}
 
-		// Only update the state if there are changes
+		// 6. Apply batched updates
 		if (Object.keys(updates).length > 0) {
 			set(updates);
 		}
