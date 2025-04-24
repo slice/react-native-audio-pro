@@ -141,6 +141,36 @@ class AudioPro: RCTEventEmitter {
     // MARK: - Playback Control (Play, Pause, Resume, Stop)
     ////////////////////////////////////////////////////////////
 
+    /// Prepares the player for new playback without emitting state changes or destroying the media session
+    /// - This function:
+    /// - Pauses the player if it's playing
+    /// - Removes KVO observers from the previous AVPlayerItem
+    /// - Stops the progress timer
+    /// - Does not emit any state or clear currentTrack
+    /// - Does not destroy the media session
+    private func prepareForNewPlayback() {
+        // Pause the player if it's playing
+        player?.pause()
+
+        // Stop the progress timer
+        stopTimer()
+
+        // Remove KVO observers from the previous AVPlayerItem
+        if let player = player {
+            if isRateObserverAdded {
+                player.removeObserver(self, forKeyPath: "rate")
+                isRateObserverAdded = false
+            }
+            if let currentItem = player.currentItem, isStatusObserverAdded {
+                currentItem.removeObserver(self, forKeyPath: "status")
+                isStatusObserverAdded = false
+            }
+        }
+
+        // Remove playback ended notification observer
+        NotificationCenter.default.removeObserver(self, name: .AVPlayerItemDidPlayToEndTime, object: player?.currentItem)
+    }
+
     @objc(play:withOptions:)
     func play(track: NSDictionary, options: NSDictionary) {
         // Reset error state when playing a new track
@@ -159,10 +189,8 @@ class AudioPro: RCTEventEmitter {
 
         if player != nil {
             DispatchQueue.main.sync {
-                // Don't clear the track when cleaning up before playing a new track
-                // This ensures that if we're in a stop -> seek -> play sequence,
-                // we don't lose track information between cleanup and setting the new track
-                cleanup(clearTrack: false)
+                // Prepare for new playback without emitting state changes or destroying the media session
+                prepareForNewPlayback()
             }
         }
 
@@ -194,7 +222,8 @@ class AudioPro: RCTEventEmitter {
         let album = track["album"] as? String
         let artist = track["artist"] as? String
 
-        var nowPlayingInfo = [String: Any]()
+        // Update now playing info without resetting the entire dictionary
+        var nowPlayingInfo = MPNowPlayingInfoCenter.default().nowPlayingInfo ?? [String: Any]()
         nowPlayingInfo[MPMediaItemPropertyTitle] = title
         if let album = album {
             nowPlayingInfo[MPMediaItemPropertyAlbumTitle] = album
@@ -204,10 +233,12 @@ class AudioPro: RCTEventEmitter {
         }
         MPNowPlayingInfoCenter.default().nowPlayingInfo = nowPlayingInfo
 
+        // Set up remote transport controls only if they haven't been set up yet
         DispatchQueue.main.async {
-            UIApplication.shared.endReceivingRemoteControlEvents()
-            UIApplication.shared.beginReceivingRemoteControlEvents()
-            self.setupRemoteTransportControls()
+            if !self.isRemoteCommandCenterSetup {
+                UIApplication.shared.beginReceivingRemoteControlEvents()
+                self.setupRemoteTransportControls()
+            }
         }
 
         // Create new player item with custom headers if provided
@@ -231,15 +262,24 @@ class AudioPro: RCTEventEmitter {
             item = AVPlayerItem(url: url)
         }
 
+        // Add observer to the new item
         item.addObserver(self, forKeyPath: "status", options: [.new], context: nil)
         isStatusObserverAdded = true
 
-        // Create a new AVPlayer instance for this track
-        player = AVPlayer(playerItem: item)
+        // Create the AVPlayer if it doesn't exist, otherwise just replace the item
+        if player == nil {
+            // Create a new AVPlayer instance
+            player = AVPlayer(playerItem: item)
+        } else {
+            // Replace the current item with the new one
+            player?.replaceCurrentItem(with: item)
+        }
+
+        // Add rate observer to the player
         player?.addObserver(self, forKeyPath: "rate", options: [.new], context: nil)
         isRateObserverAdded = true
 
-        // Set up volume immediately after player creation to ensure it's applied before playback starts
+        // Set up volume to ensure it's applied before playback starts
         player?.volume = currentVolume
 
         nowPlayingInfo = MPNowPlayingInfoCenter.default().nowPlayingInfo ?? [:]
@@ -248,6 +288,7 @@ class AudioPro: RCTEventEmitter {
         nowPlayingInfo[MPMediaItemPropertyPlaybackDuration] = item.asset.duration.seconds
         MPNowPlayingInfoCenter.default().nowPlayingInfo = nowPlayingInfo
 
+        // Add notification observer for track completion to the new item
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(playerItemDidPlayToEndTime(_:)),
