@@ -35,7 +35,7 @@ class AudioPro: RCTEventEmitter {
     private let STATE_ERROR = "ERROR"
 
     private let GENERIC_ERROR_CODE = 900
-    private let progressInterval: TimeInterval = 1.0
+    private var progressInterval: TimeInterval = 1.0
     private var shouldBePlaying = false
     private var isRemoteCommandCenterSetup = false
 
@@ -183,6 +183,14 @@ class AudioPro: RCTEventEmitter {
         let speed = options["playbackSpeed"] as? Float ?? 1.0
         let volume = options["volume"] as? Float ?? 1.0
         let autoplay = options["autoplay"] as? Bool ?? true
+
+        if let progressIntervalMs = options["progressIntervalMs"] as? Double {
+            let intervalSeconds = progressIntervalMs / 1000.0
+            progressInterval = intervalSeconds
+        } else {
+            progressInterval = 1.0
+        }
+
         currentPlaybackSpeed = speed
         currentVolume = volume
         log("Play", track["title"] ?? "Unknown", "speed:", speed, "volume:", volume, "autoplay:", autoplay)

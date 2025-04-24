@@ -24,6 +24,7 @@ export type AudioProConfigureOptions = {
 	contentType?: AudioProContentType;
 	debug?: boolean;
 	debugIncludesProgress?: boolean;
+	progressIntervalMs?: number;
 };
 
 // ==============================

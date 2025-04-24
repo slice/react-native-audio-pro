@@ -93,6 +93,8 @@ React Native Audio Pro supports various audio formats including MP3, AAC, WAV, a
 | **seekForward(amountMs?: number)** | Seeks forward by specified milliseconds (default: 30 seconds). | `void` |
 | **seekBack(amountMs?: number)** | Seeks backward by specified milliseconds (default: 30 seconds). | `void` |
 | **configure(options: AudioProSetupOptions)** | Optional. Sets playback options like content type (`'MUSIC'` or `'SPEECH'`). Takes effect the next time `play()` is called. | `void` |
+| **setProgressInterval(ms: number)** | Sets the frequency (in ms) at which PROGRESS events are emitted. Valid range: 100ms to 10000ms. Default: 1000ms. Takes effect the next time `play()` is called. | `void` |
+| **getProgressInterval()** | Returns the current progress interval in milliseconds. | `number` |
 | **getTimings()** | Returns the current playback position and total duration in milliseconds. | `{ position: number, duration: number }` |
 | **getState()** | Returns the current playback state. | `AudioProState` |
 | **getPlayingTrack()** | Returns the currently playing track, or null if no track is playing. | `AudioProTrack \| null` |
@@ -182,6 +184,7 @@ type AudioProSetupOptions = {
     contentType?: AudioProContentType; // MUSIC or SPEECH
     debug?: boolean; // Verbose logging
     debugIncludesProgress?: boolean; // Whether to include progress events in debug logs (default: false)
+    progressIntervalMs?: number; // Frequency (in ms) at which PROGRESS events are emitted (default: 1000ms)
 };
 ```
 </details>
@@ -241,6 +244,17 @@ Use `AudioProContentType.SPEECH` for podcasts or audiobooks, `AudioProContentTyp
 
 - `debug`: When set to `true`, enables verbose logging of all audio events. Useful for development and troubleshooting.
 - `debugIncludesProgress`: When set to `true`, includes PROGRESS events in debug logs. PROGRESS events occur every second during playback and can flood the logs, making it harder to see other important events. Defaults to `false`.
+</details>
+
+<details>
+<summary><b>About progressIntervalMs</b></summary>
+
+- `progressIntervalMs`: Controls the frequency (in milliseconds) at which PROGRESS events are emitted from native to TypeScript.
+- Default: 1000ms (1 second)
+- Allowed range: 100ms to 10000ms
+- Can be set via `configure()` or `setProgressInterval()`
+- Changes take effect on the next call to `play()`
+- Useful for making the UI more responsive for short or high-precision audio playback
 </details>
 
 ### Handling Remote Events
@@ -391,7 +405,8 @@ export function setupAudio() {
   AudioPro.configure({
     contentType: AudioProContentType.MUSIC,
     debug: __DEV__,
-    debugIncludesProgress: false
+    debugIncludesProgress: false,
+    progressIntervalMs: 1000,
   });
 
   // Set up event listeners that persist for the app's lifetime

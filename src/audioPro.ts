@@ -216,4 +216,28 @@ export const AudioPro = {
 	getError() {
 		return useInternalStore.getState().error;
 	},
+
+	setProgressInterval(ms: number) {
+		const MIN_INTERVAL = 100;
+		const MAX_INTERVAL = 10000;
+
+		// Clamp the value to the allowed range
+		const clampedMs = Math.max(MIN_INTERVAL, Math.min(MAX_INTERVAL, ms));
+		if (clampedMs !== ms) {
+			console.warn(
+				`AudioPro: Progress interval ${ms}ms out of range, clamped to ${clampedMs}ms`,
+			);
+		}
+
+		logDebug('AudioPro: setProgressInterval()', clampedMs);
+		const { setConfigureOptions, configureOptions } = useInternalStore.getState();
+		setConfigureOptions({ ...configureOptions, progressIntervalMs: clampedMs });
+	},
+
+	getProgressInterval() {
+		return (
+			useInternalStore.getState().configureOptions.progressIntervalMs ??
+			DEFAULT_CONFIG.progressIntervalMs
+		);
+	},
 };

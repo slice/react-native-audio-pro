@@ -13,7 +13,12 @@ import {
 import Slider from '@react-native-community/slider';
 import { type AudioProTrack, useAudioPro } from 'react-native-audio-pro';
 
-import { getCurrentTrackIndex, setCurrentTrackIndex } from './player-service';
+import {
+	getCurrentTrackIndex,
+	getProgressInterval,
+	setCurrentTrackIndex,
+	setProgressInterval,
+} from './player-service';
 import { playlist } from './playlist';
 import { styles } from './styles';
 import { formatTime, getStateColor } from './utils';
@@ -22,6 +27,7 @@ import { AudioProState } from '../../src/values';
 
 export default function App() {
 	const [currentIndex, setLocalIndex] = useState(getCurrentTrackIndex());
+	const [progressInterval, setLocalProgressInterval] = useState(getProgressInterval());
 	const currentTrack = playlist[currentIndex];
 	const { position, duration, state, playingTrack, playbackSpeed, volume, error } = useAudioPro();
 
@@ -155,6 +161,20 @@ export default function App() {
 		AudioPro.setVolume(newVolume);
 	};
 
+	// These handlers adjust how frequently progress events are emitted (in ms)
+	// Changes take effect on the next call to play()
+	const handleIncreaseProgressInterval = () => {
+		const newInterval = Math.min(10000, progressInterval + 100);
+		setProgressInterval(newInterval);
+		setLocalProgressInterval(newInterval);
+	};
+
+	const handleDecreaseProgressInterval = () => {
+		const newInterval = Math.max(100, progressInterval - 100);
+		setProgressInterval(newInterval);
+		setLocalProgressInterval(newInterval);
+	};
+
 	return (
 		<SafeAreaView style={styles.container}>
 			<ScrollView
@@ -227,14 +247,25 @@ export default function App() {
 						<Text style={styles.controlText}>+</Text>
 					</TouchableOpacity>
 				</View>
-				<View style={styles.speedRow}>
-					<TouchableOpacity onPress={handleDecreaseVolume}>
-						<Text style={styles.controlText}>-</Text>
-					</TouchableOpacity>
-					<Text style={styles.speedText}>Vol: {Math.round(volume * 100)}%</Text>
-					<TouchableOpacity onPress={handleIncreaseVolume}>
-						<Text style={styles.controlText}>+</Text>
-					</TouchableOpacity>
+				<View style={styles.generalRow}>
+					<View style={styles.speedRow}>
+						<TouchableOpacity onPress={handleDecreaseVolume}>
+							<Text style={styles.controlText}>-</Text>
+						</TouchableOpacity>
+						<Text style={styles.speedText}>Vol: {Math.round(volume * 100)}%</Text>
+						<TouchableOpacity onPress={handleIncreaseVolume}>
+							<Text style={styles.controlText}>+</Text>
+						</TouchableOpacity>
+					</View>
+					<View style={styles.speedRow}>
+						<TouchableOpacity onPress={handleDecreaseProgressInterval}>
+							<Text style={styles.controlText}>-</Text>
+						</TouchableOpacity>
+						<Text style={styles.speedText}>Prog: {progressInterval}ms</Text>
+						<TouchableOpacity onPress={handleIncreaseProgressInterval}>
+							<Text style={styles.controlText}>+</Text>
+						</TouchableOpacity>
+					</View>
 				</View>
 				<View style={styles.stopRow}>
 					<TouchableOpacity onPress={handleStop}>

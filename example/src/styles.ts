@@ -93,7 +93,15 @@ export const styles = StyleSheet.create({
 		alignItems: 'center',
 		width: needsSmallerUI ? '90%' : '80%',
 		marginBottom: needsSmallerUI ? 12 : 20,
-		maxWidth: 100,
+		maxWidth: 120,
+	},
+	generalRow: {
+		flexDirection: 'row',
+		justifyContent: 'space-around',
+		alignItems: 'center',
+		width: needsSmallerUI ? '90%' : '80%',
+		marginBottom: needsSmallerUI ? 12 : 20,
+		maxWidth: 300,
 	},
 	speedText: {
 		fontSize: 18 * scale,

@@ -62,6 +62,7 @@ jest.mock('../useInternalStore', () => {
 			contentType: 'MUSIC',
 			debug: false,
 			debugIncludesProgress: false,
+			progressIntervalMs: 1000,
 		},
 		error: null,
 		setDebug: jest.fn(),
@@ -108,6 +109,8 @@ describe('AudioPro', () => {
 		expect(typeof AudioPro.setVolume).toBe('function');
 		expect(typeof AudioPro.getVolume).toBe('function');
 		expect(typeof AudioPro.getError).toBe('function');
+		expect(typeof AudioPro.setProgressInterval).toBe('function');
+		expect(typeof AudioPro.getProgressInterval).toBe('function');
 	});
 
 	describe('volume control', () => {
@@ -178,6 +181,67 @@ describe('AudioPro', () => {
 		it('should reset volume to default when clear() is called', () => {
 			AudioPro.clear();
 			expect(useInternalStore.getState().setVolume).toHaveBeenCalledWith(1.0);
+		});
+	});
+
+	describe('progress interval control', () => {
+		beforeEach(() => {
+			jest.clearAllMocks();
+		});
+
+		it('should clamp progress interval values between 100ms and 10000ms', () => {
+			// Mock console.warn to check for warning messages
+			const originalWarn = console.warn;
+			console.warn = jest.fn();
+
+			// Test with value below range
+			AudioPro.setProgressInterval(50);
+			expect(console.warn).toHaveBeenCalledWith(
+				expect.stringContaining('out of range, clamped to 100ms'),
+			);
+			expect(useInternalStore.getState().setConfigureOptions).toHaveBeenCalledWith(
+				expect.objectContaining({ progressIntervalMs: 100 }),
+			);
+
+			// Test with value above range
+			AudioPro.setProgressInterval(15000);
+			expect(console.warn).toHaveBeenCalledWith(
+				expect.stringContaining('out of range, clamped to 10000ms'),
+			);
+			expect(useInternalStore.getState().setConfigureOptions).toHaveBeenCalledWith(
+				expect.objectContaining({ progressIntervalMs: 10000 }),
+			);
+
+			// Test with value within range
+			AudioPro.setProgressInterval(500);
+			expect(useInternalStore.getState().setConfigureOptions).toHaveBeenCalledWith(
+				expect.objectContaining({ progressIntervalMs: 500 }),
+			);
+
+			// Restore console.warn
+			console.warn = originalWarn;
+		});
+
+		it('should return the current progress interval value', () => {
+			// Mock progress interval value
+			jest.spyOn(useInternalStore, 'getState').mockReturnValue({
+				...useInternalStore.getState(),
+				configureOptions: { progressIntervalMs: 2000 },
+			});
+
+			expect(AudioPro.getProgressInterval()).toBe(2000);
+		});
+
+		it('should return the default progress interval value from store initialization', () => {
+			// Reset mock to default state
+			const mockGetState = useInternalStore.getState as jest.Mock;
+			mockGetState.mockImplementation(() => ({
+				configureOptions: {
+					progressIntervalMs: 1000,
+				},
+			}));
+
+			expect(AudioPro.getProgressInterval()).toBe(1000); // Default value from store initialization
 		});
 	});
 

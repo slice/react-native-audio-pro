@@ -16,7 +16,8 @@ export function setupAudioPro(): void {
 	AudioPro.configure({
 		contentType: AudioProContentType.MUSIC,
 		debug: true,
-		debugIncludesProgress: false,
+		debugIncludesProgress: true,
+		progressIntervalMs: 1000,
 	});
 
 	// Set up event listeners that persist for the app's lifetime
@@ -72,4 +73,12 @@ export function setCurrentTrackIndex(index: number): void {
 	if (index >= 0 && index < playlist.length) {
 		currentIndex = index;
 	}
+}
+
+export function getProgressInterval(): number {
+	return AudioPro.getProgressInterval()!;
+}
+
+export function setProgressInterval(ms: number): void {
+	AudioPro.setProgressInterval(ms);
 }

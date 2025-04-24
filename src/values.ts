@@ -31,4 +31,5 @@ export const DEFAULT_CONFIG: AudioProConfigureOptions = {
 	contentType: AudioProContentType.MUSIC,
 	debug: false,
 	debugIncludesProgress: false,
+	progressIntervalMs: 1000,
 };

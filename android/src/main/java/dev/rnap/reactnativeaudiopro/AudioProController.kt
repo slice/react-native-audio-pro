@@ -31,6 +31,7 @@ object AudioProController {
 	var audioContentType: Int = C.AUDIO_CONTENT_TYPE_MUSIC
 	private var debug: Boolean = false
 	private var debugIncludesProgress: Boolean = false
+	private var progressIntervalMs: Long = 1000
 	private var reactContext: ReactApplicationContext? = null
 	private var playerListener: Player.Listener? = null
 	private var lastEmittedState: String = ""
@@ -47,11 +48,10 @@ object AudioProController {
 	private var pendingSeekDuration: Long = 0
 	private var seekTimeoutHandler: Handler? = null
 	private var seekTimeoutRunnable: Runnable? = null
-	private val SEEK_TIMEOUT_MS = 1000L // 1 second timeout for seek operations
+	private val SEEK_TIMEOUT_MS = 1000L
 
 	private fun log(vararg args: Any?) {
 		if (debug) {
-			// Skip logging PROGRESS events if debugIncludesProgress is false
 			if (!debugIncludesProgress && args.isNotEmpty() && args[0] == AudioProModule.EVENT_TYPE_PROGRESS) {
 				return
 			}
@@ -95,15 +95,12 @@ object AudioProController {
 	private fun prepareForNewPlayback() {
 		log("Preparing for new playback")
 
-		// Pause the player if it's playing
 		runOnUiThread {
 			browser?.pause()
 		}
 
-		// Stop the progress timer
 		stopProgressTimer()
 
-		// Cancel any pending seek operations
 		cancelSeekTimeout()
 		pendingSeek = false
 		pendingSeekPosition = 0
@@ -111,16 +108,15 @@ object AudioProController {
 	}
 
 	suspend fun play(track: ReadableMap, options: ReadableMap) {
-		// Reset error state when playing a new track
 		isInErrorState = false
-		// Reset last emitted state when playing a new track
 		lastEmittedState = ""
 		currentTrack = track
 		val contentType = if (options.hasKey("contentType")) {
 			options.getString("contentType") ?: "MUSIC"
 		} else "MUSIC"
 		val enableDebug = options.hasKey("debug") && options.getBoolean("debug")
-		val includeProgressInDebug = options.hasKey("debugIncludesProgress") && options.getBoolean("debugIncludesProgress")
+		val includeProgressInDebug =
+			options.hasKey("debugIncludesProgress") && options.getBoolean("debugIncludesProgress")
 		val speed = if (options.hasKey("playbackSpeed")) {
 			options.getDouble("playbackSpeed").toFloat()
 		} else 1.0f
@@ -130,6 +126,10 @@ object AudioProController {
 		val autoplay = if (options.hasKey("autoplay")) {
 			options.getBoolean("autoplay")
 		} else true
+
+		val progressInterval = if (options.hasKey("progressIntervalMs")) {
+			options.getDouble("progressIntervalMs").toLong()
+		} else 1000L
 
 		// Helper function to extract headers from a ReadableMap
 		fun extractHeaders(headersMap: ReadableMap?): Map<String, String>? {
@@ -177,21 +177,21 @@ object AudioProController {
 		}
 		currentPlaybackSpeed = speed
 		currentVolume = volume
+		progressIntervalMs = progressInterval
 
- 	log("Configured with contentType=$contentType debug=$debug speed=$speed volume=$volume autoplay=$autoplay")
+		log("Configured with contentType=$contentType debug=$debug speed=$speed volume=$volume autoplay=$autoplay")
 
- 	// If browser already exists, prepare it for new playback
- 	// Otherwise, create a new browser
- 	if (browser != null) {
- 		prepareForNewPlayback()
- 	} else {
- 		internalPrepareSession()
- 	}
+		if (browser != null) {
+			prepareForNewPlayback()
+		} else {
+			internalPrepareSession()
+		}
 
- 	val url = track.getString("url") ?: run {
- 		log("Missing track URL")
- 		return
- 	}
+		val url = track.getString("url") ?: run {
+			log("Missing track URL")
+			return
+		}
+
 		val title = track.getString("title") ?: "Unknown Title"
 		val artist = track.getString("artist") ?: "Unknown Artist"
 		val album = track.getString("album") ?: "Unknown Album"
@@ -638,10 +638,10 @@ object AudioProController {
 				val pos = browser?.currentPosition ?: 0L
 				val dur = browser?.duration ?: 0L
 				emitNotice(AudioProModule.EVENT_TYPE_PROGRESS, pos, dur)
-				progressHandler?.postDelayed(this, 1000)
+				progressHandler?.postDelayed(this, progressIntervalMs)
 			}
 		}
-		progressRunnable?.let { progressHandler?.postDelayed(it, 1000) }
+		progressRunnable?.let { progressHandler?.postDelayed(it, progressIntervalMs) }
 	}
 
 	private fun stopProgressTimer() {
