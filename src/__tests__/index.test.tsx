@@ -67,12 +67,12 @@ describe('AudioPro Module', () => {
 	describe('configure', () => {
 		it('should configure with default options', () => {
 			AudioPro.configure({});
-			expect(AudioPro.getState()).toBe(AudioProState.STOPPED);
+			expect(AudioPro.getState()).toBe(AudioProState.IDLE);
 		});
 
 		it('should configure with content type', () => {
 			AudioPro.configure({ contentType: AudioProContentType.SPEECH });
-			expect(AudioPro.getState()).toBe(AudioProState.STOPPED);
+			expect(AudioPro.getState()).toBe(AudioProState.IDLE);
 		});
 	});
 
@@ -151,7 +151,7 @@ describe('AudioPro Module', () => {
 
 		it('should get current state', () => {
 			const state = AudioPro.getState();
-			expect(state).toBe(AudioProState.STOPPED);
+			expect(state).toBe(AudioProState.IDLE);
 		});
 
 		it('should get current playing track', () => {

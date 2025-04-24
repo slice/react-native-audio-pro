@@ -9,6 +9,7 @@
 	"scripts": {
 		"example": "yarn workspace react-native-audio-pro-example",
 		"test": "jest",
+		"check": "yarn test && yarn test:native && yarn lint && yarn typecheck && yarn prepare",
 		"test:android": "bash scripts/test-android.sh",
 		"test:ios": "bash scripts/test-ios.sh",
 		"test:native": "bash scripts/test-native.sh",
