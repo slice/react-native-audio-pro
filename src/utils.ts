@@ -14,7 +14,8 @@ export function isValidUrl(url: string | number): boolean {
 		return true;
 	}
 
-	// Check if URL is empty or not a string
+	// Check if the URL is empty or not a string
+	// noinspection SuspiciousTypeOfGuard
 	if (!url || typeof url !== 'string' || !url.trim()) {
 		logDebug('URL validation failed: URL is empty or not a string');
 		return false;
@@ -35,63 +36,61 @@ export function isValidUrl(url: string | number): boolean {
 
 	// If it's not a standard URL, it might be a relative path
 	// or a custom URI scheme. We'll allow it but log a debug message.
-	logDebug(
-		`URL format may be non-standard but will attempt to use it: ${url}`,
-	);
+	logDebug(`URL format may be non-standard but will attempt to use it: ${url}`);
 	return true;
 }
 
 export function validateTrack(track: AudioProTrack): boolean {
+	// 1. Track object must be provided
+	if (!track) {
+		logDebug('Track validation failed: no track object provided');
+		return false;
+	}
+
+	// 2. ID must be a non-empty string
 	// noinspection SuspiciousTypeOfGuard
-	if (
-		!track ||
-		typeof track.id !== 'string' ||
-		!track.id.trim() ||
-		!(typeof track.url === 'string' || typeof track.url === 'number') ||
-		(typeof track.url === 'string' && !track.url.trim()) ||
-		typeof track.title !== 'string' ||
-		!track.title.trim() ||
-		!(
-			typeof track.artwork === 'string' ||
-			typeof track.artwork === 'number'
-		) ||
-		(typeof track.artwork === 'string' && !track.artwork.trim()) ||
-		(track.album !== undefined && typeof track.album !== 'string') ||
-		(track.artist !== undefined && typeof track.artist !== 'string')
-	) {
-		logDebug(
-			'Track validation failed: Missing or invalid required properties',
-		);
-
+	if (typeof track.id !== 'string' || !track.id.trim()) {
+		logDebug('Track validation failed: invalid or missing track.id');
 		return false;
 	}
 
-	if (typeof track.url === 'string' && !isValidUrl(track.url)) {
-		logDebug(
-			`Track validation failed: Invalid media URL format: ${track.url}`,
-		);
+	// 3. URL must be a non-empty string and valid
+	if (typeof track.url !== 'string' || !track.url.trim() || !isValidUrl(track.url)) {
+		logDebug('Track validation failed: invalid or missing track.url');
 		return false;
 	}
 
-	if (typeof track.artwork === 'string' && !isValidUrl(track.artwork)) {
-		logDebug(
-			`Track validation failed: Invalid artwork URL format: ${track.artwork}`,
-		);
+	// 4. Title must be a non-empty string
+	// noinspection SuspiciousTypeOfGuard
+	if (typeof track.title !== 'string' || !track.title.trim()) {
+		logDebug('Track validation failed: invalid or missing track.title');
 		return false;
 	}
 
+	// 5. Artwork URL must be a non-empty string and valid
+	if (typeof track.artwork !== 'string' || !track.artwork.trim() || !isValidUrl(track.artwork)) {
+		logDebug('Track validation failed: invalid or missing track.artwork');
+		return false;
+	}
+
+	// 6. Optional album and artist must be strings if provided
+	// noinspection SuspiciousTypeOfGuard
+	if (track.album !== undefined && typeof track.album !== 'string') {
+		logDebug('Track validation failed: invalid track.album');
+		return false;
+	}
+	// noinspection SuspiciousTypeOfGuard
+	if (track.artist !== undefined && typeof track.artist !== 'string') {
+		logDebug('Track validation failed: invalid track.artist');
+		return false;
+	}
+
+	// All validations passed
 	return true;
 }
 
-export function logDebug(...args: unknown[]) {
-	if (useInternalStore.getState().debug) {
-		console.log('~~~', ...args);
-	}
-}
-
 export function guardTrackPlaying(methodName: string): boolean {
-	const { trackPlaying } = useInternalStore.getState();
-	if (!trackPlaying) {
+	if (!useInternalStore.getState().trackPlaying) {
 		const errorMessage = `~~~ AudioPro: ${methodName} called but no track is playing or has been played.`;
 		console.error(errorMessage);
 		emitter.emit('AudioProEvent', {
@@ -105,4 +104,10 @@ export function guardTrackPlaying(methodName: string): boolean {
 		return false;
 	}
 	return true;
+}
+
+export function logDebug(...args: unknown[]) {
+	if (useInternalStore.getState().debug) {
+		console.log('~~~', ...args);
+	}
 }
