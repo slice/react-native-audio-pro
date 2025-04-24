@@ -229,7 +229,7 @@ export default function App() {
 				<View style={styles.stopRow}>
 					<TouchableOpacity onPress={() => setAutoPlay(!autoPlay)}>
 						<Text style={styles.optionText}>
-							autoPlay:{' '}
+							autoPlay: {/* eslint-disable-next-line react-native/no-inline-styles */}
 							<Text style={{ color: autoPlay ? '#90EE90' : '#FFA500' }}>
 								{autoPlay ? 'true' : 'false'}
 							</Text>
