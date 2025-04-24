@@ -11,25 +11,6 @@ jest.mock('../emitter', () => {
 	};
 });
 
-// Mock dependencies
-// @ts-expect-error accepted for test purposes
-const mockUpdateFromEvent = jest.fn();
-// @ts-expect-error accepted for test purposes
-let mockDebug = false;
-// @ts-expect-error accepted for test purposes
-let mockDebugIncludesProgress = false;
-
-// Mock useInternalStore
-jest.mock('../useInternalStore', () => ({
-	useInternalStore: {
-		getState: jest.fn().mockImplementation(() => ({
-			debug: mockDebug,
-			debugIncludesProgress: mockDebugIncludesProgress,
-			updateFromEvent: mockUpdateFromEvent,
-		})),
-	},
-}));
-
 // Mock logDebug
 jest.mock('../utils', () => ({
 	logDebug: jest.fn(),
@@ -38,26 +19,36 @@ jest.mock('../utils', () => ({
 // No imports needed
 
 describe('Emitter', () => {
+	let mockUpdateFromEvent: jest.Mock;
+	let mockDebug: boolean;
+	let mockDebugIncludesProgress: boolean;
+
 	beforeEach(() => {
-		// Reset mocks before each test
+		jest.resetModules();
 		jest.clearAllMocks();
+
+		mockUpdateFromEvent = jest.fn();
 		mockDebug = false;
 		mockDebugIncludesProgress = false;
+
+		jest.doMock('../useInternalStore', () => ({
+			useInternalStore: {
+				getState: jest.fn().mockImplementation(() => ({
+					debug: mockDebug,
+					debugIncludesProgress: mockDebugIncludesProgress,
+					updateFromEvent: mockUpdateFromEvent,
+				})),
+			},
+		}));
 	});
 
 	it('should add a listener for AudioProEvent', () => {
-		// Import the emitter module
 		const { emitter } = require('../emitter');
-
-		// Check that the emitter has an addListener method
 		expect(emitter.addListener).toBeDefined();
 	});
 
 	it('should be able to emit events', () => {
-		// Import the emitter module
 		const { emitter } = require('../emitter');
-
-		// Check that the emitter has an emit method
 		expect(emitter.emit).toBeDefined();
 	});
 });
