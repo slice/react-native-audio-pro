@@ -27,6 +27,7 @@ class AudioPro: RCTEventEmitter {
     private let EVENT_TYPE_PLAYBACK_SPEED_CHANGED = "PLAYBACK_SPEED_CHANGED"
 
     // States
+    private let STATE_IDLE = "IDLE"
     private let STATE_STOPPED = "STOPPED"
     private let STATE_LOADING = "LOADING"
     private let STATE_PLAYING = "PLAYING"
@@ -381,6 +382,38 @@ class AudioPro: RCTEventEmitter {
 
         // Update now playing info to reflect a stopped state but keep the artwork intact.
         updateNowPlayingInfo(time: 0, rate: 0)
+    }
+
+    /// Resets the player to IDLE state, fully tears down the player instance,
+    /// and removes all media sessions.
+    @objc(clear)
+    func clear() {
+        log("Clear called")
+        resetInternal(STATE_IDLE)
+    }
+
+    /// Shared internal function that performs the teardown and emits the correct state.
+    /// Used by both clear() and error transitions.
+    /// - Parameter finalState: The state to emit after resetting (IDLE or ERROR)
+    private func resetInternal(_ finalState: String) {
+        // Reset error state
+        isInErrorState = finalState != STATE_ERROR
+        // Reset last emitted state
+        lastEmittedState = ""
+        shouldBePlaying = false
+
+        // Stop playback
+        player?.pause()
+
+        // Clear track and stop timers
+        stopTimer()
+        currentTrack = nil
+
+        // Release resources and remove observers
+        cleanup(emitStateChange: false)
+
+        // Emit the final state
+        sendStateEvent(state: finalState, position: 0, duration: 0)
     }
 
     /// cleanup fully tears down the player instance and removes observers and remote controls.
@@ -744,9 +777,6 @@ class AudioPro: RCTEventEmitter {
             return
         }
 
-        // Set error state flag
-        isInErrorState = true
-
         if hasListeners {
             // Send the error payload
             let errorPayload: [String: Any] = [
@@ -754,30 +784,10 @@ class AudioPro: RCTEventEmitter {
                 "errorCode": GENERIC_ERROR_CODE
             ]
             sendEvent(type: EVENT_TYPE_PLAYBACK_ERROR, track: currentTrack, payload: errorPayload)
-
-            // Also send a state change to ERROR using sendStateEvent to ensure lastEmittedState is updated
-            let position = player?.currentTime().seconds.isNaN ?? true ? 0 : Int(player?.currentTime().seconds ?? 0) * 1000
-            let duration = player?.currentItem?.duration.seconds.isNaN ?? true ? 0 : Int(player?.currentItem?.duration.seconds ?? 0) * 1000
-            sendStateEvent(state: STATE_ERROR, position: position, duration: duration)
         }
 
-        // Store the current track before cleanup
-        let trackBeforeCleanup = currentTrack
-
-        // Don't call cleanup() which would emit STOPPED state
-        // Just stop playback and timers without changing state
-        stopPlaybackWithoutStateChange()
-
-        // Clear notification center controls when in ERROR state
-        DispatchQueue.main.async {
-            MPNowPlayingInfoCenter.default().nowPlayingInfo = [:]
-            UIApplication.shared.endReceivingRemoteControlEvents()
-        }
-        removeRemoteTransportControls()
-        isRemoteCommandCenterSetup = false
-
-        // Restore the track after cleanup (since cleanup sets it to nil)
-        currentTrack = trackBeforeCleanup
+        // Use the shared resetInternal function to handle the error state
+        resetInternal(STATE_ERROR)
     }
 
     private func setupRemoteTransportControls() {

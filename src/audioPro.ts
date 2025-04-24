@@ -3,12 +3,7 @@ import { Image, NativeModules } from 'react-native';
 import { emitter } from './emitter';
 import { useInternalStore } from './useInternalStore';
 import { guardTrackPlaying, logDebug, validateTrack } from './utils';
-import {
-	AudioProEventType,
-	AudioProState,
-	DEFAULT_CONFIG,
-	DEFAULT_SEEK_MS,
-} from './values';
+import { AudioProEventType, AudioProState, DEFAULT_CONFIG, DEFAULT_SEEK_MS } from './values';
 
 import type {
 	AudioProConfigureOptions,
@@ -21,15 +16,8 @@ const NativeAudioPro = NativeModules.AudioPro;
 
 function isValidPlayerStateForOperation(operation: string): boolean {
 	const { playerState } = useInternalStore.getState();
-	if (
-		playerState === AudioProState.STOPPED ||
-		playerState === AudioProState.ERROR
-	) {
-		logDebug(
-			`AudioPro: ${operation} ignored - player in`,
-			playerState,
-			'state',
-		);
+	if (playerState === AudioProState.STOPPED || playerState === AudioProState.ERROR) {
+		logDebug(`AudioPro: ${operation} ignored - player in`, playerState, 'state');
 		return false;
 	}
 	return true;
@@ -45,28 +33,32 @@ export const AudioPro = {
 		logDebug('AudioPro: configure()', options);
 	},
 
+	clear() {
+		logDebug('AudioPro: clear()');
+		const { error, setError, setTrackPlaying } = useInternalStore.getState();
+		if (error) {
+			setError(null);
+		}
+		setTrackPlaying(null);
+		NativeAudioPro.clear();
+	},
+
 	play(track: AudioProTrack, options?: AudioProPlayOptions) {
 		const playOptions: AudioProPlayOptions = options || {};
 		logDebug('AudioPro: play()', track, 'options:', options);
 
 		const resolvedTrack = { ...track };
 
-		// Resolve artwork if it's a number (require result)
+		// Resolve artwork if it's a number
 		if (typeof track.artwork === 'number') {
 			resolvedTrack.artwork = Image.resolveAssetSource(track.artwork).uri;
-			logDebug(
-				'AudioPro: Resolved require() artwork to URI',
-				resolvedTrack.artwork,
-			);
+			logDebug('AudioPro: Resolved require() artwork to URI', resolvedTrack.artwork);
 		}
 
-		// Resolve URL if it's a number (require result)
+		// Resolve URL if it's a number
 		if (typeof track.url === 'number') {
 			resolvedTrack.url = Image.resolveAssetSource(track.url).uri;
-			logDebug(
-				'AudioPro: Resolved require() audio URL to URI',
-				resolvedTrack.url,
-			);
+			logDebug('AudioPro: Resolved require() audio URL to URI', resolvedTrack.url);
 		}
 
 		if (!validateTrack(resolvedTrack)) {
@@ -84,13 +76,8 @@ export const AudioPro = {
 		}
 
 		// Clear errors and set track as playing
-		const {
-			error,
-			setError,
-			configureOptions,
-			playbackSpeed,
-			setTrackPlaying,
-		} = useInternalStore.getState();
+		const { error, setError, configureOptions, playbackSpeed, setTrackPlaying } =
+			useInternalStore.getState();
 		setTrackPlaying(resolvedTrack);
 		if (error) {
 			setError(null);
@@ -167,13 +154,11 @@ export const AudioPro = {
 	},
 
 	getState() {
-		const { playerState } = useInternalStore.getState();
-		return playerState;
+		return useInternalStore.getState().playerState;
 	},
 
 	getPlayingTrack() {
-		const { trackPlaying } = useInternalStore.getState();
-		return trackPlaying;
+		return useInternalStore.getState().trackPlaying;
 	},
 
 	setPlaybackSpeed(speed: number) {
@@ -189,23 +174,16 @@ export const AudioPro = {
 		setPlaybackSpeed(validatedSpeed);
 
 		if (trackPlaying) {
-			if (
-				!isValidPlayerStateForOperation(
-					'setPlaybackSpeed() native call',
-				)
-			)
-				return;
+			if (!isValidPlayerStateForOperation('setPlaybackSpeed() native call')) return;
 			NativeAudioPro.setPlaybackSpeed(validatedSpeed);
 		}
 	},
 
 	getPlaybackSpeed() {
-		const { playbackSpeed } = useInternalStore.getState();
-		return playbackSpeed;
+		return useInternalStore.getState().playbackSpeed;
 	},
 
 	getError() {
-		const { error } = useInternalStore.getState();
-		return error;
+		return useInternalStore.getState().error;
 	},
 };

@@ -8,6 +8,7 @@ export enum AudioProContentType {
 }
 
 export enum AudioProState {
+	IDLE = 'IDLE',
 	STOPPED = 'STOPPED',
 	LOADING = 'LOADING',
 	PLAYING = 'PLAYING',

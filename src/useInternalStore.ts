@@ -29,7 +29,7 @@ export interface AudioProStore {
 }
 
 export const useInternalStore = create<AudioProStore>((set, get) => ({
-	playerState: AudioProState.STOPPED,
+	playerState: AudioProState.IDLE,
 	position: 0,
 	duration: 0,
 	playbackSpeed: 1.0,
@@ -39,29 +39,31 @@ export const useInternalStore = create<AudioProStore>((set, get) => ({
 	configureOptions: { ...DEFAULT_CONFIG },
 	error: null,
 	setDebug: (debug) => set({ debug }),
-	setDebugIncludesProgress: (includeProgress) =>
-		set({ debugIncludesProgress: includeProgress }),
+	setDebugIncludesProgress: (includeProgress) => set({ debugIncludesProgress: includeProgress }),
 	setTrackPlaying: (track) => set({ trackPlaying: track }),
 	setConfigureOptions: (options) => set({ configureOptions: options }),
 	setPlaybackSpeed: (speed) => set({ playbackSpeed: speed }),
 	setError: (error) => set({ error }),
 	updateFromEvent: (event) => {
+		// This event handler is highly optimized to minimize state updates:
+		// 1. Creates a single updates object to batch all changes
+		// 2. Performs strict equality checks before updating any value
+		// 3. Skips updates for command events entirely
+		// 4. Only updates track if specific properties have changed
+		// 5. Performs a final check to ensure an update object is not empty
+		// This ensures the minimal number of re-renders and state changes
+
 		const updates: Partial<AudioProStore> = {};
 		const { type, track, payload } = event;
 
-		// Command events don't update state or require track
-		if (
-			type === AudioProEventType.REMOTE_NEXT ||
-			type === AudioProEventType.REMOTE_PREV
-		) {
-			return; // Command events don't update state
+		// Command events don't update the state or require track
+		if (type === AudioProEventType.REMOTE_NEXT || type === AudioProEventType.REMOTE_PREV) {
+			return; // Command events don't update the state
 		}
 
-		// For non-command events, track should be included
+		// For non-command events, a track should be included
 		if (track === undefined && type !== AudioProEventType.PLAYBACK_ERROR) {
-			console.warn(
-				`AudioPro: Event ${type} missing required track property`,
-			);
+			console.warn(`AudioPro: Event ${type} missing required track property`);
 		}
 
 		// Handle different event types
@@ -71,10 +73,7 @@ export const useInternalStore = create<AudioProStore>((set, get) => ({
 					updates.playerState = payload.state as AudioProState;
 
 					// Clear error when transitioning to a non-ERROR state
-					if (
-						payload.state !== AudioProState.ERROR &&
-						get().error !== null
-					) {
+					if (payload.state !== AudioProState.ERROR && get().error !== null) {
 						updates.error = null;
 					}
 				}
@@ -99,20 +98,14 @@ export const useInternalStore = create<AudioProStore>((set, get) => ({
 		}
 
 		// Update position and duration if provided in the payload
-		if (
-			payload?.position !== undefined &&
-			payload.position !== get().position
-		) {
+		if (payload?.position !== undefined && payload.position !== get().position) {
 			updates.position = payload.position;
 		}
-		if (
-			payload?.duration !== undefined &&
-			payload.duration !== get().duration
-		) {
+		if (payload?.duration !== undefined && payload.duration !== get().duration) {
 			updates.duration = payload.duration;
 		}
 
-		// Update track if it has changed and we're not in an error state
+		// Update track if it has changed, and we're not in an error state
 		// Never clear trackPlaying on error
 		if (track) {
 			const currentTrack = get().trackPlaying;
@@ -127,17 +120,14 @@ export const useInternalStore = create<AudioProStore>((set, get) => ({
 			) {
 				updates.trackPlaying = track;
 			}
-		} else if (
-			track === null &&
-			type !== AudioProEventType.PLAYBACK_ERROR
-		) {
+		} else if (track === null && type !== AudioProEventType.PLAYBACK_ERROR) {
 			// Only clear trackPlaying if explicitly set to null and not an error event
 			if (get().trackPlaying !== null) {
 				updates.trackPlaying = null;
 			}
 		}
 
-		// Only update state if there are changes
+		// Only update the state if there are changes
 		if (Object.keys(updates).length > 0) {
 			set(updates);
 		}

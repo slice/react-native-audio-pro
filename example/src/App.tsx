@@ -26,8 +26,7 @@ export default function App() {
 	// Use the current track index from the player service
 	const [currentIndex, setLocalIndex] = useState(getCurrentTrackIndex());
 	const currentTrack = playlist[currentIndex];
-	const { position, duration, state, playingTrack, playbackSpeed, error } =
-		useAudioPro();
+	const { position, duration, state, playingTrack, playbackSpeed, error } = useAudioPro();
 
 	// Sync the local index with the player service
 	useEffect(() => {
@@ -84,6 +83,11 @@ export default function App() {
 		setNeedsTrackLoad(true);
 	};
 
+	const handleClear = () => {
+		AudioPro.clear();
+		setNeedsTrackLoad(true);
+	};
+
 	const handleSeek = (value: number) => {
 		AudioPro.seekTo(value);
 	};
@@ -102,17 +106,13 @@ export default function App() {
 			AudioPro.seekTo(0);
 		} else {
 			// Otherwise, go to previous track
-			const newIndex =
-				currentIndex > 0 ? currentIndex - 1 : playlist.length - 1;
+			const newIndex = currentIndex > 0 ? currentIndex - 1 : playlist.length - 1;
 
 			// Update the track index
 			updateCurrentIndex(newIndex);
 
 			// If we're currently playing or paused (but loaded), immediately load the new track
-			if (
-				state === AudioProState.PLAYING ||
-				state === AudioProState.PAUSED
-			) {
+			if (state === AudioProState.PLAYING || state === AudioProState.PAUSED) {
 				AudioPro.play(playlist[newIndex] as AudioProTrack, {
 					autoPlay,
 				});
@@ -203,9 +203,7 @@ export default function App() {
 					) : (
 						<TouchableOpacity onPress={handlePlayPause}>
 							<Text style={styles.playPauseText}>
-								{state === AudioProState.PLAYING
-									? 'Pause'
-									: 'Play'}
+								{state === AudioProState.PLAYING ? 'Pause' : 'Play'}
 							</Text>
 						</TouchableOpacity>
 					)}
@@ -234,13 +232,12 @@ export default function App() {
 					<TouchableOpacity onPress={handleStop}>
 						<Text style={styles.controlText}>Stop</Text>
 					</TouchableOpacity>
+					<TouchableOpacity onPress={handleClear}>
+						<Text style={styles.controlText}>Clear</Text>
+					</TouchableOpacity>
 				</View>
 				<Text style={styles.stateText}>State: {state}</Text>
-				{playingTrack && (
-					<Text style={styles.stateText}>
-						Track ID: {playingTrack.id}
-					</Text>
-				)}
+				{playingTrack && <Text style={styles.stateText}>Track ID: {playingTrack.id}</Text>}
 
 				<View style={styles.optionRow}>
 					<Text style={styles.optionText}>AutoPlay:</Text>
@@ -255,16 +252,9 @@ export default function App() {
 				{/* Error display and handling */}
 				{error && (
 					<View style={styles.errorContainer}>
-						<Text style={styles.errorText}>
-							Error: {error.error}
-						</Text>
-						<TouchableOpacity
-							onPress={showErrorDetails}
-							style={styles.errorButton}
-						>
-							<Text style={styles.errorButtonText}>
-								Show Details
-							</Text>
+						<Text style={styles.errorText}>Error: {error.error}</Text>
+						<TouchableOpacity onPress={showErrorDetails} style={styles.errorButton}>
+							<Text style={styles.errorButtonText}>Show Details</Text>
 						</TouchableOpacity>
 					</View>
 				)}

@@ -1,8 +1,4 @@
-import {
-	AudioProContentType,
-	AudioProEventType,
-	AudioProState,
-} from './values';
+import { AudioProContentType, AudioProEventType, AudioProState } from './values';
 
 // ==============================
 // TRACK

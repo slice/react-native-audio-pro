@@ -16,8 +16,4 @@ export type {
 	AudioProPlaybackSpeedChangedPayload,
 } from './types';
 
-export {
-	AudioProState,
-	AudioProEventType,
-	AudioProContentType,
-} from './values';
+export { AudioProState, AudioProEventType, AudioProContentType } from './values';

@@ -247,6 +247,50 @@ object AudioProController {
 		stopPlaybackService()
 	}
 
+	/**
+	 * Resets the player to IDLE state, fully tears down the player instance,
+	 * and removes all media sessions.
+	 */
+	fun clear() {
+		resetInternal(AudioProModule.STATE_IDLE)
+	}
+
+	/**
+	 * Shared internal function that performs the teardown and emits the correct state.
+	 * Used by both clear() and error transitions.
+	 */
+	private fun resetInternal(finalState: String) {
+		// Reset error state
+		isInErrorState = finalState != AudioProModule.STATE_ERROR
+		// Reset last emitted state
+		lastEmittedState = ""
+
+		// Stop playback
+		runOnUiThread {
+			detachPlayerListener()
+			browser?.stop()
+		}
+
+		// Clear track and stop timers
+		currentTrack = null
+		stopProgressTimer()
+
+		// Cancel any pending seek operations
+		cancelSeekTimeout()
+		pendingSeek = false
+		pendingSeekPosition = 0
+		pendingSeekDuration = 0
+
+		// Release resources
+		release()
+
+		// Stop the service to remove notification
+		stopPlaybackService()
+
+		// Emit the final state
+		emitState(finalState, 0L, 0L)
+	}
+
 	fun release() {
 		runOnUiThread {
 			if (::browserFuture.isInitialized) {
@@ -490,12 +534,11 @@ object AudioProController {
 				}
 
 				val message = error.message ?: "Unknown error"
-				isInErrorState = true
+				// Emit the error event before resetting
 				emitError(message, 500)
-				emitState(AudioProModule.STATE_ERROR, 0L, 0L)
 
-				// Remove notification when in ERROR state
-				stopPlaybackService()
+				// Use the shared resetInternal function to handle the error state
+				resetInternal(AudioProModule.STATE_ERROR)
 			}
 		}
 

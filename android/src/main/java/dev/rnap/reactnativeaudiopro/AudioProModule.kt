@@ -18,6 +18,7 @@ class AudioProModule(private val reactContext: ReactApplicationContext) :
 
 		const val EVENT_NAME = "AudioProEvent"
 
+		const val STATE_IDLE = "IDLE"
 		const val STATE_PLAYING = "PLAYING"
 		const val STATE_PAUSED = "PAUSED"
 		const val STATE_STOPPED = "STOPPED"
@@ -80,6 +81,11 @@ class AudioProModule(private val reactContext: ReactApplicationContext) :
 	@ReactMethod
 	fun setPlaybackSpeed(speed: Double) {
 		AudioProController.setPlaybackSpeed(speed.toFloat())
+	}
+
+	@ReactMethod
+	fun clear() {
+		AudioProController.clear()
 	}
 
 	override fun getName(): String {
