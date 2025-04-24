@@ -2,6 +2,16 @@
 
 Modern, background-capable audio playback for React Native — built for podcasts, audiobooks, live streams, and long-form media. Works out of the box with background playback, lock screen controls, and clean hooks-based state. Under the hood: Android uses Media3 (not old-school ExoPlayer), giving you up-to-date media session support without any of the legacy baggage. iOS uses AVFoundation, Apple's native audio engine for professional-grade media playback. Supports static remote files, live streaming URLs, and local files (for both audio and artwork) across all platforms.
 
+> ⚠️ **Warning: Rapid API Evolution**
+>
+> This is a new and rapidly evolving library. The API is still being refined, and we are making frequent breaking changes as we lock in core behavior.
+>
+> Versions 9 is expected to become the longer-term stable foundation, so we recommend upgrading to and building against the latest version going forward.
+>
+> If you're using or testing this library, **always refer to the README for the specific [release](https://github.com/evergrace-co/react-native-audio-pro/releases) you're installing.**
+>
+> For current update status and context, see [Pinned Issue: API Stability Notice](https://github.com/evergrace-co/react-native-audio-pro/issues/18)
+
 [![npm version](https://img.shields.io/npm/v/react-native-audio-pro?logo=npm&logoColor=white&labelColor=grey&color=blue)](https://www.npmjs.com/package/react-native-audio-pro)
 [![website](https://img.shields.io/badge/website-rnap.dev-grey?logo=google-chrome&logoColor=white&color=blue)](https://rnap.dev)
 [![GitHub](https://img.shields.io/badge/evergrace--co-react--native--audio--pro-grey?logo=github&logoColor=white&labelColor=grey&color=blue)](https://github.com/evergrace-co/react-native-audio-pro)
