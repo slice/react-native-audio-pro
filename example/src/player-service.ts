@@ -1,6 +1,7 @@
 import {
 	AudioProEventType,
 	AudioProContentType,
+	AudioProState,
 	type AudioProEvent,
 	type AudioProTrack,
 } from 'react-native-audio-pro';
@@ -47,7 +48,7 @@ function playNextTrack(): void {
 	if (playlist.length === 0) return;
 
 	// Store current state before changing tracks
-	const isPlaying = AudioPro.getState() === 'PLAYING';
+	const isPlaying = AudioPro.getState() === AudioProState.PLAYING;
 
 	currentIndex = (currentIndex + 1) % playlist.length;
 	const nextTrack = playlist[currentIndex];
@@ -62,7 +63,7 @@ function playPreviousTrack(): void {
 	if (playlist.length === 0) return;
 
 	// Store current state before changing tracks
-	const isPlaying = AudioPro.getState() === 'PLAYING';
+	const isPlaying = AudioPro.getState() === AudioProState.PLAYING;
 
 	currentIndex = currentIndex > 0 ? currentIndex - 1 : playlist.length - 1;
 	const prevTrack = playlist[currentIndex];
