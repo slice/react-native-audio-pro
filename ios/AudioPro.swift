@@ -681,7 +681,6 @@ class AudioPro: RCTEventEmitter {
         lastEmittedState = ""
         shouldBePlaying = false
 
-        player?.pause()
         player?.seek(to: .zero)
         stopTimer()
 
