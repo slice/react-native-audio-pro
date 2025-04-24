@@ -35,7 +35,7 @@ export const styles = StyleSheet.create({
 	artwork: {
 		width: 360 * artworkScale, // Increased by 20%
 		height: 360 * artworkScale, // Increased by 20%
-		marginBottom: needsSmallerUI ? 8 : 15,
+		marginBottom: needsSmallerUI ? 12 : 20,
 		borderRadius: 15,
 	},
 	title: {
@@ -47,7 +47,7 @@ export const styles = StyleSheet.create({
 	artist: {
 		fontSize: 18 * scale,
 		color: '#ccc',
-		marginBottom: needsSmallerUI ? 8 : 15,
+		marginBottom: needsSmallerUI ? 12 : 20,
 	},
 
 	trackPosition: {
@@ -59,7 +59,8 @@ export const styles = StyleSheet.create({
 		flexDirection: 'row',
 		alignItems: 'center',
 		width: '100%',
-		marginBottom: needsSmallerUI ? 8 : 15,
+		marginBottom: needsSmallerUI ? 12 : 20,
+		maxWidth: 340,
 	},
 	slider: {
 		flex: 1,
@@ -74,21 +75,25 @@ export const styles = StyleSheet.create({
 	controlsRow: {
 		flexDirection: 'row',
 		justifyContent: 'space-around',
+		alignItems: 'center',
 		width: '100%',
-		marginBottom: needsSmallerUI ? 8 : 15,
+		marginBottom: needsSmallerUI ? 12 : 20,
+		maxWidth: 300,
 	},
 	seekRow: {
 		flexDirection: 'row',
 		justifyContent: 'space-around',
 		width: needsSmallerUI ? '75%' : '60%',
-		marginBottom: needsSmallerUI ? 8 : 15,
+		marginBottom: needsSmallerUI ? 12 : 20,
+		maxWidth: 220,
 	},
 	speedRow: {
 		flexDirection: 'row',
 		justifyContent: 'space-around',
 		alignItems: 'center',
 		width: needsSmallerUI ? '90%' : '80%',
-		marginBottom: needsSmallerUI ? 8 : 15,
+		marginBottom: needsSmallerUI ? 12 : 20,
+		maxWidth: 100,
 	},
 	speedText: {
 		fontSize: 18 * scale,
@@ -98,7 +103,10 @@ export const styles = StyleSheet.create({
 		textAlign: 'center',
 	},
 	stopRow: {
-		marginBottom: needsSmallerUI ? 8 : 15,
+		marginBottom: needsSmallerUI ? 12 : 20,
+		flexDirection: 'row',
+		justifyContent: 'space-around',
+		alignItems: 'center',
 	},
 	controlText: {
 		fontSize: 18 * scale,
@@ -117,8 +125,8 @@ export const styles = StyleSheet.create({
 		alignItems: 'center',
 	},
 	stateText: {
-		fontSize: 12 * scale,
-		color: '#ccc',
+		fontSize: 16 * scale,
+		color: '#fff',
 		marginBottom: needsSmallerUI ? 2 : 4,
 	},
 	optionRow: {
@@ -126,18 +134,18 @@ export const styles = StyleSheet.create({
 		alignItems: 'center',
 		justifyContent: 'space-between',
 		width: needsSmallerUI ? '60%' : '50%',
-		marginBottom: needsSmallerUI ? 8 : 15,
+		marginBottom: needsSmallerUI ? 12 : 20,
 		paddingHorizontal: 10,
 	},
 	optionText: {
 		fontSize: 16 * scale,
-		color: '#ccc',
+		color: '#fff',
 		marginRight: 10,
 	},
 	// Error display styles
 	errorContainer: {
 		marginHorizontal: 20,
-		marginBottom: needsSmallerUI ? 8 : 15,
+		marginBottom: needsSmallerUI ? 12 : 20,
 		padding: needsSmallerUI ? 10 : 15,
 		backgroundColor: '#500',
 		borderRadius: 8,
@@ -164,7 +172,7 @@ export const styles = StyleSheet.create({
 	// Settings styles
 	settingsContainer: {
 		marginHorizontal: needsSmallerUI ? 10 : 20,
-		marginBottom: needsSmallerUI ? 8 : 15,
+		marginBottom: needsSmallerUI ? 12 : 20,
 		paddingVertical: needsSmallerUI ? 10 : 15,
 		paddingHorizontal: needsSmallerUI ? 15 : 20,
 		backgroundColor: '#333',

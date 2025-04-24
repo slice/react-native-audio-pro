@@ -1,15 +1,13 @@
 import { useEffect, useState } from 'react';
 
 import {
+	ActivityIndicator,
 	Image,
 	SafeAreaView,
 	ScrollView,
 	Text,
 	TouchableOpacity,
 	View,
-	Alert,
-	Switch,
-	ActivityIndicator,
 } from 'react-native';
 
 import Slider from '@react-native-community/slider';
@@ -18,12 +16,11 @@ import { type AudioProTrack, useAudioPro } from 'react-native-audio-pro';
 import { getCurrentTrackIndex, setCurrentTrackIndex } from './player-service';
 import { playlist } from './playlist';
 import { styles } from './styles';
-import { formatTime } from './utils';
+import { formatTime, getStateColor } from './utils';
 import { AudioPro } from '../../src/audioPro';
 import { AudioProState } from '../../src/values';
 
 export default function App() {
-	// Use the current track index from the player service
 	const [currentIndex, setLocalIndex] = useState(getCurrentTrackIndex());
 	const currentTrack = playlist[currentIndex];
 	const { position, duration, state, playingTrack, playbackSpeed, error } = useAudioPro();
@@ -93,11 +90,11 @@ export default function App() {
 	};
 
 	const handleSeekBack = () => {
-		AudioPro.seekBack(10000); // 10 seconds in milliseconds
+		AudioPro.seekBack();
 	};
 
 	const handleSeekForward = () => {
-		AudioPro.seekForward(30000); // 30 seconds in milliseconds
+		AudioPro.seekForward();
 	};
 
 	const handlePrevious = () => {
@@ -125,10 +122,7 @@ export default function App() {
 	};
 
 	const handleNext = () => {
-		// Calculate the new index
 		const newIndex = (currentIndex + 1) % playlist.length;
-
-		// Update the track index
 		updateCurrentIndex(newIndex);
 
 		// If we're currently playing or paused (but loaded), immediately load the new track
@@ -149,15 +143,6 @@ export default function App() {
 	const handleDecreaseSpeed = () => {
 		const newSpeed = Math.max(0.25, playbackSpeed - 0.25);
 		AudioPro.setPlaybackSpeed(newSpeed);
-	};
-
-	const showErrorDetails = () => {
-		if (error) {
-			Alert.alert(
-				'Playback Error',
-				`Error: ${error.error}\nCode: ${error.errorCode || 'N/A'}`,
-			);
-		}
 	};
 
 	return (
@@ -194,7 +179,7 @@ export default function App() {
 				</View>
 				<View style={styles.controlsRow}>
 					<TouchableOpacity onPress={handlePrevious}>
-						<Text style={styles.controlText}>Prev</Text>
+						<Text style={styles.controlText}>prev</Text>
 					</TouchableOpacity>
 					{state === AudioProState.LOADING ? (
 						<View style={styles.loadingContainer}>
@@ -203,17 +188,21 @@ export default function App() {
 					) : (
 						<TouchableOpacity onPress={handlePlayPause}>
 							<Text style={styles.playPauseText}>
-								{state === AudioProState.PLAYING ? 'Pause' : 'Play'}
+								{state === AudioProState.PLAYING
+									? 'pause()'
+									: state === AudioProState.PAUSED && !needsTrackLoad
+										? 'resume()'
+										: 'play(track)'}
 							</Text>
 						</TouchableOpacity>
 					)}
 					<TouchableOpacity onPress={handleNext}>
-						<Text style={styles.controlText}>Next</Text>
+						<Text style={styles.controlText}>next</Text>
 					</TouchableOpacity>
 				</View>
 				<View style={styles.seekRow}>
 					<TouchableOpacity onPress={handleSeekBack}>
-						<Text style={styles.controlText}>-10s</Text>
+						<Text style={styles.controlText}>-30s</Text>
 					</TouchableOpacity>
 					<TouchableOpacity onPress={handleSeekForward}>
 						<Text style={styles.controlText}>+30s</Text>
@@ -230,32 +219,30 @@ export default function App() {
 				</View>
 				<View style={styles.stopRow}>
 					<TouchableOpacity onPress={handleStop}>
-						<Text style={styles.controlText}>Stop</Text>
+						<Text style={styles.controlText}>stop()</Text>
 					</TouchableOpacity>
 					<TouchableOpacity onPress={handleClear}>
-						<Text style={styles.controlText}>Clear</Text>
+						<Text style={styles.controlText}>clear()</Text>
 					</TouchableOpacity>
 				</View>
-				<Text style={styles.stateText}>State: {state}</Text>
-				{playingTrack && <Text style={styles.stateText}>Track ID: {playingTrack.id}</Text>}
 
-				<View style={styles.optionRow}>
-					<Text style={styles.optionText}>AutoPlay:</Text>
-					<Switch
-						value={autoPlay}
-						onValueChange={setAutoPlay}
-						trackColor={{ false: '#767577', true: '#81b0ff' }}
-						thumbColor={autoPlay ? '#1EB1FC' : '#f4f3f4'}
-					/>
+				<View style={styles.stopRow}>
+					<TouchableOpacity onPress={() => setAutoPlay(!autoPlay)}>
+						<Text style={styles.optionText}>
+							autoPlay:{' '}
+							<Text style={{ color: autoPlay ? '#90EE90' : '#FFA500' }}>
+								{autoPlay ? 'true' : 'false'}
+							</Text>
+						</Text>
+					</TouchableOpacity>
+					<Text style={styles.stateText}>
+						state: <Text style={{ color: getStateColor(state) }}>{state}</Text>
+					</Text>
 				</View>
 
-				{/* Error display and handling */}
 				{error && (
 					<View style={styles.errorContainer}>
 						<Text style={styles.errorText}>Error: {error.error}</Text>
-						<TouchableOpacity onPress={showErrorDetails} style={styles.errorButton}>
-							<Text style={styles.errorButtonText}>Show Details</Text>
-						</TouchableOpacity>
 					</View>
 				)}
 			</ScrollView>
