@@ -12,6 +12,12 @@ The tests are organized into several categories:
 4. **AudioProMediaLibrarySessionCallbackTest**: Tests for the AudioProMediaLibrarySessionCallback to ensure it handles commands correctly.
 5. **AudioProModuleTest**: Tests for the AudioProModule to ensure it correctly delegates to the AudioProController.
 6. **AudioProEdgeCasesTest**: Tests for edge cases and error handling.
+7. **AudioProStateTransitionTest**: Tests for state transitions as defined in the logic.md contract.
+8. **AudioProRemoteControlTest**: Tests for lock screen controls and remote events.
+9. **AudioProBufferingTest**: Tests for buffering behavior.
+10. **AudioProProgressTest**: Tests for progress events.
+11. **AudioProControlTest**: Tests for volume and playback speed control.
+12. **AudioProMetadataTest**: Tests for track metadata handling.
 
 ## Test Utilities
 
@@ -36,6 +42,11 @@ The tests cover the following areas:
 - Media session callback behavior
 - Module initialization and lifecycle
 - Controller functionality
+- Buffering behavior
+- Progress events
+- Remote control and lock screen interactions
+- Volume and playback speed control
+- Track metadata handling
 
 ## Adding New Tests
 

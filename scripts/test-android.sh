@@ -34,6 +34,11 @@ if [ $? -eq 0 ]; then
     echo "- Media session callback behavior"
     echo "- Module initialization and lifecycle"
     echo "- Controller functionality"
+    echo "- Buffering behavior"
+    echo "- Progress events"
+    echo "- Remote control and lock screen interactions"
+    echo "- Volume and playback speed control"
+    echo "- Track metadata handling"
 
     echo "\nTo see detailed test results, check the build/reports/tests directory."
 
