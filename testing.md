@@ -30,11 +30,16 @@ Android tests are located in the `android/src/test` directory, following the sta
 
 ```
 android/src/test/java/dev/rnap/reactnativeaudiopro/AudioProSanityTest.kt
+android/src/test/java/dev/rnap/reactnativeaudiopro/AudioProLogicTest.kt
 ```
 
-This is a simple JUnit test that verifies basic functionality.
+The `AudioProSanityTest.kt` file contains simple JUnit tests that verify basic functionality.
+
+The `AudioProLogicTest.kt` file contains tests that verify the audio player logic adheres to the contract defined in `logic.md`. These tests focus on state transitions and event emissions, ensuring that the player behaves as expected in various scenarios.
 
 The Android tests use a separate `build.gradle` file located at `android/src/test/build.gradle` to avoid dependencies on React Native. This allows the tests to run in isolation without needing to build the entire project.
+
+The `build.gradle` file is configured to find the test source files in the `java` directory and includes detailed test logging to show the results of each test when running `yarn test:android`.
 
 ### iOS Tests
 
@@ -42,9 +47,12 @@ iOS tests are located in the `ios/Tests` directory:
 
 ```
 ios/Tests/AudioProSanityTests.swift
+ios/Tests/AudioProLogicTests.swift
 ```
 
-This is a simple XCTest that verifies basic functionality.
+The `AudioProSanityTests.swift` file contains simple XCTests that verify basic functionality.
+
+The `AudioProLogicTests.swift` file contains tests that verify the audio player logic adheres to the contract defined in `logic.md`. These tests focus on state transitions and event emissions, ensuring that the player behaves as expected in various scenarios.
 
 ## Running Tests
 
@@ -104,11 +112,14 @@ Note: The Android tests use a separate build configuration to avoid dependencies
 - **Error: swift command not found**: Make sure Swift is installed on your system.
 - **Error: XCTest not found**: Make sure XCTest is installed with your Swift installation.
 
-## Future Improvements
+## Current Status and Future Improvements
 
-This is just the starting point for native testing. Future improvements could include:
+The project now includes:
+- Basic sanity tests for both Android and iOS
+- Comprehensive tests for the audio player logic that verify adherence to the contract defined in `logic.md`
 
-- Adding more comprehensive tests for the audio playback functionality
+Future improvements could include:
 - Setting up code coverage reporting
 - Integrating with CI/CD pipelines
 - Adding UI tests for the native components
+- Adding more integration tests that test the actual audio playback functionality with real audio files
