@@ -16,7 +16,7 @@ const NativeAudioPro = NativeModules.AudioPro;
 
 function isValidPlayerStateForOperation(operation: string): boolean {
 	const { playerState } = useInternalStore.getState();
-	if (playerState === AudioProState.STOPPED || playerState === AudioProState.ERROR) {
+	if (playerState === AudioProState.IDLE || playerState === AudioProState.ERROR) {
 		logDebug(`AudioPro: ${operation} ignored - player in`, playerState, 'state');
 		return false;
 	}

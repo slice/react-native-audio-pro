@@ -99,18 +99,18 @@ class AudioProModule(private val reactContext: ReactApplicationContext) :
 
 	override fun onHostDestroy() {
 		// App is being destroyed
-		Log.d("AudioProModule", "App is being destroyed, stopping playback")
+		Log.d("AudioProModule", "App is being destroyed, clearing playback")
 
-		// Stop playback and service using the central method
-		AudioProController.stop()
+		// Clear playback and service using the central method
+		AudioProController.clear()
 	}
 
 	override fun onCatalystInstanceDestroy() {
 		// React Native bridge is being destroyed
-		Log.d("AudioProModule", "React Native bridge is being destroyed, stopping playback")
+		Log.d("AudioProModule", "React Native bridge is being destroyed, clearing playback")
 
-		// Stop playback and service using the central method
-		AudioProController.stop()
+		// Clear playback and service using the central method
+		AudioProController.clear()
 
 		// Remove lifecycle listener
 		try {
