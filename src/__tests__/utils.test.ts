@@ -47,6 +47,7 @@ const originalConsole = {
 import {
 	validateTrack,
 	isValidUrl,
+	normalizeFilePath,
 	normalizeVolume,
 	resolveAssetSource,
 	guardTrackPlaying,
@@ -185,6 +186,31 @@ describe('Utils', () => {
 			} as AudioProTrack;
 
 			expect(validateTrack(invalidTrack)).toBe(false);
+		});
+	});
+
+	describe('normalizeFilePath', () => {
+		it('should add file:// prefix to local paths', () => {
+			expect(normalizeFilePath('/data/user/0/com.example.app/files/abc.mp3')).toBe(
+				'file:///data/user/0/com.example.app/files/abc.mp3',
+			);
+		});
+
+		it('should not modify paths that already have file:// prefix', () => {
+			const path = 'file:///data/user/0/com.example.app/files/abc.mp3';
+			expect(normalizeFilePath(path)).toBe(path);
+		});
+
+		it('should not modify http/https URLs', () => {
+			const httpPath = 'http://example.com/audio.mp3';
+			const httpsPath = 'https://example.com/audio.mp3';
+			expect(normalizeFilePath(httpPath)).toBe(httpPath);
+			expect(normalizeFilePath(httpsPath)).toBe(httpsPath);
+		});
+
+		it('should not modify relative paths', () => {
+			const relativePath = 'audio/music.mp3';
+			expect(normalizeFilePath(relativePath)).toBe(relativePath);
 		});
 	});
 

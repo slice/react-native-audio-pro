@@ -7,6 +7,25 @@ import { AudioProEventType } from './values';
 import type { AudioProTrack } from './types';
 
 /**
+ * Normalizes a file path to ensure it has the file:// prefix if it's a local path
+ *
+ * @param path - The path to normalize
+ * @returns The normalized path with file:// prefix if needed
+ */
+export function normalizeFilePath(path: string): string {
+	if (
+		typeof path === 'string' &&
+		path.startsWith('/') &&
+		!path.startsWith('file://') &&
+		!path.startsWith('http://') &&
+		!path.startsWith('https://')
+	) {
+		return `file://${path}`;
+	}
+	return path;
+}
+
+/**
  * A simplified URL validation function that doesn't rely on the URL constructor.
  * It performs basic checks on the URL string to determine if it's valid.
  */

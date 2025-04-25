@@ -28,6 +28,7 @@ jest.mock('../utils', () => ({
 	logDebug: jest.fn(),
 	validateTrack: jest.fn().mockReturnValue(true),
 	guardTrackPlaying: jest.fn().mockReturnValue(true),
+	normalizeFilePath: jest.fn().mockImplementation((path) => path),
 	normalizeVolume: jest.fn().mockImplementation((volume) => {
 		// Simple mock implementation that matches our real function
 		if (volume === 0 || Math.abs(volume) < 0.001) return 0;

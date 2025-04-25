@@ -206,8 +206,12 @@ object AudioProController {
 			metadataBuilder.setArtworkUri(artwork)
 		}
 
+		// Parse the URL string into a Uri object to properly handle all URI schemes including file://
+		val uri = android.net.Uri.parse(url)
+		log("Parsed URI: $uri, scheme: ${uri.scheme}")
+
 		val mediaItem = MediaItem.Builder()
-			.setUri(url)
+			.setUri(uri)
 			.setMediaId("custom_track_1")
 			.setMediaMetadata(metadataBuilder.build())
 			.build()

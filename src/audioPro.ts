@@ -5,6 +5,7 @@ import { useInternalStore } from './useInternalStore';
 import {
 	guardTrackPlaying,
 	logDebug,
+	normalizeFilePath,
 	normalizeVolume,
 	resolveAssetSource,
 	validateTrack,
@@ -53,8 +54,17 @@ export const AudioPro = {
 
 		const resolvedTrack = { ...track };
 
+		// Resolve asset sources (for require() resources)
 		resolvedTrack.artwork = resolveAssetSource(track.artwork, 'artwork');
 		resolvedTrack.url = resolveAssetSource(track.url, 'audio URL');
+
+		// Normalize file paths to ensure local paths have file:// prefix
+		if (typeof resolvedTrack.url === 'string') {
+			resolvedTrack.url = normalizeFilePath(resolvedTrack.url);
+		}
+		if (typeof resolvedTrack.artwork === 'string') {
+			resolvedTrack.artwork = normalizeFilePath(resolvedTrack.artwork);
+		}
 
 		if (!validateTrack(resolvedTrack)) {
 			const errorMessage = 'AudioPro: Invalid track provided to play().';
@@ -256,7 +266,8 @@ export const AudioPro = {
 	ambientPlay(options: AmbientAudioPlayOptions): void {
 		const { url: originalUrl, loop = true } = options;
 
-		const resolvedUrl = resolveAssetSource(originalUrl, 'ambient audio URL');
+		// Resolve asset source (for require() resources)
+		let resolvedUrl = resolveAssetSource(originalUrl, 'ambient audio URL');
 
 		if (!resolvedUrl) {
 			const errorMessage = 'AudioPro: Invalid URL provided to ambientPlay().';
@@ -268,6 +279,11 @@ export const AudioPro = {
 				},
 			});
 			return;
+		}
+
+		// Normalize file path to ensure local paths have file:// prefix
+		if (typeof resolvedUrl === 'string') {
+			resolvedUrl = normalizeFilePath(resolvedUrl);
 		}
 
 		logDebug('AudioPro: ambientPlay()', { url: resolvedUrl, loop });
