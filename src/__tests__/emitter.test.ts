@@ -1,4 +1,4 @@
-import { AudioProEventType } from '../values';
+import { AudioProEventType, AudioProAmbientEventType } from '../values';
 
 // Import the AudioProEvent type for typing
 import type { AudioProEvent } from '../types';
@@ -43,117 +43,183 @@ jest.mock('../useInternalStore', () => ({
 }));
 
 describe('Emitter', () => {
-	let mockUpdateFromEvent: jest.Mock;
-	let mockDebug: boolean;
-	let mockDebugIncludesProgress: boolean;
-	let mockLogDebug: jest.Mock;
+	describe('Main Audio Events', () => {
+		let mockUpdateFromEvent: jest.Mock;
+		let mockDebug: boolean;
+		let mockDebugIncludesProgress: boolean;
+		let mockLogDebug: jest.Mock;
 
-	beforeEach(() => {
-		jest.resetModules();
-		jest.clearAllMocks();
+		beforeEach(() => {
+			jest.resetModules();
+			jest.clearAllMocks();
 
-		mockUpdateFromEvent = jest.fn();
-		mockDebug = false;
-		mockDebugIncludesProgress = false;
-		mockLogDebug = require('../utils').logDebug;
+			mockUpdateFromEvent = jest.fn();
+			mockDebug = false;
+			mockDebugIncludesProgress = false;
+			mockLogDebug = require('../utils').logDebug;
 
-		// Set up the mock implementation for useInternalStore.getState
-		require('../useInternalStore').useInternalStore.getState.mockImplementation(() => ({
-			debug: mockDebug,
-			debugIncludesProgress: mockDebugIncludesProgress,
-			updateFromEvent: mockUpdateFromEvent,
-		}));
+			// Set up the mock implementation for useInternalStore.getState
+			require('../useInternalStore').useInternalStore.getState.mockImplementation(() => ({
+				debug: mockDebug,
+				debugIncludesProgress: mockDebugIncludesProgress,
+				updateFromEvent: mockUpdateFromEvent,
+			}));
+		});
+
+		it('should add listeners for both AudioProEvent and AudioProAmbientEvent', () => {
+			// This will trigger the addListener calls
+			require('../emitter');
+
+			// Verify that listeners were added for both event types
+			expect(mainEventCallback).toBeDefined();
+			expect(ambientEventCallback).toBeDefined();
+		});
+
+		it('should not log PROGRESS events when debugIncludesProgress is false', () => {
+			// Set up test conditions
+			mockDebug = true;
+			mockDebugIncludesProgress = false;
+
+			// Reset the mock before the test
+			mockLogDebug.mockReset();
+
+			// Import the emitter module to trigger the listener setup
+			require('../emitter');
+
+			// Create a mock PROGRESS event
+			const mockProgressEvent: AudioProEvent = {
+				type: AudioProEventType.PROGRESS,
+				track: null, // Required for all events except REMOTE_NEXT and REMOTE_PREV
+				payload: { position: 1000, duration: 5000 },
+			};
+
+			// Call the main event callback with the mock event
+			if (mainEventCallback) {
+				mainEventCallback(mockProgressEvent);
+			}
+
+			// Verify that logDebug was not called with PROGRESS events when debugIncludesProgress is false
+			expect(mockLogDebug).not.toHaveBeenCalledWith(
+				'AudioProEvent',
+				expect.stringContaining('PROGRESS'),
+			);
+		});
+
+		it('should log PROGRESS events when debugIncludesProgress is true', () => {
+			// Set up test conditions
+			mockDebug = true;
+			mockDebugIncludesProgress = true;
+
+			// Reset the mock before the test
+			mockLogDebug.mockReset();
+
+			// Import the emitter module to trigger the listener setup
+			require('../emitter');
+
+			// Create a mock PROGRESS event
+			const mockProgressEvent: AudioProEvent = {
+				type: AudioProEventType.PROGRESS,
+				track: null, // Required for all events except REMOTE_NEXT and REMOTE_PREV
+				payload: { position: 1000, duration: 5000 },
+			};
+
+			// Call the main event callback with the mock event
+			if (mainEventCallback) {
+				mainEventCallback(mockProgressEvent);
+			}
+
+			// Verify that logDebug was called with PROGRESS events when debugIncludesProgress is true
+			expect(mockLogDebug).toHaveBeenCalledWith('AudioProEvent', expect.any(String));
+		});
+
+		it('should always call updateFromEvent for all events', () => {
+			// Set up test conditions
+			mockDebug = false;
+
+			// Reset the mock before the test
+			mockUpdateFromEvent.mockReset();
+
+			// Import the emitter module to trigger the listener setup
+			require('../emitter');
+
+			// Create a mock PROGRESS event
+			const mockProgressEvent: AudioProEvent = {
+				type: AudioProEventType.PROGRESS,
+				track: null, // Required for all events except REMOTE_NEXT and REMOTE_PREV
+				payload: { position: 1000, duration: 5000 },
+			};
+
+			// Call the main event callback with the mock event
+			if (mainEventCallback) {
+				mainEventCallback(mockProgressEvent);
+			}
+
+			// Verify that updateFromEvent was called with the event
+			expect(mockUpdateFromEvent).toHaveBeenCalledWith(mockProgressEvent);
+		});
 	});
 
-	it('should add listeners for both AudioProEvent and AudioProAmbientEvent', () => {
-		// This will trigger the addListener calls
-		require('../emitter');
+	describe('Ambient Audio Events', () => {
+		let mockLogDebug: jest.Mock;
 
-		// Verify that listeners were added for both event types
-		expect(mainEventCallback).toBeDefined();
-		expect(ambientEventCallback).toBeDefined();
-	});
+		beforeEach(() => {
+			jest.resetModules();
+			jest.clearAllMocks();
 
-	it('should not log PROGRESS events when debugIncludesProgress is false', () => {
-		// Set up test conditions
-		mockDebug = true;
-		mockDebugIncludesProgress = false;
+			mockLogDebug = require('../utils').logDebug;
 
-		// Reset the mock before the test
-		mockLogDebug.mockReset();
+			// Set up the mock implementation for useInternalStore.getState
+			require('../useInternalStore').useInternalStore.getState.mockImplementation(() => ({
+				debug: true,
+			}));
+		});
 
-		// Import the emitter module to trigger the listener setup
-		require('../emitter');
+		it('should log ambient events when debug is enabled', () => {
+			// Reset the mock before the test
+			mockLogDebug.mockReset();
 
-		// Create a mock PROGRESS event
-		const mockProgressEvent: AudioProEvent = {
-			type: AudioProEventType.PROGRESS,
-			track: null, // Required for all events except REMOTE_NEXT and REMOTE_PREV
-			payload: { position: 1000, duration: 5000 },
-		};
+			// Import the emitter module to trigger the listener setup
+			require('../emitter');
 
-		// Call the main event callback with the mock event
-		if (mainEventCallback) {
-			mainEventCallback(mockProgressEvent);
-		}
+			// Create a mock ambient event
+			const mockAmbientEvent = {
+				type: AudioProAmbientEventType.AMBIENT_TRACK_ENDED,
+			};
 
-		// Verify that logDebug was not called with PROGRESS events when debugIncludesProgress is false
-		expect(mockLogDebug).not.toHaveBeenCalledWith(
-			'AudioProEvent',
-			expect.stringContaining('PROGRESS'),
-		);
-	});
+			// Call the ambient event callback with the mock event
+			if (ambientEventCallback) {
+				ambientEventCallback(mockAmbientEvent);
+			}
 
-	it('should log PROGRESS events when debugIncludesProgress is true', () => {
-		// Set up test conditions
-		mockDebug = true;
-		mockDebugIncludesProgress = true;
+			// Verify that logDebug was called with the ambient event
+			expect(mockLogDebug).toHaveBeenCalledWith('AudioProAmbientEvent', expect.any(String));
+		});
 
-		// Reset the mock before the test
-		mockLogDebug.mockReset();
+		it('should not log ambient events when debug is disabled', () => {
+			// Set debug to false
+			require('../useInternalStore').useInternalStore.getState.mockImplementationOnce(() => ({
+				debug: false,
+			}));
 
-		// Import the emitter module to trigger the listener setup
-		require('../emitter');
+			// Reset the mock before the test
+			mockLogDebug.mockReset();
 
-		// Create a mock PROGRESS event
-		const mockProgressEvent: AudioProEvent = {
-			type: AudioProEventType.PROGRESS,
-			track: null, // Required for all events except REMOTE_NEXT and REMOTE_PREV
-			payload: { position: 1000, duration: 5000 },
-		};
+			// Import the emitter module to trigger the listener setup
+			require('../emitter');
 
-		// Call the main event callback with the mock event
-		if (mainEventCallback) {
-			mainEventCallback(mockProgressEvent);
-		}
+			// Create a mock ambient event
+			const mockAmbientEvent = {
+				type: AudioProAmbientEventType.AMBIENT_ERROR,
+				payload: { error: 'Test error' },
+			};
 
-		// Verify that logDebug was called with PROGRESS events when debugIncludesProgress is true
-		expect(mockLogDebug).toHaveBeenCalledWith('AudioProEvent', expect.any(String));
-	});
+			// Call the ambient event callback with the mock event
+			if (ambientEventCallback) {
+				ambientEventCallback(mockAmbientEvent);
+			}
 
-	it('should always call updateFromEvent for all events', () => {
-		// Set up test conditions
-		mockDebug = false;
-
-		// Reset the mock before the test
-		mockUpdateFromEvent.mockReset();
-
-		// Import the emitter module to trigger the listener setup
-		require('../emitter');
-
-		// Create a mock PROGRESS event
-		const mockProgressEvent: AudioProEvent = {
-			type: AudioProEventType.PROGRESS,
-			track: null, // Required for all events except REMOTE_NEXT and REMOTE_PREV
-			payload: { position: 1000, duration: 5000 },
-		};
-
-		// Call the main event callback with the mock event
-		if (mainEventCallback) {
-			mainEventCallback(mockProgressEvent);
-		}
-
-		// Verify that updateFromEvent was called with the event
-		expect(mockUpdateFromEvent).toHaveBeenCalledWith(mockProgressEvent);
+			// Verify that logDebug was not called
+			expect(mockLogDebug).not.toHaveBeenCalled();
+		});
 	});
 });

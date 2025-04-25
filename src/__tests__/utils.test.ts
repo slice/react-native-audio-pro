@@ -22,6 +22,11 @@ jest.mock('react-native', () => ({
 		OS: 'ios',
 		select: jest.fn().mockImplementation((obj) => obj.ios),
 	},
+	Image: {
+		resolveAssetSource: jest.fn().mockImplementation((source) => ({
+			uri: typeof source === 'number' ? `resolved-${source}` : source,
+		})),
+	},
 }));
 
 // Mock the emitter
@@ -32,10 +37,33 @@ jest.mock('../emitter', () => ({
 	},
 }));
 
+// Mock console methods
+const originalConsole = {
+	log: console.log,
+	error: console.error,
+};
+
 // Import after mocks
-import { validateTrack, isValidUrl, normalizeVolume } from '../utils';
+import {
+	validateTrack,
+	isValidUrl,
+	normalizeVolume,
+	resolveAssetSource,
+	guardTrackPlaying,
+	logDebug,
+} from '../utils';
 
 import type { AudioProTrack } from '../types';
+
+// Mock useInternalStore
+jest.mock('../useInternalStore', () => ({
+	useInternalStore: {
+		getState: jest.fn().mockReturnValue({
+			debug: false,
+			trackPlaying: null,
+		}),
+	},
+}));
 
 describe('Utils', () => {
 	describe('isValidUrl', () => {
@@ -196,6 +224,113 @@ describe('Utils', () => {
 			expect(normalizeVolume(0.10000000000000014)).toBe(0.1); // Fix floating point noise
 			expect(normalizeVolume(0.5)).toBe(0.5);
 			expect(normalizeVolume(0.7)).toBe(0.7);
+		});
+	});
+
+	describe('guardTrackPlaying', () => {
+		beforeEach(() => {
+			jest.clearAllMocks();
+			console.error = jest.fn();
+		});
+
+		afterEach(() => {
+			console.error = originalConsole.error;
+		});
+
+		it('should return true when a track is playing', () => {
+			// Mock that a track is playing
+			require('../useInternalStore').useInternalStore.getState.mockReturnValueOnce({
+				trackPlaying: {
+					id: 'test-track',
+					url: 'https://example.com/audio.mp3',
+					title: 'Test Track',
+					artwork: 'https://example.com/artwork.jpg',
+				},
+			});
+
+			expect(guardTrackPlaying('testMethod')).toBe(true);
+			expect(console.error).not.toHaveBeenCalled();
+		});
+
+		it('should return false and emit error when no track is playing', () => {
+			// Mock that no track is playing
+			require('../useInternalStore').useInternalStore.getState.mockReturnValueOnce({
+				trackPlaying: null,
+			});
+
+			expect(guardTrackPlaying('testMethod')).toBe(false);
+			expect(console.error).toHaveBeenCalledWith(
+				'~~~ AudioPro: testMethod called but no track is playing or has been played.',
+			);
+			expect(require('../emitter').emitter.emit).toHaveBeenCalledWith('AudioProEvent', {
+				type: 'PLAYBACK_ERROR',
+				track: null,
+				payload: {
+					error: '~~~ AudioPro: testMethod called but no track is playing or has been played.',
+					errorCode: -1,
+				},
+			});
+		});
+	});
+
+	describe('logDebug', () => {
+		beforeEach(() => {
+			jest.clearAllMocks();
+			console.log = jest.fn();
+		});
+
+		afterEach(() => {
+			console.log = originalConsole.log;
+		});
+
+		it('should log when debug is enabled', () => {
+			// Mock debug enabled
+			require('../useInternalStore').useInternalStore.getState.mockReturnValueOnce({
+				debug: true,
+			});
+
+			logDebug('Test message', { foo: 'bar' });
+			expect(console.log).toHaveBeenCalledWith('~~~', 'Test message', { foo: 'bar' });
+		});
+
+		it('should not log when debug is disabled', () => {
+			// Mock debug disabled
+			require('../useInternalStore').useInternalStore.getState.mockReturnValueOnce({
+				debug: false,
+			});
+
+			logDebug('Test message', { foo: 'bar' });
+			expect(console.log).not.toHaveBeenCalled();
+		});
+	});
+
+	describe('resolveAssetSource', () => {
+		it('should return the string URL as is', () => {
+			const url = 'https://example.com/audio.mp3';
+			expect(resolveAssetSource(url)).toBe(url);
+		});
+
+		it('should resolve require() result to URI', () => {
+			const requireResult = 12345;
+			expect(resolveAssetSource(requireResult)).toBe(`resolved-${requireResult}`);
+		});
+
+		it('should log debug info when resolving require() result', () => {
+			// Mock debug enabled
+			require('../useInternalStore').useInternalStore.getState.mockReturnValueOnce({
+				debug: true,
+			});
+			console.log = jest.fn();
+
+			const requireResult = 12345;
+			resolveAssetSource(requireResult, 'artwork');
+
+			expect(console.log).toHaveBeenCalledWith(
+				'~~~',
+				'Resolved require() artwork to URI:',
+				`resolved-${requireResult}`,
+			);
+			console.log = originalConsole.log;
 		});
 	});
 });

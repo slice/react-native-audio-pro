@@ -27,7 +27,7 @@ export interface WebAudioProInterface {
 	setPlaybackSpeed(speed: number): void;
 }
 
-class WebAudioProImpl implements WebAudioProInterface {
+export class WebAudioProImpl implements WebAudioProInterface {
 	private audio: HTMLAudioElement | null = null;
 	private currentTrack: AudioProTrack | null = null;
 	private progressInterval: number | null = null;
@@ -67,9 +67,18 @@ class WebAudioProImpl implements WebAudioProInterface {
 
 		this.audio.addEventListener('error', (e: Event) => {
 			this.stopProgressUpdates();
-			const audioElement = e.target as HTMLAudioElement;
-			const errorMessage = audioElement.error?.message || 'Unknown error';
-			const errorCode = audioElement.error?.code || -1;
+			let errorMessage = 'Unknown error';
+			let errorCode = -1;
+
+			// Safely extract error information if available
+			if (e && e.target) {
+				const audioElement = e.target as HTMLAudioElement;
+				if (audioElement && audioElement.error) {
+					errorMessage = audioElement.error.message || errorMessage;
+					errorCode = audioElement.error.code || errorCode;
+				}
+			}
+
 			this.emitError(`Audio error: ${errorMessage}`, errorCode);
 		});
 
@@ -232,10 +241,30 @@ class WebAudioProImpl implements WebAudioProInterface {
 			});
 		}
 
-		if (autoplay) {
-			this.audio.play().catch((error: Error) => {
-				this.emitError(`Failed to play: ${error.message}`, -1);
-			});
+		if (autoplay && this.audio) {
+			try {
+				// Call play() and handle the result safely
+				const playResult = this.audio.play();
+
+				// Modern browsers return a Promise from play()
+				if (playResult && typeof playResult.then === 'function') {
+					playResult
+						.then(() => {
+							// Play started successfully
+						})
+						.catch((error: Error) => {
+							// Play was interrupted or failed to start
+							this.emitError(`Failed to play: ${error.message}`, -1);
+						});
+				}
+				// Older browsers might not return anything from play()
+			} catch (error) {
+				// Handle browsers where play() might throw synchronously
+				this.emitError(
+					`Failed to play: ${error instanceof Error ? error.message : String(error)}`,
+					-1,
+				);
+			}
 		}
 	}
 
@@ -249,9 +278,29 @@ class WebAudioProImpl implements WebAudioProInterface {
 	resume(): void {
 		this.log('Resume');
 		if (this.audio) {
-			this.audio.play().catch((error: Error) => {
-				this.emitError(`Failed to resume: ${error.message}`, -1);
-			});
+			try {
+				// Call play() and handle the result safely
+				const playResult = this.audio.play();
+
+				// Modern browsers return a Promise from play()
+				if (playResult && typeof playResult.then === 'function') {
+					playResult
+						.then(() => {
+							// Resume started successfully
+						})
+						.catch((error: Error) => {
+							// Resume was interrupted or failed to start
+							this.emitError(`Failed to resume: ${error.message}`, -1);
+						});
+				}
+				// Older browsers might not return anything from play()
+			} catch (error) {
+				// Handle browsers where play() might throw synchronously
+				this.emitError(
+					`Failed to resume: ${error instanceof Error ? error.message : String(error)}`,
+					-1,
+				);
+			}
 		}
 	}
 
