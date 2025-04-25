@@ -26,6 +26,9 @@
     header, footer {
       text-align: center;
       padding: calc(var(--spacing) * 2);
+    }
+
+    header {
       border-bottom: 1px solid var(--border-color);
     }
 
@@ -76,16 +79,23 @@
 <main>
   <section id="features">
     <h2>🚀 Features</h2>
-    <ul>
-      <li>🎵 Powered by Media3 (Android) & AVFoundation (iOS)</li>
-      <li>🔒 Lock screen controls & background playback</li>
-      <li>🔔 Automatic handling of notification center (Android & iOS)</li>
-      <li>🌐 Web support via HTML5 Audio API</li>
-      <li>📡 Support for static remote files, live streams (HLS, DASH, RTSP, RTMP), and local files (for both audio and artwork)</li>
-      <li>📦 Built fully in TypeScript – no JS wrappers</li>
-      <li>🧠 Simple React hook & module interface</li>
-      <li>⚡️ Lightweight, fast, and production-ready</li>
-    </ul>
+	  <ul>
+		  <li>🎵 Powered by Media3 (Android) & AVFoundation (iOS)</li>
+		  <li>🔒 Lock screen controls & background playback</li>
+		  <li>🔔 Automatic handling of notification center (Android & iOS)</li>
+		  <li>📡 Comprehensive media support:
+			  <ul style="margin-bottom: 0;">
+				  <li>Static remote files</li>
+				  <li>Live streams (HLS, DASH, RTSP, RTMP)</li>
+				  <li>Local files (audio and artwork)</li>
+			  </ul>
+		  </li>
+		  <li>🌐 Web support via HTML5 Audio API</li>
+		  <li>🔊 Isolated ambient audio system for background sounds</li>
+		  <li>📦 Built fully in TypeScript – no JS wrappers</li>
+		  <li>🧠 Simple React hook & module interface</li>
+		  <li>⚡️ Lightweight, fast, and production-ready</li>
+	  </ul>
   </section>
 
   <section id="hook-example">
@@ -93,7 +103,7 @@
     <pre><code class="language-ts">import { useAudioPro } from 'react-native-audio-pro';
 
 export default function Player() {
-  const { state, duration, position } = useAudioPro();
+  const { state, duration, position, ...etc } = useAudioPro();
   return (
     &lt;View&gt;
       &lt;Text&gt;State: {state}&lt;/Text&gt;
@@ -110,19 +120,15 @@ export default function Player() {
 
 AudioPro.configure({ contentType: 'speech' });
 
-// Works with static remote files, live streams, and local files
 const track = {
   id: 'track-001',
-  url: 'https://example.com/audio.mp3', // Remote file: 'https://example.com/livestream' or local file
-  title: 'Sample Track',
-  artwork: 'https://example.com/image.jpg', // Remote image or local image
-  artist: 'Narrator Name',
+  url: 'https://example.com/audio-book.mp3'
+  title: 'The Best Book Ever',
+  artwork: 'https://example.com/nice-picture.jpg',
 };
 
-// Play with default options
 AudioPro.play(track);
-
-// With custom options
+// or
 AudioPro.play(track, {
   autoPlay: false,
   headers: {
@@ -132,6 +138,22 @@ AudioPro.play(track, {
 });
 </code></pre>
   </section>
+  <section id="ambient-audio">
+    <h2>🔊 Ambient Audio</h2>
+    <p>Aan isolated ambient audio system for playing background sounds independently from the main player.</p>
+    <pre><code class="language-ts">import { AudioPro } from 'react-native-audio-pro';
+
+AudioPro.ambientPlay({
+  url: 'https://example.com/nature-sounds.mp3',
+  loop: true,
+});
+
+AudioPro.ambientStop();
+
+AudioPro.ambientSetVolume(0.5);
+</code></pre>
+  </section>
+
   <section id="api-reference">
     <h2>Documentation</h2>
     <p>For full setup and API reference, see the <a href="https://github.com/evergrace-co/react-native-audio-pro" target="_blank">GitHub README</a>.</p>

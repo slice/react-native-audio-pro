@@ -2,19 +2,17 @@
 
 Modern, background-capable audio playback for React Native — built for podcasts, audiobooks, live streams, and long-form media. Works out of the box with background playback, lock screen controls, and clean hooks-based state. Under the hood: Android uses Media3 (not old-school ExoPlayer), giving you up-to-date media session support without any of the legacy baggage. iOS uses AVFoundation, Apple's native audio engine for professional-grade media playback. Supports static remote files, live streaming URLs, and local files (for both audio and artwork) across all platforms.
 
-> ⚠️ **Warning: Rapid API Evolution**
->
-> This is a new and rapidly evolving library. The API is still being refined, and we are making frequent breaking changes as we lock in core behavior.
->
-> Versions 9 is expected to become the longer-term stable foundation, so we recommend upgrading to and building against the latest version going forward.
->
-> If you're using or testing this library, **always refer to the README for the specific [release](https://github.com/evergrace-co/react-native-audio-pro/releases) you're installing.**
->
-> For current update status and context, see [Pinned Issue: API Stability Notice](https://github.com/evergrace-co/react-native-audio-pro/issues/18)
-
 [![npm version](https://img.shields.io/npm/v/react-native-audio-pro?logo=npm&logoColor=white&labelColor=grey&color=blue)](https://www.npmjs.com/package/react-native-audio-pro)
 [![website](https://img.shields.io/badge/website-rnap.dev-grey?logo=google-chrome&logoColor=white&color=blue)](https://rnap.dev)
 [![GitHub](https://img.shields.io/badge/evergrace--co-react--native--audio--pro-grey?logo=github&logoColor=white&labelColor=grey&color=blue)](https://github.com/evergrace-co/react-native-audio-pro)
+
+> ⚠️ **Stability Notice**
+>
+> This library has evolved rapidly and is now considered **stable and production-ready** starting from **v9.2**.
+>
+> The core architecture and event/state contracts are now locked in, with most edge cases resolved and thorough testing in place.
+>
+> If you're upgrading or adopting the library, we recommend using the latest version from **v9.2 onwards**.
 
 ## Table of Contents
 
@@ -23,6 +21,7 @@ Modern, background-capable audio playback for React Native — built for podcast
 - [📚 API Overview](#api-overview)
 - [⚡️ useAudioPro Hook Example](#useaudiopro-hook-example)
 - [📦 API Usage Example](#api-usage-example)
+- [🔊 Ambient Audio](#-ambient-audio)
 - [📱 Example App](#-example-app)
 - [🤝 Contributing](#contributing)
 - [🪪 License](#license)
@@ -103,6 +102,10 @@ React Native Audio Pro supports various audio formats including MP3, AAC, WAV, a
 | **setVolume(volume: number)** | Sets the playback volume from 0.0 (mute) to 1.0 (full output). This affects only Audio Pro playback, not the device's system volume. | `void` |
 | **getVolume()** | Returns the current relative volume (0.0 to 1.0). | `number` |
 | **getError()** | Returns the last error that occurred, or null if no error has occurred. | `AudioProPlaybackErrorPayload \| null` |
+| **ambientPlay(options: AmbientAudioPlayOptions)** | Plays a lightweight ambient audio track, isolated from the main player. Accepts a remote or local `url` and optional `loop` flag (default: `true`). | `void` |
+| **ambientStop()** | Stops the ambient audio playback. | `void` |
+| **ambientSetVolume(volume: number)** | Sets the volume of ambient audio playback from 0.0 (mute) to 1.0 (full output). | `void` |
+| **addAmbientListener(callback: AudioProAmbientEventCallback)** | Listens for ambient audio events (e.g., track ended, errors). | `EmitterSubscription` |
 
 ### ⚡️ React Hook
 
@@ -153,6 +156,13 @@ const { state, position, duration, playingTrack, playbackSpeed, volume, error } 
 | `REMOTE_NEXT` | Emitted when the user presses the "Next" button on lock screen controls. |
 | `REMOTE_PREV` | Emitted when the user presses the "Previous" button on lock screen controls. |
 | `PLAYBACK_ERROR` | Emitted when a playback error occurs. |
+
+#### AudioProAmbientEventType
+
+| Event | Description |
+|-------|-------------|
+| `AMBIENT_TRACK_ENDED` | Emitted when an ambient track completes playback naturally (when `loop` is set to `false`). |
+| `AMBIENT_ERROR` | Emitted when an error occurs during ambient audio playback. |
 
 #### AudioProContentType
 
@@ -229,6 +239,20 @@ interface AudioProPlaybackErrorPayload {
 
 interface AudioProPlaybackSpeedChangedPayload {
     speed: number;
+}
+
+// Ambient audio event structure
+interface AudioProAmbientEvent {
+    type: AudioProAmbientEventType;
+    payload?: {
+        error?: string;
+    };
+}
+
+// Ambient audio play options
+interface AmbientAudioPlayOptions {
+    url: string | number; // Remote URL or local asset via require()
+    loop?: boolean; // Default: true
 }
 ```
 </details>
@@ -375,6 +399,54 @@ const volume = AudioPro.getVolume();
 const error = AudioPro.getError();
 console.log(`Currently playing: ${playingTrack?.title} (${position}/${duration}ms) - State: ${state} - Speed: ${speed}x - Volume: ${Math.round(volume * 100)}%`);
 ```
+
+## 🔊 Ambient Audio
+
+React Native Audio Pro includes a completely isolated ambient audio system that can play background sounds independently from the main audio player. This is useful for apps that need to play ambient sounds, background music, or sound effects while the main audio player is playing or paused.
+
+> ⚠️ **Background Behavior:** Ambient audio will usually continue playing when the app is backgrounded, but this is not guaranteed. For reliable background playback, keep a main track playing concurrently (ie via `AudioPro.play()`)
+
+### Ambient Audio API
+
+```typescript
+import { AudioPro } from 'react-native-audio-pro';
+
+// Play ambient audio
+AudioPro.ambientPlay({
+  url: 'https://example.com/ambient.mp3', // Remote URL or local file via require()
+  loop: true, // Optional, defaults to true
+});
+
+// Stop ambient audio
+AudioPro.ambientStop();
+
+// Set ambient audio volume
+AudioPro.ambientSetVolume(0.5); // 50% volume
+
+// Listen for ambient audio events
+const subscription = AudioPro.addAmbientListener((event) => {
+  switch (event.type) {
+    case 'AMBIENT_TRACK_ENDED':
+      console.log('Ambient track ended');
+      break;
+    case 'AMBIENT_ERROR':
+      console.error('Ambient error:', event.payload?.error);
+      break;
+  }
+});
+
+// Later, remove the listener
+subscription.remove();
+```
+
+### Key Features
+
+- **Completely isolated** from the main audio player
+- **Independent playback** - ambient audio continues playing even when the main player is stopped or cleared
+- **Simple API** - just three methods: `ambientPlay()`, `ambientStop()`, and `ambientSetVolume()`
+- **Automatic looping** - ambient audio loops by default
+- **Event handling** - listen for track ended and error events
+- **Local and remote files** - supports both remote URLs and local files via `require()`
 
 ## ⚠️ Important: Event Listeners and React Lifecycle
 

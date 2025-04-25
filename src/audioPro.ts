@@ -53,10 +53,7 @@ export const AudioPro = {
 
 		const resolvedTrack = { ...track };
 
-		// Resolve artwork if it's a number
 		resolvedTrack.artwork = resolveAssetSource(track.artwork, 'artwork');
-
-		// Resolve URL if it's a number
 		resolvedTrack.url = resolveAssetSource(track.url, 'audio URL');
 
 		if (!validateTrack(resolvedTrack)) {
@@ -132,7 +129,6 @@ export const AudioPro = {
 			setError(null);
 		}
 		setTrackPlaying(null);
-		// Use normalized volume for default (1.0)
 		setVolume(normalizeVolume(1.0));
 		NativeAudioPro.clear();
 	},
@@ -198,13 +194,11 @@ export const AudioPro = {
 	},
 
 	setVolume(volume: number) {
-		// First, do basic range validation for warning purposes
 		const clampedVolume = Math.max(0, Math.min(1, volume));
 		if (clampedVolume !== volume) {
 			console.warn(`AudioPro: Volume ${volume} out of range, clamped to ${clampedVolume}`);
 		}
 
-		// Then normalize the volume to fix floating point precision issues
 		const normalizedVolume = normalizeVolume(clampedVolume);
 		logDebug('AudioPro: setVolume()', normalizedVolume);
 
@@ -229,7 +223,6 @@ export const AudioPro = {
 		const MIN_INTERVAL = 100;
 		const MAX_INTERVAL = 10000;
 
-		// Clamp the value to the allowed range
 		const clampedMs = Math.max(MIN_INTERVAL, Math.min(MAX_INTERVAL, ms));
 		if (clampedMs !== ms) {
 			console.warn(
@@ -263,7 +256,6 @@ export const AudioPro = {
 	ambientPlay(options: AmbientAudioPlayOptions): void {
 		const { url: originalUrl, loop = true } = options;
 
-		// Resolve URL if it's a number (local asset via require)
 		const resolvedUrl = resolveAssetSource(originalUrl, 'ambient audio URL');
 
 		if (!resolvedUrl) {
@@ -296,7 +288,12 @@ export const AudioPro = {
 	 * @param volume - Volume level (0.0 to 1.0)
 	 */
 	ambientSetVolume(volume: number): void {
-		const normalizedVolume = normalizeVolume(volume);
+		const clampedVolume = Math.max(0, Math.min(1, volume));
+		if (clampedVolume !== volume) {
+			console.warn(`AudioPro: Volume ${volume} out of range, clamped to ${clampedVolume}`);
+		}
+
+		const normalizedVolume = normalizeVolume(clampedVolume);
 		logDebug('AudioPro: ambientSetVolume()', normalizedVolume);
 		NativeAudioPro.ambientSetVolume(normalizedVolume);
 	},

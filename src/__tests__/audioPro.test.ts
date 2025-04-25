@@ -12,6 +12,10 @@ jest.mock('react-native', () => ({
 			seekBack: jest.fn(),
 			setPlaybackSpeed: jest.fn(),
 			setVolume: jest.fn(),
+			// Ambient audio methods
+			ambientPlay: jest.fn(),
+			ambientStop: jest.fn(),
+			ambientSetVolume: jest.fn(),
 		},
 	},
 	Platform: {
@@ -29,6 +33,10 @@ jest.mock('react-native', () => ({
 
 jest.mock('../emitter', () => ({
 	emitter: {
+		addListener: jest.fn().mockReturnValue({ remove: jest.fn() }),
+		emit: jest.fn(),
+	},
+	ambientEmitter: {
 		addListener: jest.fn().mockReturnValue({ remove: jest.fn() }),
 		emit: jest.fn(),
 	},
@@ -115,6 +123,11 @@ describe('AudioPro', () => {
 		expect(typeof AudioPro.getError).toBe('function');
 		expect(typeof AudioPro.setProgressInterval).toBe('function');
 		expect(typeof AudioPro.getProgressInterval).toBe('function');
+		// Ambient audio methods
+		expect(typeof AudioPro.ambientPlay).toBe('function');
+		expect(typeof AudioPro.ambientStop).toBe('function');
+		expect(typeof AudioPro.ambientSetVolume).toBe('function');
+		expect(typeof AudioPro.addAmbientListener).toBe('function');
 	});
 
 	describe('volume control', () => {
