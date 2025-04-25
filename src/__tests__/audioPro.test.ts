@@ -257,6 +257,10 @@ describe('AudioPro', () => {
 				volume: 0.3, // Set custom volume
 				trackPlaying: { id: 'test', url: 'test.mp3', title: 'Test', artwork: 'test.jpg' },
 				playerState: AudioProState.PLAYING,
+				setTrackPlaying: jest.fn(),
+				setError: jest.fn(),
+				configureOptions: { progressIntervalMs: 1000 },
+				playbackSpeed: 1.0,
 			});
 
 			// Step 1: Stop playback

@@ -118,7 +118,10 @@
 		],
 		"setupFilesAfterEnv": [
 			"<rootDir>/jest.setup.js"
-		]
+		],
+		"moduleNameMapper": {
+			"^react-native$": "<rootDir>/src/__mocks__/react-native.ts"
+		}
 	},
 	"commitlint": {
 		"extends": [
