@@ -30,6 +30,7 @@ export default function App() {
 	const [progressInterval, setLocalProgressInterval] = useState(getProgressInterval());
 	const currentTrack = playlist[currentIndex];
 	const { position, duration, state, playingTrack, playbackSpeed, volume, error } = useAudioPro();
+	const [isAmbientPlaying, setIsAmbientPlaying] = useState(false);
 
 	// Sync the local index with the player service
 	useEffect(() => {
@@ -61,10 +62,14 @@ export default function App() {
 			switch (event.type) {
 				case 'AMBIENT_TRACK_ENDED':
 					console.log('Ambient track ended');
+					// Update state if loop is false and track ended
+					setIsAmbientPlaying(false);
 					break;
 
 				case 'AMBIENT_ERROR':
 					console.warn('Ambient error:', event.payload?.error);
+					// Update state on error
+					setIsAmbientPlaying(false);
 					break;
 			}
 		});
@@ -198,37 +203,20 @@ export default function App() {
 		setLocalProgressInterval(newInterval);
 	};
 
-	// Ambient audio handlers
-	const handlePlayAmbient = () => {
-		// Use the first track from the playlist as the ambient audio
-		const ambientTrack = playlist[0];
-		if (!ambientTrack) {
-			console.error('No ambient track available');
-			return;
+	// Toggle ambient audio playback
+	const handleToggleAmbient = () => {
+		if (isAmbientPlaying) {
+			// Stop ambient audio
+			AudioPro.ambientStop();
+			setIsAmbientPlaying(false);
+		} else {
+			// Play ambient audio from local file
+			AudioPro.ambientPlay({
+				url: require('../assets/ambient-spring-forest-323801.mp3'),
+				loop: true,
+			});
+			setIsAmbientPlaying(true);
 		}
-		AudioPro.ambientPlay({
-			// Pass the URL directly - it will handle both string URLs and require() numbers
-			url: ambientTrack.url,
-			loop: true,
-		});
-	};
-
-	// Play ambient audio from a local file
-	const handlePlayLocalAmbient = () => {
-		// Use the second track from the playlist which is a local file
-		const localTrack = playlist[1]; // This should be a local file via require()
-		if (!localTrack) {
-			console.error('No local track available');
-			return;
-		}
-		AudioPro.ambientPlay({
-			url: localTrack.url,
-			loop: true,
-		});
-	};
-
-	const handleStopAmbient = () => {
-		AudioPro.ambientStop();
 	};
 
 	return (
@@ -346,18 +334,12 @@ export default function App() {
 					</Text>
 				</View>
 
-				{/* Ambient Audio Controls */}
 				<View style={styles.ambientSection}>
-					<Text style={styles.sectionTitle}>Ambient Audio</Text>
 					<View style={styles.stopRow}>
-						<TouchableOpacity onPress={handlePlayAmbient}>
-							<Text style={styles.controlText}>Play Remote</Text>
-						</TouchableOpacity>
-						<TouchableOpacity onPress={handlePlayLocalAmbient}>
-							<Text style={styles.controlText}>Play Local</Text>
-						</TouchableOpacity>
-						<TouchableOpacity onPress={handleStopAmbient}>
-							<Text style={styles.controlText}>Stop</Text>
+						<TouchableOpacity onPress={handleToggleAmbient}>
+							<Text style={styles.controlText}>
+								{isAmbientPlaying ? 'ambientStop()' : 'ambientPlay()'}
+							</Text>
 						</TouchableOpacity>
 					</View>
 				</View>

@@ -214,13 +214,7 @@ export const styles = StyleSheet.create({
 	},
 	// Ambient audio styles
 	ambientSection: {
-		marginTop: needsSmallerUI ? 10 : 20,
-		marginBottom: needsSmallerUI ? 12 : 20,
-		paddingTop: needsSmallerUI ? 10 : 15,
-		paddingBottom: needsSmallerUI ? 10 : 15,
 		width: '100%',
-		borderTopWidth: 1,
-		borderTopColor: '#444',
 		alignItems: 'center',
 	},
 	sectionTitle: {
