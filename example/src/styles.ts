@@ -150,7 +150,6 @@ export const styles = StyleSheet.create({
 		color: '#fff',
 		marginRight: 10,
 	},
-	// Error display styles
 	errorContainer: {
 		marginHorizontal: 20,
 		marginBottom: needsSmallerUI ? 12 : 20,
@@ -212,5 +211,22 @@ export const styles = StyleSheet.create({
 		color: 'white',
 		fontSize: 14 * scale,
 		fontWeight: 'bold',
+	},
+	// Ambient audio styles
+	ambientSection: {
+		marginTop: needsSmallerUI ? 10 : 20,
+		marginBottom: needsSmallerUI ? 12 : 20,
+		paddingTop: needsSmallerUI ? 10 : 15,
+		paddingBottom: needsSmallerUI ? 10 : 15,
+		width: '100%',
+		borderTopWidth: 1,
+		borderTopColor: '#444',
+		alignItems: 'center',
+	},
+	sectionTitle: {
+		fontSize: 18 * scale,
+		fontWeight: 'bold',
+		color: '#1EB1FC',
+		marginBottom: needsSmallerUI ? 10 : 15,
 	},
 });

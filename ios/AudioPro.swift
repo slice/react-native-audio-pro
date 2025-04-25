@@ -15,6 +15,13 @@ class AudioPro: RCTEventEmitter {
     private var timer: Timer?
     private var hasListeners = false
     private let EVENT_NAME = "AudioProEvent"
+    private let AMBIENT_EVENT_NAME = "AudioProAmbientEvent"
+
+    // Ambient audio player (completely isolated from main player)
+    private var ambientPlayer: AVPlayer?
+    private var ambientPlayerItem: AVPlayerItem?
+    private var ambientLoop: Bool = true
+    private var ambientVolume: Float = 1.0
 
     // Event types
     private let EVENT_TYPE_STATE_CHANGED = "STATE_CHANGED"
@@ -25,6 +32,10 @@ class AudioPro: RCTEventEmitter {
     private let EVENT_TYPE_REMOTE_NEXT = "REMOTE_NEXT"
     private let EVENT_TYPE_REMOTE_PREV = "REMOTE_PREV"
     private let EVENT_TYPE_PLAYBACK_SPEED_CHANGED = "PLAYBACK_SPEED_CHANGED"
+
+    // Ambient audio event types
+    private let EVENT_TYPE_AMBIENT_TRACK_ENDED = "AMBIENT_TRACK_ENDED"
+    private let EVENT_TYPE_AMBIENT_ERROR = "AMBIENT_ERROR"
 
     // States
     private let STATE_IDLE = "IDLE"
@@ -56,7 +67,7 @@ class AudioPro: RCTEventEmitter {
     ////////////////////////////////////////////////////////////
 
     override func supportedEvents() -> [String]! {
-        return [EVENT_NAME]
+        return [EVENT_NAME, AMBIENT_EVENT_NAME]
     }
 
     override static func requiresMainQueueSetup() -> Bool {
@@ -977,5 +988,128 @@ class AudioPro: RCTEventEmitter {
         commandCenter.nextTrackCommand.removeTarget(nil)
         commandCenter.previousTrackCommand.removeTarget(nil)
         commandCenter.changePlaybackPositionCommand.removeTarget(nil)
+    }
+
+    ////////////////////////////////////////////////////////////
+    // MARK: - Ambient Audio Methods
+    ////////////////////////////////////////////////////////////
+
+    /**
+     * Play an ambient audio track
+     * This is a completely isolated system from the main audio player
+     */
+    @objc(ambientPlay:)
+    func ambientPlay(options: NSDictionary) {
+        // Get the URL from options
+        guard let urlString = options["url"] as? String, let url = URL(string: urlString) else {
+            onAmbientError("Invalid URL provided to ambientPlay()")
+            return
+        }
+
+        // Get loop option, default to true if not provided
+        ambientLoop = options["loop"] as? Bool ?? true
+
+        log("Ambient Play", urlString, "loop:", ambientLoop)
+
+        // Stop any existing ambient playback
+        ambientStop()
+
+        // Create a new player item
+        ambientPlayerItem = AVPlayerItem(url: url)
+
+        // Create a new player
+        ambientPlayer = AVPlayer(playerItem: ambientPlayerItem)
+        ambientPlayer?.volume = ambientVolume
+
+        // Add observer for track completion
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(ambientPlayerItemDidPlayToEndTime(_:)),
+            name: .AVPlayerItemDidPlayToEndTime,
+            object: ambientPlayerItem
+        )
+
+        // Start playback immediately
+        ambientPlayer?.play()
+    }
+
+    /**
+     * Stop ambient audio playback
+     */
+    @objc(ambientStop)
+    func ambientStop() {
+        log("Ambient Stop")
+
+        // Remove observer for track completion
+        if let item = ambientPlayerItem {
+            NotificationCenter.default.removeObserver(
+                self,
+                name: .AVPlayerItemDidPlayToEndTime,
+                object: item
+            )
+        }
+
+        // Stop and release the player
+        ambientPlayer?.pause()
+        ambientPlayer = nil
+        ambientPlayerItem = nil
+    }
+
+    /**
+     * Set the volume of ambient audio playback
+     */
+    @objc(ambientSetVolume:)
+    func ambientSetVolume(volume: Double) {
+        ambientVolume = Float(volume)
+        log("Ambient Set Volume", ambientVolume)
+
+        // Apply volume to player if it exists
+        ambientPlayer?.volume = ambientVolume
+    }
+
+    /**
+     * Handle ambient track completion
+     */
+    @objc private func ambientPlayerItemDidPlayToEndTime(_ notification: Notification) {
+        log("Ambient Track Ended")
+
+        if ambientLoop {
+            // If looping is enabled, seek to beginning and continue playback
+            ambientPlayer?.seek(to: CMTime.zero)
+            ambientPlayer?.play()
+        } else {
+            // If looping is disabled, stop playback and emit event
+            ambientStop()
+            sendAmbientEvent(type: EVENT_TYPE_AMBIENT_TRACK_ENDED, payload: nil)
+        }
+    }
+
+    /**
+     * Emit an ambient error event
+     */
+    private func onAmbientError(_ message: String) {
+        log("Ambient Error:", message)
+
+        // Stop playback
+        ambientStop()
+
+        // Emit error event
+        let payload: [String: Any] = ["error": message]
+        sendAmbientEvent(type: EVENT_TYPE_AMBIENT_ERROR, payload: payload)
+    }
+
+    /**
+     * Send an ambient event to JavaScript
+     */
+    private func sendAmbientEvent(type: String, payload: [String: Any]?) {
+        guard hasListeners else { return }
+
+        var body: [String: Any] = ["type": type]
+
+        if let payload = payload {
+            body["payload"] = payload
+        }
+
+        sendEvent(withName: AMBIENT_EVENT_NAME, body: body)
     }
 }

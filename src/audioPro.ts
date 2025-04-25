@@ -1,11 +1,25 @@
-import { Image, NativeModules, Platform } from 'react-native';
+import { NativeModules, Platform } from 'react-native';
 
-import { emitter } from './emitter';
+import { ambientEmitter, emitter } from './emitter';
 import { useInternalStore } from './useInternalStore';
-import { guardTrackPlaying, logDebug, normalizeVolume, validateTrack } from './utils';
-import { AudioProEventType, AudioProState, DEFAULT_CONFIG, DEFAULT_SEEK_MS } from './values';
+import {
+	guardTrackPlaying,
+	logDebug,
+	normalizeVolume,
+	resolveAssetSource,
+	validateTrack,
+} from './utils';
+import {
+	AudioProAmbientEventType,
+	AudioProEventType,
+	AudioProState,
+	DEFAULT_CONFIG,
+	DEFAULT_SEEK_MS,
+} from './values';
 
 import type {
+	AmbientAudioPlayOptions,
+	AudioProAmbientEventCallback,
 	AudioProConfigureOptions,
 	AudioProEventCallback,
 	AudioProPlayOptions,
@@ -40,16 +54,10 @@ export const AudioPro = {
 		const resolvedTrack = { ...track };
 
 		// Resolve artwork if it's a number
-		if (typeof track.artwork === 'number') {
-			resolvedTrack.artwork = Image.resolveAssetSource(track.artwork).uri;
-			logDebug('AudioPro: Resolved require() artwork to URI', resolvedTrack.artwork);
-		}
+		resolvedTrack.artwork = resolveAssetSource(track.artwork, 'artwork');
 
 		// Resolve URL if it's a number
-		if (typeof track.url === 'number') {
-			resolvedTrack.url = Image.resolveAssetSource(track.url).uri;
-			logDebug('AudioPro: Resolved require() audio URL to URI', resolvedTrack.url);
-		}
+		resolvedTrack.url = resolveAssetSource(track.url, 'audio URL');
 
 		if (!validateTrack(resolvedTrack)) {
 			const errorMessage = 'AudioPro: Invalid track provided to play().';
@@ -239,5 +247,67 @@ export const AudioPro = {
 			useInternalStore.getState().configureOptions.progressIntervalMs ??
 			DEFAULT_CONFIG.progressIntervalMs
 		);
+	},
+
+	// ==============================
+	// AMBIENT AUDIO METHODS
+	// ==============================
+
+	/**
+	 * Play an ambient audio track
+	 *
+	 * @param options - Ambient audio options
+	 * @param options.url - URL of the audio file to play or a number from require() for local files
+	 * @param options.loop - Whether to loop the audio (default: true)
+	 */
+	ambientPlay(options: AmbientAudioPlayOptions): void {
+		const { url: originalUrl, loop = true } = options;
+
+		// Resolve URL if it's a number (local asset via require)
+		const resolvedUrl = resolveAssetSource(originalUrl, 'ambient audio URL');
+
+		if (!resolvedUrl) {
+			const errorMessage = 'AudioPro: Invalid URL provided to ambientPlay().';
+			console.error(errorMessage);
+			ambientEmitter.emit('AudioProAmbientEvent', {
+				type: AudioProAmbientEventType.AMBIENT_ERROR,
+				payload: {
+					error: errorMessage,
+				},
+			});
+			return;
+		}
+
+		logDebug('AudioPro: ambientPlay()', { url: resolvedUrl, loop });
+		NativeAudioPro.ambientPlay({ url: resolvedUrl, loop });
+	},
+
+	/**
+	 * Stop ambient audio playback
+	 */
+	ambientStop(): void {
+		logDebug('AudioPro: ambientStop()');
+		NativeAudioPro.ambientStop();
+	},
+
+	/**
+	 * Set the volume of ambient audio playback
+	 *
+	 * @param volume - Volume level (0.0 to 1.0)
+	 */
+	ambientSetVolume(volume: number): void {
+		const normalizedVolume = normalizeVolume(volume);
+		logDebug('AudioPro: ambientSetVolume()', normalizedVolume);
+		NativeAudioPro.ambientSetVolume(normalizedVolume);
+	},
+
+	/**
+	 * Add a listener for ambient audio events
+	 *
+	 * @param callback - Callback function to handle ambient audio events
+	 * @returns Subscription that can be used to remove the listener
+	 */
+	addAmbientListener(callback: AudioProAmbientEventCallback) {
+		return ambientEmitter.addListener('AudioProAmbientEvent', callback);
 	},
 };

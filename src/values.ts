@@ -27,6 +27,11 @@ export enum AudioProEventType {
 	PLAYBACK_ERROR = 'PLAYBACK_ERROR',
 }
 
+export enum AudioProAmbientEventType {
+	AMBIENT_TRACK_ENDED = 'AMBIENT_TRACK_ENDED',
+	AMBIENT_ERROR = 'AMBIENT_ERROR',
+}
+
 export const DEFAULT_CONFIG: AudioProConfigureOptions = {
 	contentType: AudioProContentType.MUSIC,
 	debug: false,

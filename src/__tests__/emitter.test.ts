@@ -3,15 +3,25 @@ import { AudioProEventType } from '../values';
 // Import the AudioProEvent type for typing
 import type { AudioProEvent } from '../types';
 
-// Store the callback for testing
-let eventCallback: ((event: AudioProEvent) => void) | null = null;
+// We'll mock the emitter module
+// This is done in the beforeEach block
+
+// Store the callbacks for testing
+let mainEventCallback: ((event: AudioProEvent) => void) | null = null;
+let ambientEventCallback:
+	| ((event: { type: string; payload?: Record<string, unknown> }) => void)
+	| null = null;
 
 // Mock the NativeEventEmitter and NativeModules
 jest.mock('react-native', () => ({
 	NativeEventEmitter: jest.fn().mockImplementation(() => ({
-		addListener: jest.fn((_eventName, callback) => {
-			// Store the callback for testing
-			eventCallback = callback;
+		addListener: jest.fn((eventName, callback) => {
+			// Store the callback based on the event name
+			if (eventName === 'AudioProEvent') {
+				mainEventCallback = callback;
+			} else if (eventName === 'AudioProAmbientEvent') {
+				ambientEventCallback = callback;
+			}
 			return { remove: jest.fn() };
 		}),
 	})),
@@ -55,18 +65,22 @@ describe('Emitter', () => {
 		}));
 	});
 
-	it('should add a listener for AudioProEvent', () => {
-		// This will trigger the addListener call
+	it('should add listeners for both AudioProEvent and AudioProAmbientEvent', () => {
+		// This will trigger the addListener calls
 		require('../emitter');
 
-		// Verify that a listener was added
-		expect(eventCallback).toBeDefined();
+		// Verify that listeners were added for both event types
+		expect(mainEventCallback).toBeDefined();
+		expect(ambientEventCallback).toBeDefined();
 	});
 
-	it('should process PROGRESS events regardless of debugIncludesProgress flag', () => {
+	it('should not log PROGRESS events when debugIncludesProgress is false', () => {
 		// Set up test conditions
 		mockDebug = true;
 		mockDebugIncludesProgress = false;
+
+		// Reset the mock before the test
+		mockLogDebug.mockReset();
 
 		// Import the emitter module to trigger the listener setup
 		require('../emitter');
@@ -78,15 +92,68 @@ describe('Emitter', () => {
 			payload: { position: 1000, duration: 5000 },
 		};
 
-		// Call the event callback with the mock event
-		if (eventCallback) {
-			eventCallback(mockProgressEvent);
+		// Call the main event callback with the mock event
+		if (mainEventCallback) {
+			mainEventCallback(mockProgressEvent);
+		}
+
+		// Verify that logDebug was not called with PROGRESS events when debugIncludesProgress is false
+		expect(mockLogDebug).not.toHaveBeenCalledWith(
+			'AudioProEvent',
+			expect.stringContaining('PROGRESS'),
+		);
+	});
+
+	it('should log PROGRESS events when debugIncludesProgress is true', () => {
+		// Set up test conditions
+		mockDebug = true;
+		mockDebugIncludesProgress = true;
+
+		// Reset the mock before the test
+		mockLogDebug.mockReset();
+
+		// Import the emitter module to trigger the listener setup
+		require('../emitter');
+
+		// Create a mock PROGRESS event
+		const mockProgressEvent: AudioProEvent = {
+			type: AudioProEventType.PROGRESS,
+			track: null, // Required for all events except REMOTE_NEXT and REMOTE_PREV
+			payload: { position: 1000, duration: 5000 },
+		};
+
+		// Call the main event callback with the mock event
+		if (mainEventCallback) {
+			mainEventCallback(mockProgressEvent);
+		}
+
+		// Verify that logDebug was called with PROGRESS events when debugIncludesProgress is true
+		expect(mockLogDebug).toHaveBeenCalledWith('AudioProEvent', expect.any(String));
+	});
+
+	it('should always call updateFromEvent for all events', () => {
+		// Set up test conditions
+		mockDebug = false;
+
+		// Reset the mock before the test
+		mockUpdateFromEvent.mockReset();
+
+		// Import the emitter module to trigger the listener setup
+		require('../emitter');
+
+		// Create a mock PROGRESS event
+		const mockProgressEvent: AudioProEvent = {
+			type: AudioProEventType.PROGRESS,
+			track: null, // Required for all events except REMOTE_NEXT and REMOTE_PREV
+			payload: { position: 1000, duration: 5000 },
+		};
+
+		// Call the main event callback with the mock event
+		if (mainEventCallback) {
+			mainEventCallback(mockProgressEvent);
 		}
 
 		// Verify that updateFromEvent was called with the event
 		expect(mockUpdateFromEvent).toHaveBeenCalledWith(mockProgressEvent);
-
-		// Verify that logDebug was not called (since debugIncludesProgress is false)
-		expect(mockLogDebug).not.toHaveBeenCalled();
 	});
 });

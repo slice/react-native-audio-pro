@@ -1,3 +1,5 @@
+import { Image } from 'react-native';
+
 import { emitter } from './emitter';
 import { useInternalStore } from './useInternalStore';
 import { AudioProEventType } from './values';
@@ -136,4 +138,26 @@ export function normalizeVolume(volume: number): number {
 
 	// Format to 2 decimal places and convert back to number
 	return parseFloat(clampedVolume.toFixed(2));
+}
+
+/**
+ * Resolves a resource that might be a number from require() to a URI string
+ *
+ * @param resource - The resource to resolve (string URL or number from require())
+ * @param resourceType - The type of resource (for logging purposes)
+ * @returns The resolved URI string
+ */
+export function resolveAssetSource(
+	resource: string | number,
+	resourceType: string = 'resource',
+): string {
+	// If the resource is already a string, return it as is
+	if (typeof resource === 'string') {
+		return resource;
+	}
+
+	// If the resource is a number (from require()), resolve it to a URI
+	const resolvedUri = Image.resolveAssetSource(resource).uri;
+	logDebug(`Resolved require() ${resourceType} to URI:`, resolvedUri);
+	return resolvedUri;
 }

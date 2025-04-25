@@ -1,4 +1,9 @@
-import { AudioProContentType, AudioProEventType, AudioProState } from './values';
+import {
+	AudioProAmbientEventType,
+	AudioProContentType,
+	AudioProEventType,
+	AudioProState,
+} from './values';
 
 // ==============================
 // TRACK
@@ -88,4 +93,26 @@ export interface AudioProSeekCompletePayload {
 
 export interface AudioProPlaybackSpeedChangedPayload {
 	speed: number;
+}
+
+// ==============================
+// AMBIENT AUDIO
+// ==============================
+
+export interface AmbientAudioPlayOptions {
+	url: string | number;
+	loop?: boolean;
+}
+
+export type AudioProAmbientEventCallback = (event: AudioProAmbientEvent) => void;
+
+export interface AudioProAmbientEvent {
+	type: AudioProAmbientEventType;
+	payload?: {
+		error?: string;
+	};
+}
+
+export interface AudioProAmbientErrorPayload {
+	error: string;
 }

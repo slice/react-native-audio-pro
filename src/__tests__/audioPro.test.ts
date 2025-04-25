@@ -17,14 +17,14 @@ jest.mock('react-native', () => ({
 	Platform: {
 		OS: 'ios', // Mock as iOS to use NativeModules.AudioPro
 	},
+	Image: {
+		resolveAssetSource: jest.fn().mockImplementation((source) => ({
+			uri: typeof source === 'number' ? `resolved-${source}` : source,
+		})),
+	},
 	NativeEventEmitter: jest.fn().mockImplementation(() => ({
 		addListener: jest.fn().mockReturnValue({ remove: jest.fn() }),
 	})),
-	Image: {
-		resolveAssetSource: jest.fn().mockImplementation((source) => ({
-			uri: `resolved-${source}`,
-		})),
-	},
 }));
 
 jest.mock('../emitter', () => ({
@@ -44,6 +44,10 @@ jest.mock('../utils', () => ({
 		if (volume > 0.995 && volume <= 1) return 1;
 		const clampedVolume = Math.max(0, Math.min(1, volume));
 		return parseFloat(clampedVolume.toFixed(2));
+	}),
+	resolveAssetSource: jest.fn().mockImplementation((source) => {
+		// Simple mock implementation that returns the source if it's a string, or a resolved URI if it's a number
+		return typeof source === 'number' ? `resolved-${source}` : source;
 	}),
 }));
 

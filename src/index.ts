@@ -14,6 +14,17 @@ export type {
 	AudioProProgressPayload,
 	AudioProSeekCompletePayload,
 	AudioProPlaybackSpeedChangedPayload,
+
+	// Ambient audio types
+	AmbientAudioPlayOptions,
+	AudioProAmbientEventCallback,
+	AudioProAmbientEvent,
+	AudioProAmbientErrorPayload,
 } from './types';
 
-export { AudioProState, AudioProEventType, AudioProContentType } from './values';
+export {
+	AudioProState,
+	AudioProEventType,
+	AudioProContentType,
+	AudioProAmbientEventType,
+} from './values';
