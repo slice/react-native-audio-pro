@@ -5,6 +5,7 @@ import {
 	type AudioProTrack,
 } from 'react-native-audio-pro';
 
+import { copyAudioToCache, copyArtworkToCache } from './file-utils';
 import { playlist } from './playlist';
 import { AudioPro } from '../../src/audioPro';
 
@@ -43,12 +44,31 @@ export function setupAudioPro(): void {
 				break;
 		}
 	});
+
+	// Copy audio file to the cache directory for testing
+	const audioSource = require('../../docs/audio-soundhelix-song-9-tschurger.mp3');
+	copyAudioToCache(audioSource)
+		.then(() => {
+			console.log('Audio file copied to cache for testing');
+		})
+		.catch((error) => {
+			console.error('Failed to copy audio file to cache:', error);
+		});
+
+	// Copy artwork file to the cache directory for testing
+	const artworkSource = require('../../docs/artwork-usgs-PgL1p8TBGNQ-unsplash.jpg');
+	copyArtworkToCache(artworkSource)
+		.then(() => {
+			console.log('Artwork file copied to cache for testing');
+		})
+		.catch((error) => {
+			console.error('Failed to copy artwork file to cache:', error);
+		});
 }
 
 function playNextTrack(autoPlay: boolean = true): void {
 	if (playlist.length === 0) return;
 
-	// Update the index to point to the next track
 	currentIndex = (currentIndex + 1) % playlist.length;
 	const nextTrack = playlist[currentIndex];
 
@@ -64,7 +84,6 @@ function playPreviousTrack(autoPlay: boolean = true): void {
 	AudioPro.play(prevTrack as AudioProTrack, { autoPlay });
 }
 
-// Export functions that can be called from React components
 export function getCurrentTrackIndex(): number {
 	return currentIndex;
 }

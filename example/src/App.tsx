@@ -225,14 +225,7 @@ export default function App() {
 				contentContainerStyle={styles.scrollContent}
 				showsVerticalScrollIndicator={false}
 			>
-				<Image
-					source={
-						typeof currentTrack.artwork === 'number'
-							? currentTrack.artwork
-							: { uri: currentTrack.artwork }
-					}
-					style={styles.artwork}
-				/>
+				<Image source={{ uri: currentTrack.artwork }} style={styles.artwork} />
 				<Text style={styles.title}>{currentTrack.title}</Text>
 				<Text style={styles.artist}>{currentTrack.artist}</Text>
 				<View style={styles.sliderContainer}>
