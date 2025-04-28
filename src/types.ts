@@ -30,6 +30,7 @@ export type AudioProConfigureOptions = {
 	debug?: boolean;
 	debugIncludesProgress?: boolean;
 	progressIntervalMs?: number;
+	showNextPrevControls?: boolean;
 };
 
 // ==============================

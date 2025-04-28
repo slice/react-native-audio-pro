@@ -37,4 +37,5 @@ export const DEFAULT_CONFIG: AudioProConfigureOptions = {
 	debug: false,
 	debugIncludesProgress: false,
 	progressIntervalMs: 1000,
+	showNextPrevControls: true,
 };

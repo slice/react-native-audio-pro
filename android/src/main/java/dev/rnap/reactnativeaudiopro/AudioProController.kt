@@ -32,6 +32,7 @@ object AudioProController {
 	private var debug: Boolean = false
 	private var debugIncludesProgress: Boolean = false
 	private var progressIntervalMs: Long = 1000
+	var showNextPrevControls: Boolean = true
 	private var reactContext: ReactApplicationContext? = null
 	private var playerListener: Player.Listener? = null
 	private var lastEmittedState: String = ""
@@ -178,6 +179,7 @@ object AudioProController {
 		currentPlaybackSpeed = speed
 		currentVolume = volume
 		progressIntervalMs = progressInterval
+		showNextPrevControls = if (options.hasKey("showNextPrevControls")) options.getBoolean("showNextPrevControls") else true
 
 		log("Configured with contentType=$contentType debug=$debug speed=$speed volume=$volume autoplay=$autoplay")
 

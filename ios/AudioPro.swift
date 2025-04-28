@@ -48,6 +48,7 @@ class AudioPro: RCTEventEmitter {
     private let GENERIC_ERROR_CODE = 900
     private var progressInterval: TimeInterval = 1.0
     private var shouldBePlaying = false
+    private var showNextPrevControls = true // Default to showing next/prev controls
     private var isRemoteCommandCenterSetup = false
 
     private var isRateObserverAdded = false
@@ -282,6 +283,7 @@ class AudioPro: RCTEventEmitter {
         let speed = options["playbackSpeed"] as? Float ?? 1.0
         let volume = options["volume"] as? Float ?? 1.0
         let autoplay = options["autoplay"] as? Bool ?? true
+        showNextPrevControls = options["showNextPrevControls"] as? Bool ?? true
 
         if let progressIntervalMs = options["progressIntervalMs"] as? Double {
             let intervalSeconds = progressIntervalMs / 1000.0
@@ -1036,13 +1038,21 @@ class AudioPro: RCTEventEmitter {
         let commandCenter = MPRemoteCommandCenter.shared()
 
         // Configure all commands at once
-        let commands: [(MPRemoteCommand, Bool)] = [
+        var commands: [(MPRemoteCommand, Bool)] = [
             (commandCenter.playCommand, true),
             (commandCenter.pauseCommand, true),
-            (commandCenter.nextTrackCommand, true),
-            (commandCenter.previousTrackCommand, true),
             (commandCenter.changePlaybackPositionCommand, true)
         ]
+
+        // Only add next/previous commands if showNextPrevControls is true
+        if showNextPrevControls {
+            commands.append((commandCenter.nextTrackCommand, true))
+            commands.append((commandCenter.previousTrackCommand, true))
+        } else {
+            // Disable next/previous commands if showNextPrevControls is false
+            commandCenter.nextTrackCommand.isEnabled = false
+            commandCenter.previousTrackCommand.isEnabled = false
+        }
 
         // Enable all commands
         commands.forEach { $0.0.isEnabled = $0.1 }

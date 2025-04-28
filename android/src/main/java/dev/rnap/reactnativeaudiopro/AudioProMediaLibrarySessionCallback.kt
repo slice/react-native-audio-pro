@@ -17,27 +17,33 @@ import com.google.common.util.concurrent.ListenableFuture
 @UnstableApi
 open class AudioProMediaLibrarySessionCallback : MediaLibraryService.MediaLibrarySession.Callback {
 
-	private val commandButtons: List<CommandButton> =
-		listOf(
-			CommandButton.Builder(CommandButton.ICON_NEXT)
-				.setDisplayName("Next")
-				.setSessionCommand(
-					SessionCommand(
-						CUSTOM_COMMAND_NEXT,
-						Bundle.EMPTY
-					)
-				)
-				.build(),
-			CommandButton.Builder(CommandButton.ICON_PREVIOUS)
-				.setDisplayName("Previous")
-				.setSessionCommand(
-					SessionCommand(
-						CUSTOM_COMMAND_PREV,
-						Bundle.EMPTY
-					)
-				)
-				.build(),
+	private val nextButton = CommandButton.Builder(CommandButton.ICON_NEXT)
+		.setDisplayName("Next")
+		.setSessionCommand(
+			SessionCommand(
+				CUSTOM_COMMAND_NEXT,
+				Bundle.EMPTY
+			)
 		)
+		.build()
+
+	private val prevButton = CommandButton.Builder(CommandButton.ICON_PREVIOUS)
+		.setDisplayName("Previous")
+		.setSessionCommand(
+			SessionCommand(
+				CUSTOM_COMMAND_PREV,
+				Bundle.EMPTY
+			)
+		)
+		.build()
+
+	private fun getCommandButtons(): List<CommandButton> {
+		return if (AudioProController.showNextPrevControls) {
+			listOf(nextButton, prevButton)
+		} else {
+			emptyList()
+		}
+	}
 
 	companion object {
 		private const val CUSTOM_COMMAND_NEXT =
@@ -47,10 +53,10 @@ open class AudioProMediaLibrarySessionCallback : MediaLibraryService.MediaLibrar
 	}
 
 	@OptIn(UnstableApi::class) // MediaSession.ConnectionResult.DEFAULT_SESSION_AND_LIBRARY_COMMANDS
-	val mediaNotificationSessionCommands =
-		MediaSession.ConnectionResult.DEFAULT_SESSION_AND_LIBRARY_COMMANDS.buildUpon()
+	val mediaNotificationSessionCommands
+		get() = MediaSession.ConnectionResult.DEFAULT_SESSION_AND_LIBRARY_COMMANDS.buildUpon()
 			.also { builder ->
-				commandButtons.forEach { commandButton ->
+				getCommandButtons().forEach { commandButton ->
 					commandButton.sessionCommand?.let { builder.add(it) }
 				}
 			}
@@ -63,7 +69,7 @@ open class AudioProMediaLibrarySessionCallback : MediaLibraryService.MediaLibrar
 	): MediaSession.ConnectionResult {
 		return MediaSession.ConnectionResult.AcceptedResultBuilder(session)
 			.setAvailableSessionCommands(mediaNotificationSessionCommands)
-			.setMediaButtonPreferences(commandButtons)
+			.setMediaButtonPreferences(getCommandButtons())
 			.build()
 	}
 
