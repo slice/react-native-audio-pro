@@ -62,6 +62,9 @@ class AudioPro: RCTEventEmitter {
     private var lastEmittedState: String = ""
     private var currentVolume: Float = 1.0
 
+    // Audio session interruption handling
+    private var wasPlayingBeforeInterruption: Bool = false
+
     ////////////////////////////////////////////////////////////
     // MARK: - React Native Event Emitter Overrides
     ////////////////////////////////////////////////////////////
@@ -80,6 +83,91 @@ class AudioPro: RCTEventEmitter {
 
     override func stopObserving() {
         hasListeners = false
+    }
+
+    private func setupAudioSessionInterruptionObserver() {
+        // Register for audio session interruption notifications
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleAudioSessionInterruption(_:)),
+            name: AVAudioSession.interruptionNotification,
+            object: nil
+        )
+
+        log("Registered for audio session interruption notifications")
+    }
+
+    private func removeAudioSessionInterruptionObserver() {
+        NotificationCenter.default.removeObserver(
+            self,
+            name: AVAudioSession.interruptionNotification,
+            object: nil
+        )
+    }
+
+    @objc private func handleAudioSessionInterruption(_ notification: Notification) {
+        guard let userInfo = notification.userInfo,
+              let typeValue = userInfo[AVAudioSessionInterruptionTypeKey] as? UInt,
+              let type = AVAudioSession.InterruptionType(rawValue: typeValue) else {
+            return
+        }
+
+        log("Audio session interruption: \(type)")
+
+        switch type {
+        case .began:
+            // Interruption began (e.g., phone call, Siri, other app playing audio)
+            wasPlayingBeforeInterruption = player?.rate != 0
+
+            if wasPlayingBeforeInterruption {
+                log("Interruption began while playing, pausing playback")
+                // Pause playback without changing shouldBePlaying flag
+                player?.pause()
+                stopTimer()
+
+                // Emit PAUSED state to ensure UI is in sync
+                sendPausedStateEvent()
+
+                // Update now playing info to show paused state
+                updateNowPlayingInfo(time: player?.currentTime().seconds ?? 0, rate: 0)
+            }
+
+        case .ended:
+            // Interruption ended
+            guard let optionsValue = userInfo[AVAudioSessionInterruptionOptionKey] as? UInt else {
+                return
+            }
+
+            let options = AVAudioSession.InterruptionOptions(rawValue: optionsValue)
+
+            // If playback should resume and we have permission to do so
+            if wasPlayingBeforeInterruption && options.contains(.shouldResume) {
+                log("Interruption ended with resume option, resuming playback")
+
+                // Try to reactivate the audio session
+                do {
+                    try AVAudioSession.sharedInstance().setActive(true, options: .notifyOthersOnDeactivation)
+
+                    // Resume playback
+                    player?.play()
+                    startProgressTimer()
+
+                    // Emit PLAYING state
+                    sendPlayingStateEvent()
+
+                    // Update now playing info
+                    updateNowPlayingInfo(time: player?.currentTime().seconds ?? 0, rate: 1.0)
+                } catch {
+                    log("Failed to reactivate audio session: \(error.localizedDescription)")
+                    emitPlaybackError("Failed to resume after interruption: \(error.localizedDescription)")
+                }
+            }
+
+            // Reset the flag
+            wasPlayingBeforeInterruption = false
+        @unknown default:
+            break
+        }
     }
 
     ////////////////////////////////////////////////////////////
@@ -230,6 +318,9 @@ class AudioPro: RCTEventEmitter {
             let mode: AVAudioSession.Mode = (contentType == "SPEECH") ? .spokenAudio : .default
             try AVAudioSession.sharedInstance().setCategory(.playback, mode: mode)
             try AVAudioSession.sharedInstance().setActive(true)
+
+            // Set up audio session interruption observer
+            setupAudioSessionInterruptionObserver()
         } catch {
             onError("Audio session setup failed: \(error.localizedDescription)")
             return
@@ -425,8 +516,22 @@ class AudioPro: RCTEventEmitter {
     @objc(resume)
     func resume() {
         shouldBePlaying = true
+
+        // Try to reactivate the audio session if needed
+        do {
+            if !AVAudioSession.sharedInstance().isOtherAudioPlaying {
+                try AVAudioSession.sharedInstance().setActive(true, options: .notifyOthersOnDeactivation)
+            }
+        } catch {
+            log("Failed to reactivate audio session: \(error.localizedDescription)")
+            // Continue anyway, as the play command might still work
+        }
+
         player?.play()
+
+        // Ensure lock screen controls are properly updated
         updateNowPlayingInfo(time: player?.currentTime().seconds ?? 0, rate: 1.0)
+
         // Note: We don't need to call sendPlayingStateEvent() here because
         // the rate change will trigger observeValue which now calls sendPlayingStateEvent()
     }
@@ -496,6 +601,9 @@ class AudioPro: RCTEventEmitter {
         shouldBePlaying = false
 
         NotificationCenter.default.removeObserver(self)
+
+        // Explicitly remove audio session interruption observer
+        removeAudioSessionInterruptionObserver()
 
         if let player = player {
             if isRateObserverAdded {
