@@ -383,6 +383,15 @@ const track = {
   artist: 'Artist Name',
 };
 
+// For local files, make sure to use the file:// prefix for paths
+const localTrack = {
+  id: 'local-track-001',
+  url: 'file:///data/user/0/com.myapp/cache/audio.mp3',
+  title: 'Local Track',
+  artwork: 'file:///data/user/0/com.myapp/cache/artwork.jpg',
+  artist: 'Local Artist',
+};
+
 // Load and play the track
 AudioPro.play(track);
 

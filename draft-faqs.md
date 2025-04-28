@@ -75,7 +75,7 @@ Use `require('./audio.mp3')` to reference local bundled files directly.
 
 <details>
 <summary><strong>How do I load a file downloaded with react-native-fs?</strong></summary>
-Pass the file path as a string. On iOS, prefix with `file://` (e.g. `file://${path}`); on Android, raw paths like `/data/user/0/...` are supported natively.
+Pass the file path as a string with the `file://` prefix (e.g. `file:///data/user/0/com.myapp/cache/audio.mp3`). You must include the `file://` prefix for local files to ensure they are properly handled by the native players on both iOS and Android.
 </details>
 
 <details>

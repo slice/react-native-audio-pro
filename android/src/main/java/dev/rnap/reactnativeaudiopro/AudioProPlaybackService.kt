@@ -14,9 +14,12 @@ import androidx.core.os.bundleOf
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.DefaultHttpDataSource
+import androidx.media3.datasource.FileDataSource
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
+import androidx.media3.datasource.DataSource
 import androidx.media3.exoplayer.util.EventLogger
 import androidx.media3.session.MediaConstants
 import androidx.media3.session.MediaLibraryService
@@ -154,14 +157,23 @@ open class AudioProPlaybackService : MediaLibraryService() {
 
 	@OptIn(UnstableApi::class)
 	private fun initializeSessionAndPlayer() {
-		// Create data source factory with custom headers if available
-		val dataSourceFactory = DefaultHttpDataSource.Factory()
+		// Create a composite data source factory that can handle both HTTP and file URIs
+		val dataSourceFactory = object : DataSource.Factory {
+			override fun createDataSource(): DataSource {
+				// Create HTTP data source factory with custom headers if available
+				val httpDataSourceFactory = DefaultHttpDataSource.Factory()
 
-		// Apply custom headers if they exist
-		AudioProController.audioHeaders?.let { headers ->
-			if (headers.isNotEmpty()) {
-				dataSourceFactory.setDefaultRequestProperties(headers)
-				android.util.Log.d("AudioProPlaybackService", "Applied custom headers: $headers")
+				// Apply custom headers if they exist
+				AudioProController.audioHeaders?.let { headers ->
+					if (headers.isNotEmpty()) {
+						httpDataSourceFactory.setDefaultRequestProperties(headers)
+						android.util.Log.d("AudioProPlaybackService", "Applied custom headers: $headers")
+					}
+				}
+
+				// Create a DefaultDataSource that will handle both HTTP and file URIs
+				// It will delegate to FileDataSource for file:// URIs and to HttpDataSource for http(s):// URIs
+				return DefaultDataSource.Factory(applicationContext, httpDataSourceFactory).createDataSource()
 			}
 		}
 

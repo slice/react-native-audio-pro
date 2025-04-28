@@ -1,6 +1,28 @@
-import type { AudioProTrack } from 'react-native-audio-pro';
+import { Platform } from 'react-native';
 
-export const playlist: AudioProTrack[] = [
+import { CachesDirectoryPath } from 'react-native-fs';
+
+const isAndroid = Platform.OS === 'android';
+
+export type Track = {
+	id: string;
+	url: string | number;
+	title: string;
+	artwork: string | number;
+	artist: string;
+};
+
+// Cache paths for audio file
+export const AUDIO_CACHE_FOLDER = 'Audio';
+export const AUDIO_CACHE_FILENAME = 'test-audio.mp3';
+export const AUDIO_CACHE_PATH = `${CachesDirectoryPath}/${AUDIO_CACHE_FOLDER}/${AUDIO_CACHE_FILENAME}`;
+
+// Cache paths for artwork
+export const ARTWORK_CACHE_FOLDER = 'Artwork';
+export const ARTWORK_CACHE_FILENAME = 'test-artwork.jpg';
+export const ARTWORK_CACHE_PATH = `${CachesDirectoryPath}/${ARTWORK_CACHE_FOLDER}/${ARTWORK_CACHE_FILENAME}`;
+
+export const playlist: Track[] = [
 	{
 		id: 'remote-song-1',
 		url: 'https://rnap.dev/audio-soundhelix-song-1-tschurger.mp3',
@@ -28,5 +50,12 @@ export const playlist: AudioProTrack[] = [
 		title: 'This track should error',
 		artwork: 'https://error',
 		artist: 'For test purposes',
+	},
+	{
+		id: 'cached-file',
+		url: isAndroid ? `file://${AUDIO_CACHE_PATH}` : AUDIO_CACHE_PATH,
+		title: 'Cached File',
+		artwork: isAndroid ? `file://${ARTWORK_CACHE_PATH}` : ARTWORK_CACHE_PATH,
+		artist: 'From Cache Directory',
 	},
 ];

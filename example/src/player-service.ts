@@ -48,7 +48,6 @@ export function setupAudioPro(): void {
 function playNextTrack(autoPlay: boolean = true): void {
 	if (playlist.length === 0) return;
 
-	// Update the index to point to the next track
 	currentIndex = (currentIndex + 1) % playlist.length;
 	const nextTrack = playlist[currentIndex];
 
@@ -64,7 +63,6 @@ function playPreviousTrack(autoPlay: boolean = true): void {
 	AudioPro.play(prevTrack as AudioProTrack, { autoPlay });
 }
 
-// Export functions that can be called from React components
 export function getCurrentTrackIndex(): number {
 	return currentIndex;
 }
