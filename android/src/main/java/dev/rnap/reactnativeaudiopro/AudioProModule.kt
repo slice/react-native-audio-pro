@@ -111,6 +111,21 @@ class AudioProModule(private val reactContext: ReactApplicationContext) :
 		AmbientAudioController.ambientSetVolume(volume.toFloat())
 	}
 
+	@ReactMethod
+	fun ambientPause() {
+		AmbientAudioController.ambientPause()
+	}
+
+	@ReactMethod
+	fun ambientResume() {
+		AmbientAudioController.ambientResume()
+	}
+
+	@ReactMethod
+	fun ambientSeekTo(positionMs: Double) {
+		AmbientAudioController.ambientSeekTo(positionMs.toLong())
+	}
+
 	override fun getName(): String {
 		return NAME
 	}

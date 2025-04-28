@@ -120,6 +120,44 @@ object AmbientAudioController {
     }
 
     /**
+     * Pause ambient audio playback
+     * No-op if already paused or not playing
+     */
+    fun ambientPause() {
+        log("Ambient Pause")
+
+        runOnUiThread {
+            player?.pause()
+        }
+    }
+
+    /**
+     * Resume ambient audio playback
+     * No-op if already playing or no active track
+     */
+    fun ambientResume() {
+        log("Ambient Resume")
+
+        runOnUiThread {
+            player?.play()
+        }
+    }
+
+    /**
+     * Seek to position in ambient audio track
+     * Silently ignore if not supported or no active track
+     *
+     * @param positionMs Position in milliseconds
+     */
+    fun ambientSeekTo(positionMs: Long) {
+        log("Ambient Seek To", positionMs)
+
+        runOnUiThread {
+            player?.seekTo(positionMs)
+        }
+    }
+
+    /**
      * Set the volume of ambient audio playback
      */
     fun ambientSetVolume(volume: Float) {

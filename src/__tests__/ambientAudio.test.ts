@@ -8,6 +8,9 @@ jest.mock('react-native', () => ({
 			ambientPlay: jest.fn(),
 			ambientStop: jest.fn(),
 			ambientSetVolume: jest.fn(),
+			ambientPause: jest.fn(),
+			ambientResume: jest.fn(),
+			ambientSeekTo: jest.fn(),
 		},
 	},
 	Platform: {
@@ -74,6 +77,9 @@ describe('Ambient Audio', () => {
 		expect(typeof AudioPro.ambientPlay).toBe('function');
 		expect(typeof AudioPro.ambientStop).toBe('function');
 		expect(typeof AudioPro.ambientSetVolume).toBe('function');
+		expect(typeof AudioPro.ambientPause).toBe('function');
+		expect(typeof AudioPro.ambientResume).toBe('function');
+		expect(typeof AudioPro.ambientSeekTo).toBe('function');
 		expect(typeof AudioPro.addAmbientListener).toBe('function');
 	});
 
@@ -183,5 +189,36 @@ describe('Ambient Audio', () => {
 				error: expect.stringContaining('Invalid URL'),
 			},
 		});
+	});
+
+	it('should call native ambientPause', () => {
+		AudioPro.ambientPause();
+
+		// Get the mock from NativeModules
+		const { ambientPause } = require('react-native').NativeModules.AudioPro;
+
+		// Verify it was called
+		expect(ambientPause).toHaveBeenCalled();
+	});
+
+	it('should call native ambientResume', () => {
+		AudioPro.ambientResume();
+
+		// Get the mock from NativeModules
+		const { ambientResume } = require('react-native').NativeModules.AudioPro;
+
+		// Verify it was called
+		expect(ambientResume).toHaveBeenCalled();
+	});
+
+	it('should call native ambientSeekTo with correct position', () => {
+		const position = 30000; // 30 seconds
+		AudioPro.ambientSeekTo(position);
+
+		// Get the mock from NativeModules
+		const { ambientSeekTo } = require('react-native').NativeModules.AudioPro;
+
+		// Verify it was called with the correct position
+		expect(ambientSeekTo).toHaveBeenCalledWith(position);
 	});
 });

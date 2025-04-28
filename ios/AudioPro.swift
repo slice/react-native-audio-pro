@@ -1068,6 +1068,50 @@ class AudioPro: RCTEventEmitter {
     }
 
     /**
+     * Pause ambient audio playback
+     * No-op if already paused or not playing
+     */
+    @objc(ambientPause)
+    func ambientPause() {
+        log("Ambient Pause")
+
+        // Pause the player if it exists
+        ambientPlayer?.pause()
+    }
+
+    /**
+     * Resume ambient audio playback
+     * No-op if already playing or no active track
+     */
+    @objc(ambientResume)
+    func ambientResume() {
+        log("Ambient Resume")
+
+        // Resume the player if it exists
+        ambientPlayer?.play()
+    }
+
+    /**
+     * Seek to position in ambient audio track
+     * Silently ignore if not supported or no active track
+     *
+     * @param positionMs Position in milliseconds
+     */
+    @objc(ambientSeekTo:)
+    func ambientSeekTo(positionMs: Double) {
+        log("Ambient Seek To", positionMs)
+
+        // Convert milliseconds to seconds for CMTime
+        let seconds = positionMs / 1000.0
+
+        // Create a CMTime value for the seek position
+        let time = CMTime(seconds: seconds, preferredTimescale: 1000)
+
+        // Seek to the specified position
+        ambientPlayer?.seek(to: time)
+    }
+
+    /**
      * Handle ambient track completion
      */
     @objc private func ambientPlayerItemDidPlayToEndTime(_ notification: Notification) {

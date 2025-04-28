@@ -75,6 +75,8 @@ buildscript {
 }
 ```
 
+
+
 ## 📚 API Overview
 
 React Native Audio Pro supports various audio formats including MP3, AAC, WAV, and streaming protocols like HLS, DASH, RTSP, and RTMP.
@@ -102,8 +104,18 @@ React Native Audio Pro supports various audio formats including MP3, AAC, WAV, a
 | **setVolume(volume: number)** | Sets the playback volume from 0.0 (mute) to 1.0 (full output). This affects only Audio Pro playback, not the device's system volume. | `void` |
 | **getVolume()** | Returns the current relative volume (0.0 to 1.0). | `number` |
 | **getError()** | Returns the last error that occurred, or null if no error has occurred. | `AudioProPlaybackErrorPayload \| null` |
+
+### 🎵 Ambient Audio Methods (Stateless Fire-and-Forget)
+
+> 🧠 Ambient playback is designed to be stateless, simple, and minimal for background sounds, ambient loops, or lightweight audio tasks.
+
+| Method | Description | Return Value |
+|--------|-------------|--------------|
 | **ambientPlay(options: AmbientAudioPlayOptions)** | Plays a lightweight ambient audio track, isolated from the main player. Accepts a remote or local `url` and optional `loop` flag (default: `true`). | `void` |
 | **ambientStop()** | Stops the ambient audio playback. | `void` |
+| **ambientPause()** | Pause ambient audio playback (no-op if already paused or not playing). | `void` |
+| **ambientResume()** | Resume ambient audio playback if paused (no-op if already playing or no active track). | `void` |
+| **ambientSeekTo(positionMs: number)** | Seek to the specified position (in milliseconds) in the ambient track (if supported). Silently ignore if not supported or if no active ambient track. | `void` |
 | **ambientSetVolume(volume: number)** | Sets the volume of ambient audio playback from 0.0 (mute) to 1.0 (full output). | `void` |
 | **addAmbientListener(callback: AudioProAmbientEventCallback)** | Listens for ambient audio events (e.g., track ended, errors). | `EmitterSubscription` |
 
@@ -417,8 +429,11 @@ AudioPro.ambientPlay({
   loop: true, // Optional, defaults to true
 });
 
-// Stop ambient audio
-AudioPro.ambientStop();
+// Basic ambient audio controls
+AudioPro.ambientPause();    // Pause ambient playback
+AudioPro.ambientResume();   // Resume ambient playback
+AudioPro.ambientStop();     // Stop and clean up ambient playback
+AudioPro.ambientSeekTo(30000); // Seek to 30 seconds
 
 // Set ambient audio volume
 AudioPro.ambientSetVolume(0.5); // 50% volume
@@ -443,7 +458,7 @@ subscription.remove();
 
 - **Completely isolated** from the main audio player
 - **Independent playback** - ambient audio continues playing even when the main player is stopped or cleared
-- **Simple API** - just three methods: `ambientPlay()`, `ambientStop()`, and `ambientSetVolume()`
+- **Simple API** - minimal methods with a stateless design
 - **Automatic looping** - ambient audio loops by default
 - **Event handling** - listen for track ended and error events
 - **Local and remote files** - supports both remote URLs and local files via `require()`

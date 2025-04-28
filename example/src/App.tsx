@@ -30,7 +30,7 @@ export default function App() {
 	const [progressInterval, setLocalProgressInterval] = useState(getProgressInterval());
 	const currentTrack = playlist[currentIndex];
 	const { position, duration, state, playingTrack, playbackSpeed, volume, error } = useAudioPro();
-	const [isAmbientPlaying, setIsAmbientPlaying] = useState(false);
+	const [ambientState, setAmbientState] = useState<'stopped' | 'playing' | 'paused'>('stopped');
 
 	// Sync the local index with the player service
 	useEffect(() => {
@@ -63,13 +63,13 @@ export default function App() {
 				case 'AMBIENT_TRACK_ENDED':
 					console.log('Ambient track ended');
 					// Update state if loop is false and track ended
-					setIsAmbientPlaying(false);
+					setAmbientState('stopped');
 					break;
 
 				case 'AMBIENT_ERROR':
 					console.warn('Ambient error:', event.payload?.error);
 					// Update state on error
-					setIsAmbientPlaying(false);
+					setAmbientState('stopped');
 					break;
 			}
 		});
@@ -203,19 +203,33 @@ export default function App() {
 		setLocalProgressInterval(newInterval);
 	};
 
-	// Toggle ambient audio playback
-	const handleToggleAmbient = () => {
-		if (isAmbientPlaying) {
-			// Stop ambient audio
-			AudioPro.ambientStop();
-			setIsAmbientPlaying(false);
-		} else {
-			// Play ambient audio from local file
-			AudioPro.ambientPlay({
-				url: require('../assets/ambient-spring-forest-323801.mp3'),
-				loop: true,
-			});
-			setIsAmbientPlaying(true);
+	// Handle ambient audio playback
+	const handleAmbientPlay = () => {
+		// Play ambient audio from local file
+		AudioPro.ambientPlay({
+			url: require('../assets/ambient-spring-forest-323801.mp3'),
+			loop: true,
+		});
+		setAmbientState('playing');
+	};
+
+	// Handle ambient audio stop
+	const handleAmbientStop = () => {
+		// Stop ambient audio
+		AudioPro.ambientStop();
+		setAmbientState('stopped');
+	};
+
+	// Toggle ambient audio pause/resume
+	const handleAmbientTogglePause = () => {
+		if (ambientState === 'playing') {
+			// Pause ambient audio
+			AudioPro.ambientPause();
+			setAmbientState('paused');
+		} else if (ambientState === 'paused') {
+			// Resume ambient audio
+			AudioPro.ambientResume();
+			setAmbientState('playing');
 		}
 	};
 
@@ -335,11 +349,23 @@ export default function App() {
 				</View>
 
 				<View style={styles.ambientSection}>
+					<Text style={styles.sectionTitle}>Ambient Audio</Text>
 					<View style={styles.stopRow}>
-						<TouchableOpacity onPress={handleToggleAmbient}>
-							<Text style={styles.controlText}>
-								{isAmbientPlaying ? 'ambientStop()' : 'ambientPlay()'}
-							</Text>
+						{ambientState === 'stopped' ? (
+							<TouchableOpacity onPress={handleAmbientPlay}>
+								<Text style={styles.controlText}>ambientPlay()</Text>
+							</TouchableOpacity>
+						) : (
+							<TouchableOpacity onPress={handleAmbientTogglePause}>
+								<Text style={styles.controlText}>
+									{ambientState === 'playing'
+										? 'ambientPause()'
+										: 'ambientResume()'}
+								</Text>
+							</TouchableOpacity>
+						)}
+						<TouchableOpacity onPress={handleAmbientStop}>
+							<Text style={styles.controlText}>ambientStop()</Text>
 						</TouchableOpacity>
 					</View>
 				</View>
