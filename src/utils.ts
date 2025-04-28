@@ -13,6 +13,7 @@ import type { AudioProTrack } from './types';
  * @returns The normalized path with file:// prefix if needed
  */
 export function normalizeFilePath(path: string): string {
+	// noinspection SuspiciousTypeOfGuard
 	if (
 		typeof path === 'string' &&
 		path.startsWith('/') &&
@@ -20,6 +21,12 @@ export function normalizeFilePath(path: string): string {
 		!path.startsWith('http://') &&
 		!path.startsWith('https://')
 	) {
+		if (__DEV__) {
+			console.warn(
+				'[react-native-audio-pro] Deprecation Notice: Local file paths must be prefixed with "file://". ' +
+					'Auto-correction is deprecated and will be removed in v10.0.0. Please update your code.',
+			);
+		}
 		return `file://${path}`;
 	}
 	return path;

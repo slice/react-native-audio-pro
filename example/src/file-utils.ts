@@ -32,6 +32,11 @@ async function copyFileToCache(
 
 		// Check if the file already exists in the cache
 		const fileExists = await exists(destinationPath);
+		if (fileExists) {
+			console.log(`File already exists in cache: ${destinationPath}`);
+		} else {
+			console.log(`File does not exist in cache: ${destinationPath}`);
+		}
 
 		if (!fileExists) {
 			// For development builds, we need to download the file from the dev server

@@ -1,10 +1,14 @@
+import { Platform } from 'react-native';
+
 import { CachesDirectoryPath } from 'react-native-fs';
+
+const isAndroid = Platform.OS === 'android';
 
 export type Track = {
 	id: string;
 	url: string | number;
 	title: string;
-	artwork: string;
+	artwork: string | number;
 	artist: string;
 };
 
@@ -49,9 +53,9 @@ export const playlist: Track[] = [
 	},
 	{
 		id: 'cached-file',
-		url: AUDIO_CACHE_PATH,
+		url: isAndroid ? `file://${AUDIO_CACHE_PATH}` : AUDIO_CACHE_PATH,
 		title: 'Cached File',
-		artwork: ARTWORK_CACHE_PATH,
+		artwork: isAndroid ? `file://${ARTWORK_CACHE_PATH}` : ARTWORK_CACHE_PATH,
 		artist: 'From Cache Directory',
 	},
 ];

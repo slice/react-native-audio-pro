@@ -21,7 +21,7 @@ import {
 } from './player-service';
 import { playlist } from './playlist';
 import { styles } from './styles';
-import { formatTime, getStateColor } from './utils';
+import { copyTestingFiles, formatTime, getStateColor } from './utils';
 import { AudioPro } from '../../src/audioPro';
 import { AudioProState } from '../../src/values';
 
@@ -52,6 +52,10 @@ export default function App() {
 		}
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [playingTrack?.id]);
+
+	useEffect(() => {
+		copyTestingFiles();
+	}, []);
 
 	// Set up ambient audio event listeners
 	useEffect(() => {
@@ -219,13 +223,22 @@ export default function App() {
 		}
 	};
 
+	console.log('~~~ currentTrack', JSON.stringify(currentTrack, undefined, 2));
+
 	return (
 		<SafeAreaView style={styles.container}>
 			<ScrollView
 				contentContainerStyle={styles.scrollContent}
 				showsVerticalScrollIndicator={false}
 			>
-				<Image source={{ uri: currentTrack.artwork }} style={styles.artwork} />
+				<Image
+					source={
+						typeof currentTrack.artwork === 'number'
+							? currentTrack.artwork
+							: { uri: currentTrack.artwork }
+					}
+					style={styles.artwork}
+				/>
 				<Text style={styles.title}>{currentTrack.title}</Text>
 				<Text style={styles.artist}>{currentTrack.artist}</Text>
 				<View style={styles.sliderContainer}>
