@@ -363,7 +363,7 @@ export const AudioPro = {
 	/**
 	 * Get the current progress interval
 	 *
-	 * @returns Current progress interval in milliseconds
+	 * @returns The current progress interval in milliseconds
 	 */
 	getProgressInterval() {
 		return (
@@ -453,7 +453,7 @@ export const AudioPro = {
 	},
 
 	/**
-	 * Seek to position in ambient audio track
+	 * Seek to a specific position in the ambient audio
 	 * Silently ignore if not supported or no active track
 	 *
 	 * @param positionMs - Position in milliseconds

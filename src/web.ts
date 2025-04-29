@@ -3,30 +3,54 @@ import { AudioProEventType, AudioProState } from './values';
 
 import type { AudioProTrack } from './types';
 
+/**
+ * Options for web audio player
+ */
 export interface WebAudioProOptions {
+	/** Whether to start playback automatically */
 	autoplay?: boolean;
+	/** Whether to enable debug logging */
 	debug?: boolean;
+	/** Whether to include progress events in debug logs */
 	debugIncludesProgress?: boolean;
+	/** Initial playback speed */
 	playbackSpeed?: number;
+	/** Custom HTTP headers for audio and artwork requests */
 	headers?: {
 		audio?: Record<string, string>;
 		artwork?: Record<string, string>;
 	};
+	/** Type of content being played */
 	contentType?: string;
 }
 
+/**
+ * Interface for web audio player implementation
+ */
 export interface WebAudioProInterface {
+	/** Play an audio track */
 	play(track: AudioProTrack, options: WebAudioProOptions): void;
+	/** Pause playback */
 	pause(): void;
+	/** Resume playback */
 	resume(): void;
+	/** Stop playback and reset position */
 	stop(): void;
+	/** Clear the player state */
 	clear(): void;
+	/** Seek to a specific position */
 	seekTo(positionMs: number): void;
+	/** Seek forward by specified amount */
 	seekForward(amountMs: number): void;
+	/** Seek backward by specified amount */
 	seekBack(amountMs: number): void;
+	/** Set playback speed */
 	setPlaybackSpeed(speed: number): void;
 }
 
+/**
+ * Web implementation of the audio player using HTML5 Audio API
+ */
 export class WebAudioProImpl implements WebAudioProInterface {
 	private audio: HTMLAudioElement | null = null;
 	private currentTrack: AudioProTrack | null = null;
@@ -34,6 +58,9 @@ export class WebAudioProImpl implements WebAudioProInterface {
 	private playbackSpeed: number = 1.0;
 	private debug: boolean = false;
 
+	/**
+	 * Creates a new web audio player instance
+	 */
 	constructor() {
 		if (typeof window !== 'undefined' && typeof document !== 'undefined') {
 			this.audio = new Audio();
@@ -41,12 +68,20 @@ export class WebAudioProImpl implements WebAudioProInterface {
 		}
 	}
 
+	/**
+	 * Logs debug messages if debug mode is enabled
+	 *
+	 * @param args - Arguments to log
+	 */
 	private log(...args: unknown[]): void {
 		if (this.debug) {
 			console.log('~~~ [Web]', ...args);
 		}
 	}
 
+	/**
+	 * Sets up event listeners for the audio element
+	 */
 	private setupAudioListeners(): void {
 		if (!this.audio) return;
 
@@ -97,6 +132,11 @@ export class WebAudioProImpl implements WebAudioProInterface {
 		});
 	}
 
+	/**
+	 * Emits a state changed event
+	 *
+	 * @param state - The new state
+	 */
 	private emitStateChanged(state: AudioProState): void {
 		const position = this.audio?.currentTime ? Math.floor(this.audio.currentTime * 1000) : 0;
 		const duration =
@@ -115,6 +155,9 @@ export class WebAudioProImpl implements WebAudioProInterface {
 		});
 	}
 
+	/**
+	 * Emits a progress update event
+	 */
 	private emitProgress(): void {
 		if (!this.audio) return;
 
@@ -131,6 +174,9 @@ export class WebAudioProImpl implements WebAudioProInterface {
 		});
 	}
 
+	/**
+	 * Emits a track ended event
+	 */
 	private emitTrackEnded(): void {
 		if (!this.audio) return;
 
@@ -147,6 +193,9 @@ export class WebAudioProImpl implements WebAudioProInterface {
 		});
 	}
 
+	/**
+	 * Emits a seek complete event
+	 */
 	private emitSeekComplete(): void {
 		if (!this.audio) return;
 
@@ -163,6 +212,12 @@ export class WebAudioProImpl implements WebAudioProInterface {
 		});
 	}
 
+	/**
+	 * Emits an error event
+	 *
+	 * @param error - Error message
+	 * @param errorCode - Error code
+	 */
 	private emitError(error: string, errorCode: number = -1): void {
 		// First emit the state change to ERROR
 		this.emitStateChanged(AudioProState.ERROR);
@@ -178,6 +233,9 @@ export class WebAudioProImpl implements WebAudioProInterface {
 		});
 	}
 
+	/**
+	 * Starts the progress update interval
+	 */
 	private startProgressUpdates(): void {
 		this.stopProgressUpdates();
 		this.progressInterval = window.setInterval(() => {
@@ -185,6 +243,9 @@ export class WebAudioProImpl implements WebAudioProInterface {
 		}, 1000) as unknown as number;
 	}
 
+	/**
+	 * Stops the progress update interval
+	 */
 	private stopProgressUpdates(): void {
 		if (this.progressInterval !== null) {
 			clearInterval(this.progressInterval);
@@ -192,8 +253,12 @@ export class WebAudioProImpl implements WebAudioProInterface {
 		}
 	}
 
-	// Public API methods that match the native implementations
-
+	/**
+	 * Play an audio track
+	 *
+	 * @param track - The track to play
+	 * @param options - Playback options
+	 */
 	play(track: AudioProTrack, options: WebAudioProOptions): void {
 		const autoplay = options.autoplay !== undefined ? options.autoplay : true;
 		this.log('Play', track, options, 'autoplay:', autoplay);
@@ -248,12 +313,18 @@ export class WebAudioProImpl implements WebAudioProInterface {
 		}
 	}
 
+	/**
+	 * Pause playback
+	 */
 	pause(): void {
 		if (!this.audio || this.audio.paused) return;
 		this.audio.pause();
 		this.emitStateChanged(AudioProState.PAUSED);
 	}
 
+	/**
+	 * Resume playback
+	 */
 	resume(): void {
 		if (!this.audio) return;
 		try {
@@ -270,6 +341,9 @@ export class WebAudioProImpl implements WebAudioProInterface {
 		}
 	}
 
+	/**
+	 * Stop playback and reset position
+	 */
 	stop(): void {
 		if (!this.audio) return;
 		this.audio.pause();
@@ -278,6 +352,9 @@ export class WebAudioProImpl implements WebAudioProInterface {
 		this.stopProgressUpdates();
 	}
 
+	/**
+	 * Clear the player state
+	 */
 	clear(): void {
 		if (!this.audio) return;
 		this.audio.pause();
@@ -288,6 +365,11 @@ export class WebAudioProImpl implements WebAudioProInterface {
 		this.stopProgressUpdates();
 	}
 
+	/**
+	 * Seek to a specific position
+	 *
+	 * @param positionMs - Position in milliseconds
+	 */
 	seekTo(positionMs: number): void {
 		if (!this.audio) return;
 		if (positionMs < 0) return;
@@ -297,6 +379,11 @@ export class WebAudioProImpl implements WebAudioProInterface {
 		this.emitSeekComplete();
 	}
 
+	/**
+	 * Seek forward by specified amount
+	 *
+	 * @param amountMs - Amount in milliseconds
+	 */
 	seekForward(amountMs: number): void {
 		if (!this.audio) return;
 		if (amountMs <= 0) return;
@@ -309,6 +396,11 @@ export class WebAudioProImpl implements WebAudioProInterface {
 		this.emitSeekComplete();
 	}
 
+	/**
+	 * Seek backward by specified amount
+	 *
+	 * @param amountMs - Amount in milliseconds
+	 */
 	seekBack(amountMs: number): void {
 		if (!this.audio) return;
 		if (amountMs <= 0) return;
@@ -317,6 +409,11 @@ export class WebAudioProImpl implements WebAudioProInterface {
 		this.emitSeekComplete();
 	}
 
+	/**
+	 * Set playback speed
+	 *
+	 * @param speed - Playback speed (1.0 is normal speed)
+	 */
 	setPlaybackSpeed(speed: number): void {
 		this.log('SetPlaybackSpeed', speed);
 		this.playbackSpeed = speed;

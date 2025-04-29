@@ -68,6 +68,12 @@ export function isValidUrl(url: string | number): boolean {
 	return true;
 }
 
+/**
+ * Validates a track object to ensure it has all required properties with correct types
+ *
+ * @param track - The track object to validate
+ * @returns true if the track is valid, false otherwise
+ */
 export function validateTrack(track: AudioProTrack): boolean {
 	// 1. Track object must be provided
 	if (!track) {
@@ -117,6 +123,12 @@ export function validateTrack(track: AudioProTrack): boolean {
 	return true;
 }
 
+/**
+ * Guards against operations that require a track to be playing
+ *
+ * @param methodName - The name of the method being called
+ * @returns true if a track is playing, false otherwise
+ */
 export function guardTrackPlaying(methodName: string): boolean {
 	if (!useInternalStore.getState().trackPlaying) {
 		const errorMessage = `~~~ AudioPro: ${methodName} called but no track is playing or has been played.`;
@@ -134,6 +146,11 @@ export function guardTrackPlaying(methodName: string): boolean {
 	return true;
 }
 
+/**
+ * Logs debug messages if debug mode is enabled
+ *
+ * @param args - Arguments to log
+ */
 export function logDebug(...args: unknown[]) {
 	if (useInternalStore.getState().debug) {
 		console.log('~~~', ...args);
