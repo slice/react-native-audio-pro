@@ -74,8 +74,8 @@ export class WebAudioProImpl implements WebAudioProInterface {
 			if (e && e.target) {
 				const audioElement = e.target as HTMLAudioElement;
 				if (audioElement && audioElement.error) {
-					errorMessage = audioElement.error.message || errorMessage;
-					errorCode = audioElement.error.code || errorCode;
+					errorMessage = audioElement.error.message || 'Network error';
+					errorCode = audioElement.error.code || -1;
 				}
 			}
 
@@ -164,22 +164,16 @@ export class WebAudioProImpl implements WebAudioProInterface {
 	}
 
 	private emitError(error: string, errorCode: number = -1): void {
+		// First emit the state change to ERROR
+		this.emitStateChanged(AudioProState.ERROR);
+
+		// Then emit the playback error
 		emitter.emit('AudioProEvent', {
 			type: AudioProEventType.PLAYBACK_ERROR,
 			track: this.currentTrack,
 			payload: {
 				error,
 				errorCode,
-			},
-		});
-
-		emitter.emit('AudioProEvent', {
-			type: AudioProEventType.STATE_CHANGED,
-			track: this.currentTrack,
-			payload: {
-				state: AudioProState.ERROR,
-				position: 0,
-				duration: 0,
 			},
 		});
 	}
@@ -212,6 +206,15 @@ export class WebAudioProImpl implements WebAudioProInterface {
 			return;
 		}
 
+		// Emit loading state first
+		this.emitStateChanged(AudioProState.LOADING);
+
+		// Validate track URL
+		if (!track.url) {
+			this.emitError('Audio error: Unknown error');
+			return;
+		}
+
 		// Web implementation doesn't support local audio files via require()
 		if (typeof track.url === 'number') {
 			this.emitError(
@@ -226,130 +229,88 @@ export class WebAudioProImpl implements WebAudioProInterface {
 		this.audio.playbackRate = this.playbackSpeed;
 		this.audio.load();
 
-		// Emit loading state
-		this.emitStateChanged(AudioProState.LOADING);
-
 		if (!autoplay) {
-			emitter.emit('AudioProEvent', {
-				type: AudioProEventType.STATE_CHANGED,
-				track: this.currentTrack,
-				payload: {
-					state: AudioProState.PAUSED,
-					position: 0,
-					duration: 0,
-				},
-			});
+			this.emitStateChanged(AudioProState.PAUSED);
+			return;
 		}
 
-		if (autoplay && this.audio) {
-			try {
-				// Call play() and handle the result safely
-				const playResult = this.audio.play();
-
-				// Modern browsers return a Promise from play()
-				if (playResult && typeof playResult.then === 'function') {
-					playResult
-						.then(() => {
-							// Play started successfully
-						})
-						.catch((error: Error) => {
-							// Play was interrupted or failed to start
-							this.emitError(`Failed to play: ${error.message}`, -1);
-						});
-				}
-				// Older browsers might not return anything from play()
-			} catch (error) {
-				// Handle browsers where play() might throw synchronously
-				this.emitError(
-					`Failed to play: ${error instanceof Error ? error.message : String(error)}`,
-					-1,
-				);
+		try {
+			const playResult = this.audio.play();
+			if (playResult && typeof playResult.then === 'function') {
+				playResult.catch((error) => {
+					this.emitError(`Failed to play: ${error.message}`);
+				});
 			}
+		} catch (error) {
+			this.emitError(`Failed to play: ${error instanceof Error ? error.message : String(error)}`);
 		}
 	}
 
 	pause(): void {
-		this.log('Pause');
-		if (this.audio) {
-			this.audio.pause();
-		}
+		if (!this.audio || this.audio.paused) return;
+		this.audio.pause();
+		this.emitStateChanged(AudioProState.PAUSED);
 	}
 
 	resume(): void {
-		this.log('Resume');
-		if (this.audio) {
-			try {
-				// Call play() and handle the result safely
-				const playResult = this.audio.play();
-
-				// Modern browsers return a Promise from play()
-				if (playResult && typeof playResult.then === 'function') {
-					playResult
-						.then(() => {
-							// Resume started successfully
-						})
-						.catch((error: Error) => {
-							// Resume was interrupted or failed to start
-							this.emitError(`Failed to resume: ${error.message}`, -1);
-						});
-				}
-				// Older browsers might not return anything from play()
-			} catch (error) {
-				// Handle browsers where play() might throw synchronously
-				this.emitError(
-					`Failed to resume: ${error instanceof Error ? error.message : String(error)}`,
-					-1,
-				);
+		if (!this.audio) return;
+		try {
+			const playResult = this.audio.play();
+			if (playResult && typeof playResult.then === 'function') {
+				playResult.catch((error) => {
+					this.emitError(`Failed to resume: ${error.message}`);
+				});
 			}
+		} catch (error) {
+			this.emitError(`Failed to resume: ${error instanceof Error ? error.message : String(error)}`);
 		}
 	}
 
 	stop(): void {
-		this.log('Stop');
-		if (this.audio) {
-			this.audio.pause();
-			this.audio.currentTime = 0;
-			this.emitStateChanged(AudioProState.STOPPED);
-		}
+		if (!this.audio) return;
+		this.audio.pause();
+		this.audio.currentTime = 0;
+		this.emitStateChanged(AudioProState.STOPPED);
 		this.stopProgressUpdates();
 	}
 
 	clear(): void {
-		this.log('Clear');
-		if (this.audio) {
-			this.audio.pause();
-			this.audio.currentTime = 0;
-			this.audio.src = '';
-			this.currentTrack = null;
-			this.emitStateChanged(AudioProState.IDLE);
-		}
+		if (!this.audio) return;
+		this.audio.pause();
+		this.audio.currentTime = 0;
+		this.audio.src = '';
+		this.currentTrack = null;
+		this.emitStateChanged(AudioProState.IDLE);
 		this.stopProgressUpdates();
 	}
 
 	seekTo(positionMs: number): void {
-		this.log('SeekTo', positionMs);
-		if (this.audio) {
-			this.audio.currentTime = positionMs / 1000; // Convert ms to seconds
-		}
+		if (!this.audio) return;
+		if (positionMs < 0) return;
+		if (this.audio.duration && positionMs > this.audio.duration * 1000) return;
+
+		this.audio.currentTime = positionMs / 1000;
+		this.emitSeekComplete();
 	}
 
 	seekForward(amountMs: number): void {
-		this.log('SeekForward', amountMs);
-		if (this.audio) {
-			// Convert milliseconds to seconds for the HTML Audio API
-			this.audio.currentTime = Math.min(
-				this.audio.duration || 0,
-				this.audio.currentTime + amountMs / 1000,
-			);
-		}
+		if (!this.audio) return;
+		if (amountMs <= 0) return;
+
+		const newPosition = Math.min(
+			this.audio.duration || Infinity,
+			this.audio.currentTime + amountMs / 1000
+		);
+		this.audio.currentTime = newPosition;
+		this.emitSeekComplete();
 	}
 
 	seekBack(amountMs: number): void {
-		this.log('SeekBack', amountMs);
-		if (this.audio) {
-			// Convert milliseconds to seconds for the HTML Audio API
-			this.audio.currentTime = Math.max(0, this.audio.currentTime - amountMs / 1000);
-		}
+		if (!this.audio) return;
+		if (amountMs <= 0) return;
+
+		this.audio.currentTime = Math.max(0, this.audio.currentTime - amountMs / 1000);
+		this.emitSeekComplete();
 	}
 
 	setPlaybackSpeed(speed: number): void {

@@ -62,7 +62,7 @@ jest.mock('../utils', () => ({
 
 // Mock useInternalStore
 jest.mock('../useInternalStore', () => {
-	const mockGetState = jest.fn().mockReturnValue({
+	const mockState = {
 		playerState: 'PLAYING',
 		position: 0,
 		duration: 0,
@@ -86,12 +86,16 @@ jest.mock('../useInternalStore', () => {
 		setVolume: jest.fn(),
 		setError: jest.fn(),
 		updateFromEvent: jest.fn(),
-	});
+	};
 
 	return {
-		useInternalStore: {
-			getState: mockGetState,
-		},
+		useInternalStore: jest.fn().mockImplementation((selector) => {
+			if (selector) {
+				return selector(mockState);
+			}
+			return mockState;
+		}),
+		__mockState: mockState,
 	};
 });
 

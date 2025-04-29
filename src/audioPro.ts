@@ -198,6 +198,7 @@ export const AudioPro = {
 		if (!guardTrackPlaying('seekTo')) return;
 		logDebug('AudioPro: seekTo()', positionMs);
 		if (!isValidPlayerStateForOperation('seekTo()')) return;
+		if (positionMs < 0) return;
 		NativeAudioPro.seekTo(positionMs);
 	},
 
@@ -210,6 +211,7 @@ export const AudioPro = {
 		if (!guardTrackPlaying('seekForward')) return;
 		logDebug('AudioPro: seekForward()', amountMs);
 		if (!isValidPlayerStateForOperation('seekForward()')) return;
+		if (amountMs <= 0) return;
 		NativeAudioPro.seekForward(amountMs);
 	},
 
@@ -222,6 +224,7 @@ export const AudioPro = {
 		if (!guardTrackPlaying('seekBack')) return;
 		logDebug('AudioPro: seekBack()', amountMs);
 		if (!isValidPlayerStateForOperation('seekBack()')) return;
+		if (amountMs <= 0) return;
 		NativeAudioPro.seekBack(amountMs);
 	},
 

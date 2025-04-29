@@ -33,26 +33,42 @@ jest.mock('../emitter', () => ({
 	},
 }));
 
-// Mock the useInternalStore
+// Mock useInternalStore
 jest.mock('../useInternalStore', () => {
 	const mockState = {
-		playerState: 'STOPPED',
+		playerState: 'PLAYING',
 		position: 0,
 		duration: 0,
 		playbackSpeed: 1.0,
-		volume: 0.8,
+		volume: 1.0,
+		debug: false,
+		debugIncludesProgress: false,
 		trackPlaying: null,
+		configureOptions: {
+			contentType: 'MUSIC',
+			debug: false,
+			debugIncludesProgress: false,
+			progressIntervalMs: 1000,
+		},
 		error: null,
+		setDebug: jest.fn(),
+		setDebugIncludesProgress: jest.fn(),
+		setTrackPlaying: jest.fn(),
+		setConfigureOptions: jest.fn(),
+		setPlaybackSpeed: jest.fn(),
+		setVolume: jest.fn(),
+		setError: jest.fn(),
+		updateFromEvent: jest.fn(),
 	};
 
 	return {
 		useInternalStore: jest.fn().mockImplementation((selector) => {
-			return selector(mockState);
+			if (selector) {
+				return selector(mockState);
+			}
+			return mockState;
 		}),
-		setMockState: (newState: Partial<typeof mockState>) => {
-			Object.assign(mockState, newState);
-		},
-		getMockState: () => ({ ...mockState }),
+		__mockState: mockState,
 	};
 });
 

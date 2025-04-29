@@ -6,6 +6,7 @@ jest.mock('react-native', () => ({
 			pause: jest.fn(),
 			resume: jest.fn(),
 			stop: jest.fn(),
+			clear: jest.fn(),
 			seekTo: jest.fn(),
 			seekForward: jest.fn(),
 			seekBack: jest.fn(),
@@ -38,6 +39,46 @@ jest.mock('../utils', () => {
 	return {
 		...originalModule,
 		guardTrackPlaying: jest.fn().mockReturnValue(true),
+		isValidPlayerStateForOperation: jest.fn().mockReturnValue(true),
+	};
+});
+
+// Mock useInternalStore
+jest.mock('../useInternalStore', () => {
+	const mockState = {
+		playerState: 'STOPPED',
+		position: 0,
+		duration: 0,
+		playbackSpeed: 1.0,
+		volume: 1.0,
+		debug: false,
+		debugIncludesProgress: false,
+		trackPlaying: null,
+		configureOptions: {
+			contentType: 'MUSIC',
+			debug: false,
+			debugIncludesProgress: false,
+			progressIntervalMs: 1000,
+		},
+		error: null,
+		setDebug: jest.fn(),
+		setDebugIncludesProgress: jest.fn(),
+		setTrackPlaying: jest.fn(),
+		setConfigureOptions: jest.fn(),
+		setPlaybackSpeed: jest.fn(),
+		setVolume: jest.fn(),
+		setError: jest.fn(),
+		updateFromEvent: jest.fn(),
+	};
+
+	return {
+		useInternalStore: jest.fn().mockImplementation((selector) => {
+			if (selector) {
+				return selector(mockState);
+			}
+			return mockState;
+		}),
+		__mockState: mockState,
 	};
 });
 
@@ -45,7 +86,9 @@ jest.mock('../utils', () => {
 import { NativeModules } from 'react-native';
 
 import { emitter } from '../emitter';
-import { AudioPro, AudioProState, AudioProContentType } from '../index';
+import { AudioPro, AudioProState, AudioProContentType, AudioProEventType } from '../index';
+import { useInternalStore } from '../useInternalStore';
+import { DEFAULT_CONFIG } from '../values';
 
 import type { AudioProTrack } from '../types';
 
@@ -62,6 +105,16 @@ describe('AudioPro Module', () => {
 	beforeEach(() => {
 		jest.clearAllMocks();
 		AudioPro.stop();
+		useInternalStore.setState({
+			trackPlaying: null,
+			playerState: AudioProState.IDLE,
+			position: 0,
+			duration: 0,
+			error: null,
+			volume: 1.0,
+			playbackSpeed: 1.0,
+			configureOptions: DEFAULT_CONFIG,
+		});
 	});
 
 	describe('configure', () => {
@@ -100,20 +153,185 @@ describe('AudioPro Module', () => {
 		});
 	});
 
-	// Skip these tests for now as they're difficult to mock properly
 	describe('playback controls', () => {
-		// eslint-disable-next-line jest/no-disabled-tests
-		it.skip('should call pause', () => {});
-		// eslint-disable-next-line jest/no-disabled-tests
-		it.skip('should call resume', () => {});
-		// eslint-disable-next-line jest/no-disabled-tests
-		it.skip('should call stop', () => {});
-		// eslint-disable-next-line jest/no-disabled-tests
-		it.skip('should call seekTo', () => {});
-		// eslint-disable-next-line jest/no-disabled-tests
-		it.skip('should call seekForward', () => {});
-		// eslint-disable-next-line jest/no-disabled-tests
-		it.skip('should call seekBack', () => {});
+		it('should call pause and update state', async () => {
+			// First play a track
+			await AudioPro.play(mockTrack);
+			jest.clearAllMocks();
+
+			AudioPro.pause();
+			expect(NativeModules.AudioPro.pause).toHaveBeenCalled();
+			expect(emitter.emit).toHaveBeenCalledWith(
+				'AudioProEvent',
+				expect.objectContaining({
+					type: AudioProEventType.STATE_CHANGED,
+					payload: expect.objectContaining({
+						state: AudioProState.PAUSED,
+					}),
+				}),
+			);
+		});
+
+		it('should call resume and update state', async () => {
+			// First play and pause a track
+			await AudioPro.play(mockTrack);
+			AudioPro.pause();
+			jest.clearAllMocks();
+
+			AudioPro.resume();
+			expect(NativeModules.AudioPro.resume).toHaveBeenCalled();
+			expect(emitter.emit).toHaveBeenCalledWith(
+				'AudioProEvent',
+				expect.objectContaining({
+					type: AudioProEventType.STATE_CHANGED,
+					payload: expect.objectContaining({
+						state: AudioProState.PLAYING,
+					}),
+				}),
+			);
+		});
+
+		it('should call stop and update state', async () => {
+			// First play a track
+			await AudioPro.play(mockTrack);
+			jest.clearAllMocks();
+
+			AudioPro.stop();
+			expect(NativeModules.AudioPro.stop).toHaveBeenCalled();
+			expect(emitter.emit).toHaveBeenCalledWith(
+				'AudioProEvent',
+				expect.objectContaining({
+					type: AudioProEventType.STATE_CHANGED,
+					payload: expect.objectContaining({
+						state: AudioProState.STOPPED,
+					}),
+				}),
+			);
+		});
+
+		it('should call seekTo and update position', async () => {
+			const position = 30; // 30 seconds
+			await AudioPro.play(mockTrack);
+			jest.clearAllMocks();
+
+			AudioPro.seekTo(position);
+			expect(NativeModules.AudioPro.seekTo).toHaveBeenCalledWith(position);
+			expect(emitter.emit).toHaveBeenCalledWith(
+				'AudioProEvent',
+				expect.objectContaining({
+					type: AudioProEventType.SEEK_COMPLETE,
+					payload: expect.objectContaining({
+						position,
+					}),
+				}),
+			);
+		});
+
+		it('should call seekForward and update position', async () => {
+			const seconds = 10;
+			await AudioPro.play(mockTrack);
+			jest.clearAllMocks();
+
+			AudioPro.seekForward(seconds);
+			expect(NativeModules.AudioPro.seekForward).toHaveBeenCalledWith(seconds);
+			expect(emitter.emit).toHaveBeenCalledWith(
+				'AudioProEvent',
+				expect.objectContaining({
+					type: AudioProEventType.SEEK_COMPLETE,
+				}),
+			);
+		});
+
+		it('should call seekBack and update position', async () => {
+			const seconds = 10;
+			await AudioPro.play(mockTrack);
+			jest.clearAllMocks();
+
+			AudioPro.seekBack(seconds);
+			expect(NativeModules.AudioPro.seekBack).toHaveBeenCalledWith(seconds);
+			expect(emitter.emit).toHaveBeenCalledWith(
+				'AudioProEvent',
+				expect.objectContaining({
+					type: AudioProEventType.SEEK_COMPLETE,
+				}),
+			);
+		});
+
+		it('should handle pause when not playing', () => {
+			jest.clearAllMocks();
+			AudioPro.pause();
+			expect(NativeModules.AudioPro.pause).not.toHaveBeenCalled();
+			expect(emitter.emit).not.toHaveBeenCalled();
+		});
+
+		it('should handle resume when not paused', () => {
+			jest.clearAllMocks();
+			AudioPro.resume();
+			expect(NativeModules.AudioPro.resume).not.toHaveBeenCalled();
+			expect(emitter.emit).not.toHaveBeenCalled();
+		});
+
+		it('should handle stop when not playing', () => {
+			jest.clearAllMocks();
+			AudioPro.stop();
+			expect(NativeModules.AudioPro.stop).toHaveBeenCalled();
+			expect(emitter.emit).toHaveBeenCalledWith(
+				'AudioProEvent',
+				expect.objectContaining({
+					type: AudioProEventType.STATE_CHANGED,
+					payload: expect.objectContaining({
+						state: AudioProState.STOPPED,
+					}),
+				}),
+			);
+		});
+
+		it('should handle clear when not playing', () => {
+			jest.clearAllMocks();
+			AudioPro.clear();
+			expect(NativeModules.AudioPro.clear).toHaveBeenCalled();
+			expect(emitter.emit).toHaveBeenCalledWith(
+				'AudioProEvent',
+				expect.objectContaining({
+					type: AudioProEventType.STATE_CHANGED,
+					payload: expect.objectContaining({
+						state: AudioProState.IDLE,
+					}),
+				}),
+			);
+		});
+
+		it('should handle invalid seek positions', () => {
+			// Negative position
+			AudioPro.seekTo(-1);
+			expect(NativeModules.AudioPro.seekTo).not.toHaveBeenCalled();
+			expect(emitter.emit).not.toHaveBeenCalled();
+
+			// Position greater than duration
+			AudioPro.seekTo(999999);
+			expect(NativeModules.AudioPro.seekTo).not.toHaveBeenCalled();
+			expect(emitter.emit).not.toHaveBeenCalled();
+		});
+
+		it('should handle invalid seek forward/back values', () => {
+			// Negative values
+			AudioPro.seekForward(-1);
+			expect(NativeModules.AudioPro.seekForward).not.toHaveBeenCalled();
+			expect(emitter.emit).not.toHaveBeenCalled();
+
+			AudioPro.seekBack(-1);
+			expect(NativeModules.AudioPro.seekBack).not.toHaveBeenCalled();
+			expect(emitter.emit).not.toHaveBeenCalled();
+
+			// Zero values
+			AudioPro.seekForward(0);
+			expect(NativeModules.AudioPro.seekForward).not.toHaveBeenCalled();
+			expect(emitter.emit).not.toHaveBeenCalled();
+
+			AudioPro.seekBack(0);
+			expect(NativeModules.AudioPro.seekBack).not.toHaveBeenCalled();
+			expect(emitter.emit).not.toHaveBeenCalled();
+		});
 	});
 
 	describe('playback speed', () => {
@@ -166,6 +384,61 @@ describe('AudioPro Module', () => {
 		it('should get error', () => {
 			const error = AudioPro.getError();
 			expect(error).toBeNull();
+		});
+	});
+
+	describe('state transitions', () => {
+		it('should handle state transitions correctly', async () => {
+			// Initial state
+			expect(AudioPro.getState()).toBe(AudioProState.IDLE);
+
+			// Play -> PLAYING
+			await AudioPro.play(mockTrack);
+			expect(emitter.emit).toHaveBeenCalledWith(
+				'AudioProEvent',
+				expect.objectContaining({
+					type: AudioProEventType.STATE_CHANGED,
+					payload: expect.objectContaining({
+						state: AudioProState.PLAYING,
+					}),
+				}),
+			);
+
+			// Playing -> PAUSED
+			AudioPro.pause();
+			expect(emitter.emit).toHaveBeenCalledWith(
+				'AudioProEvent',
+				expect.objectContaining({
+					type: AudioProEventType.STATE_CHANGED,
+					payload: expect.objectContaining({
+						state: AudioProState.PAUSED,
+					}),
+				}),
+			);
+
+			// Paused -> PLAYING
+			AudioPro.resume();
+			expect(emitter.emit).toHaveBeenCalledWith(
+				'AudioProEvent',
+				expect.objectContaining({
+					type: AudioProEventType.STATE_CHANGED,
+					payload: expect.objectContaining({
+						state: AudioProState.PLAYING,
+					}),
+				}),
+			);
+
+			// Playing -> STOPPED
+			AudioPro.stop();
+			expect(emitter.emit).toHaveBeenCalledWith(
+				'AudioProEvent',
+				expect.objectContaining({
+					type: AudioProEventType.STATE_CHANGED,
+					payload: expect.objectContaining({
+						state: AudioProState.STOPPED,
+					}),
+				}),
+			);
 		});
 	});
 });

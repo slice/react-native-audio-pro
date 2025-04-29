@@ -1,12 +1,12 @@
 import { Image, Platform } from 'react-native';
 
-import RNFS, { exists, mkdir, copyFile, CachesDirectoryPath } from 'react-native-fs';
+import { CachesDirectoryPath, copyFile, downloadFile, exists, mkdir } from 'react-native-fs';
 
 import {
-	AUDIO_CACHE_FOLDER,
-	AUDIO_CACHE_FILENAME,
-	ARTWORK_CACHE_FOLDER,
 	ARTWORK_CACHE_FILENAME,
+	ARTWORK_CACHE_FOLDER,
+	AUDIO_CACHE_FILENAME,
+	AUDIO_CACHE_FOLDER,
 } from './playlist';
 
 async function copyFileToCache(
@@ -47,7 +47,7 @@ async function copyFileToCache(
 				console.log('Downloading file from dev server:', sourceFilePath);
 				try {
 					// Use downloadFile instead of copyFile for URLs
-					const result = await RNFS.downloadFile({
+					const result = await downloadFile({
 						fromUrl: sourceFilePath,
 						toFile: destinationPath,
 					}).promise;
