@@ -218,6 +218,12 @@ type AudioProSetupOptions = {
     progressIntervalMs?: number; // Frequency (in ms) at which PROGRESS events are emitted (default: 1000ms)
     showNextPrevControls?: boolean; // Whether to show next/previous buttons on lock screen (default: true)
 };
+
+type AudioProPlayOptions = {
+    autoPlay?: boolean; // Whether to start playback immediately (default: true)
+    headers?: AudioProHeaders; // Custom HTTP headers for audio and artwork requests
+    startTimeMs?: number; // Optional position in milliseconds to start playback from.
+};
 ```
 </details>
 

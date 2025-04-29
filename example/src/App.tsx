@@ -108,7 +108,7 @@ export default function App() {
 			AudioPro.resume();
 		} else {
 			// If stopped, or we need to load a new track, play the current track
-			AudioPro.play(currentTrack, { autoPlay });
+			AudioPro.play(currentTrack, { autoPlay, startTimeMs: 60000 });
 			setNeedsTrackLoad(false);
 		}
 	};

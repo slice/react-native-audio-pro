@@ -349,4 +349,59 @@ class AudioProLogicTests: XCTestCase {
         expectation.fulfill()
         wait(for: [expectation], timeout: 1.0)
     }
+    
+    /**
+     * Test that the player handles startTimeMs correctly
+     */
+    func testStartTimeMsHandling() {
+        let expectation = XCTestExpectation(description: "startTimeMs handling")
+        
+        // Create a valid test URL
+        let testURL = URL(string: "https://example.com/test.mp3")!
+        testHelper.setupPlayer(url: testURL)
+        
+        // Simulate loading state
+        testHelper.simulateStateChange(STATE_LOADING)
+        XCTAssertEqual(testHelper.currentState, STATE_LOADING)
+        
+        // Simulate seek complete
+        testHelper.simulateSeekComplete()
+        
+        // Verify seek complete event was emitted
+        let seekEvent = testHelper.events.first { $0.type == EVENT_TYPE_SEEK_COMPLETE }
+        XCTAssertNotNil(seekEvent, "Should emit SEEK_COMPLETE event")
+        
+        // Simulate playing state
+        testHelper.simulateStateChange(STATE_PLAYING)
+        XCTAssertEqual(testHelper.currentState, STATE_PLAYING)
+        
+        expectation.fulfill()
+        wait(for: [expectation], timeout: 1.0)
+    }
+
+    /**
+     * Test that the player handles startTimeMs with autoplay=false
+     */
+    func testStartTimeMsWithAutoplayFalse() {
+        let expectation = XCTestExpectation(description: "startTimeMs with autoplay=false")
+        
+        // Create a valid test URL
+        let testURL = URL(string: "https://example.com/test.mp3")!
+        testHelper.setupPlayer(url: testURL)
+        
+        // Simulate loading state
+        testHelper.simulateStateChange(STATE_LOADING)
+        XCTAssertEqual(testHelper.currentState, STATE_LOADING)
+        
+        // Simulate seek complete
+        testHelper.simulateSeekComplete()
+        
+        // Verify seek complete event was emitted but player didn't start
+        let seekEvent = testHelper.events.first { $0.type == EVENT_TYPE_SEEK_COMPLETE }
+        XCTAssertNotNil(seekEvent, "Should emit SEEK_COMPLETE event")
+        XCTAssertEqual(testHelper.currentState, STATE_LOADING, "Should remain in LOADING state when autoplay=false")
+        
+        expectation.fulfill()
+        wait(for: [expectation], timeout: 1.0)
+    }
 }

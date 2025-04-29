@@ -127,6 +127,9 @@ object AudioProController {
 		val autoplay = if (options.hasKey("autoplay")) {
 			options.getBoolean("autoplay")
 		} else true
+		val startTimeMs = if (options.hasKey("startTimeMs")) {
+			options.getDouble("startTimeMs").toLong()
+		} else null
 
 		val progressInterval = if (options.hasKey("progressIntervalMs")) {
 			options.getDouble("progressIntervalMs").toLong()
@@ -151,24 +154,34 @@ object AudioProController {
 		// Process custom headers if provided
 		audioHeaders = null
 		artworkHeaders = null
+
 		if (options.hasKey("headers")) {
 			val headers = options.getMap("headers")
 			if (headers != null) {
-				// Process audio headers
-				if (headers.hasKey("audio")) {
-					audioHeaders = extractHeaders(headers.getMap("audio"))?.also {
-						log("Custom audio headers provided: $it")
-					}
-				}
-
-				// Process artwork headers
-				if (headers.hasKey("artwork")) {
-					artworkHeaders = extractHeaders(headers.getMap("artwork"))?.also {
-						log("Custom artwork headers provided: $it")
-					}
-				}
+				audioHeaders = extractHeaders(headers.getMap("audio"))
+				artworkHeaders = extractHeaders(headers.getMap("artwork"))
 			}
 		}
+
+		// Configure the player
+		browser?.setPlaybackSpeed(speed)
+		browser?.setVolume(volume)
+		browser?.playWhenReady = autoplay
+
+		// Set up the media item
+		val mediaItem = buildMediaItem(track, contentType)
+		browser?.setMediaItem(mediaItem)
+
+		// If startTimeMs is provided, seek to that position
+		if (startTimeMs != null) {
+			pendingSeek = true
+			pendingSeekPosition = startTimeMs
+			pendingSeekDuration = 0L
+			browser?.seekTo(startTimeMs)
+		}
+
+		// Prepare the player
+		browser?.prepare()
 
 		debug = enableDebug
 		debugIncludesProgress = includeProgressInDebug
@@ -314,13 +327,18 @@ object AudioProController {
 	 * Used by both clear() and error transitions.
 	 */
 	private fun resetInternal(finalState: String) {
+		log("Reset internal, final state: $finalState")
+
 		// Reset error state
 		isInErrorState = finalState == AudioProModule.STATE_ERROR
 		// Reset last emitted state
 		lastEmittedState = ""
 
-		// Reset volume to default
-		currentVolume = 1.0f
+		// Clear pending seek state
+		pendingSeek = false
+		pendingSeekPosition = 0
+		pendingSeekDuration = 0
+		cancelSeekTimeout()
 
 		// Stop playback
 		runOnUiThread {
@@ -332,11 +350,9 @@ object AudioProController {
 		currentTrack = null
 		stopProgressTimer()
 
-		// Cancel any pending seek operations
-		cancelSeekTimeout()
-		pendingSeek = false
-		pendingSeekPosition = 0
-		pendingSeekDuration = 0
+		// Reset playback settings
+		currentPlaybackSpeed = 1.0f
+		currentVolume = 1.0f
 
 		// Release resources
 		release()
@@ -344,7 +360,7 @@ object AudioProController {
 		// Destroy the playback service to remove notification and tear down the media session
 		destroyPlaybackService()
 
-		// Emit the final state
+		// Emit final state
 		emitState(finalState, 0L, 0L)
 	}
 

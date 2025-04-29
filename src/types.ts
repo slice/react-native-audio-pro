@@ -45,7 +45,8 @@ export type AudioProHeaders = {
 export type AudioProPlayOptions = {
 	autoPlay?: boolean;
 	headers?: AudioProHeaders;
-} & AudioProConfigureOptions;
+	startTimeMs?: number;
+};
 
 // ==============================
 // EVENTS

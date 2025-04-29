@@ -66,6 +66,8 @@ class AudioPro: RCTEventEmitter {
     // Audio session interruption handling
     private var wasPlayingBeforeInterruption: Bool = false
 
+    private var pendingStartTimeMs: Double? = nil
+
     ////////////////////////////////////////////////////////////
     // MARK: - React Native Event Emitter Overrides
     ////////////////////////////////////////////////////////////
@@ -284,6 +286,7 @@ class AudioPro: RCTEventEmitter {
         let volume = options["volume"] as? Float ?? 1.0
         let autoplay = options["autoplay"] as? Bool ?? true
         showNextPrevControls = options["showNextPrevControls"] as? Bool ?? true
+        pendingStartTimeMs = options["startTimeMs"] as? Double
 
         if let progressIntervalMs = options["progressIntervalMs"] as? Double {
             let intervalSeconds = progressIntervalMs / 1000.0
@@ -600,6 +603,21 @@ class AudioPro: RCTEventEmitter {
     /// - Parameter emitStateChange: Whether to emit a STOPPED state change event (default: true)
     /// - Parameter clearTrack: Whether to clear the currentTrack (default: true)
     @objc func cleanup(emitStateChange: Bool = true, clearTrack: Bool = true) {
+        log("Cleanup", "emitStateChange:", emitStateChange, "clearTrack:", clearTrack)
+        
+        // Reset pending start time
+        pendingStartTimeMs = nil
+        
+        // Remove observers from current player item
+        if let item = player?.currentItem {
+            item.removeObserver(self, forKeyPath: "status")
+            NotificationCenter.default.removeObserver(
+                self,
+                name: .AVPlayerItemDidPlayToEndTime,
+                object: item
+            )
+        }
+
         shouldBePlaying = false
 
         NotificationCenter.default.removeObserver(self)
@@ -829,16 +847,48 @@ class AudioPro: RCTEventEmitter {
     override func observeValue(
         forKeyPath keyPath: String?,
         of object: Any?,
-        change: [NSKeyValueChangeKey : Any]?,
+        change: [NSKeyValueChangeKey: Any]?,
         context: UnsafeMutableRawPointer?
     ) {
-        // Don't process any KVO notifications if we're in an error state
-        if isInErrorState {
-            log("Ignoring KVO notification while in ERROR state: \(keyPath ?? "unknown")")
+        // Guard against state changes while in error state
+        guard !isInErrorState else {
+            log("Ignoring state change while in ERROR state")
             return
         }
 
-        if keyPath == "rate" {
+        guard let keyPath = keyPath else { return }
+
+        switch keyPath {
+        case "status":
+            if let item = object as? AVPlayerItem {
+                switch item.status {
+                case .readyToPlay:
+                    log("Player item ready to play")
+                    if let pendingStartTimeMs = pendingStartTimeMs {
+                        seekTo(position: pendingStartTimeMs) { [weak self] in
+                            guard let self = self else { return }
+                            self.emitSeekComplete()
+                            if autoplay {
+                                self.player?.play()
+                            }
+                            self.pendingStartTimeMs = nil
+                        }
+                    } else if autoplay {
+                        player?.play()
+                    }
+                case .failed:
+                    if let error = item.error {
+                        onError("Player item failed: \(error.localizedDescription)")
+                    } else {
+                        onError("Player item failed with unknown error")
+                    }
+                case .unknown:
+                    break
+                @unknown default:
+                    break
+                }
+            }
+        case "rate":
             if let newRate = change?[.newKey] as? Float {
                 if newRate == 0 {
                     if shouldBePlaying && hasListeners {
@@ -854,14 +904,7 @@ class AudioPro: RCTEventEmitter {
                     }
                 }
             }
-        } else if keyPath == "status" {
-            if let item = object as? AVPlayerItem {
-                if item.status == .failed {
-                    let errorMessage = item.error?.localizedDescription ?? "Playback failed for unknown reason"
-                    onError(errorMessage)
-                }
-            }
-        } else {
+        default:
             super.observeValue(forKeyPath: keyPath, of: object, change: change, context: context)
         }
     }

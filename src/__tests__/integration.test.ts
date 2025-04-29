@@ -86,12 +86,17 @@ const mockState: AudioProStore = {
 };
 
 jest.mock('../useInternalStore', () => ({
-	useInternalStore: (selector?: (state: AudioProStore) => any) => {
-		if (selector) {
-			return selector(mockState);
-		}
-		return mockState;
-	},
+	useInternalStore: Object.assign(
+		<T>(selector?: (state: AudioProStore) => T) => {
+			if (selector) {
+				return selector(mockState);
+			}
+			return mockState;
+		},
+		{
+			getState: () => mockState,
+		},
+	),
 }));
 
 describe('Integration Tests', () => {
