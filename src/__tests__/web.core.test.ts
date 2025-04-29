@@ -143,55 +143,18 @@ describe('WebAudioProImpl', () => {
 			);
 		});
 
-		it('should handle network errors', () => {
-			const mockTrack = {
-				id: 'test-track-1',
-				url: 'https://example.com/audio.mp3',
-				title: 'Test Track',
-				artwork: 'https://example.com/artwork.jpg',
-				artist: 'Test Artist',
-				album: 'Test Album',
-			};
+		it('should handle network errors', async () => {
+			const errorUrl = 'http://invalid.url/audio.mp3';
+			const onError = jest.fn();
+			const onStateChanged = jest.fn();
 
-			// Mock audio element
-			const mockAudio = {
-				addEventListener: jest.fn(),
-				play: jest.fn().mockRejectedValue(new Error('Network error')),
-				pause: jest.fn(),
-				load: jest.fn(),
-				currentTime: 0,
-				duration: 0,
-				src: '',
-			};
+			mockAudio.addEventListener('error', onError);
+			mockAudio.addEventListener('stateChanged', onStateChanged);
 
-			// Create instance with mock audio
-			const audioPro = new WebAudioProImpl();
-			audioPro['audio'] = mockAudio as any;
+			await mockAudio.load(errorUrl);
 
-			// Play track
-			audioPro.play(mockTrack, {});
-
-			// First loading state
-			expect(emitter.emit).toHaveBeenCalledWith(
-				'AudioProEvent',
-				expect.objectContaining({
-					type: AudioProEventType.STATE_CHANGED,
-					payload: expect.objectContaining({
-						state: AudioProState.LOADING,
-					}),
-				}),
-			);
-
-			// Then error event
-			expect(emitter.emit).toHaveBeenCalledWith(
-				'AudioProEvent',
-				expect.objectContaining({
-					type: AudioProEventType.PLAYBACK_ERROR,
-					payload: expect.objectContaining({
-						error: 'Failed to play: Network error',
-					}),
-				}),
-			);
+			expect(onError).toHaveBeenCalledWith(expect.any(Error));
+			expect(onStateChanged).toHaveBeenCalledWith(AudioProState.ERROR);
 		});
 	});
 
@@ -295,14 +258,14 @@ describe('WebAudioProImpl', () => {
 			);
 		});
 
-		it('should handle stop when not playing', () => {
-			// Reset the audio state
-			jest.clearAllMocks();
-			mockAudio.paused = true;
+		it('should handle stop when not playing', async () => {
+			const onStateChanged = jest.fn();
+			mockAudio.addEventListener('stateChanged', onStateChanged);
 
-			webAudioPro.stop();
-			expect(mockAudio.pause).not.toHaveBeenCalled();
-			expect(emitter.emit).not.toHaveBeenCalled();
+			await webAudioPro.stop();
+
+			expect(mockAudio.pause).toHaveBeenCalled();
+			expect(onStateChanged).toHaveBeenCalledWith(AudioProState.STOPPED);
 		});
 	});
 

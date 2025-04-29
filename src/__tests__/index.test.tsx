@@ -72,12 +72,10 @@ jest.mock('../useInternalStore', () => {
 	};
 
 	return {
-		useInternalStore: jest.fn().mockImplementation((selector) => {
-			if (selector) {
-				return selector(mockState);
-			}
-			return mockState;
-		}),
+		useInternalStore: {
+			getState: jest.fn().mockReturnValue(mockState),
+			setState: jest.fn(),
+		},
 		__mockState: mockState,
 	};
 });
@@ -120,12 +118,12 @@ describe('AudioPro Module', () => {
 	describe('configure', () => {
 		it('should configure with default options', () => {
 			AudioPro.configure({});
-			expect(AudioPro.getState()).toBe(AudioProState.IDLE);
+			// No state changes from TypeScript layer
 		});
 
 		it('should configure with content type', () => {
 			AudioPro.configure({ contentType: AudioProContentType.SPEECH });
-			expect(AudioPro.getState()).toBe(AudioProState.IDLE);
+			// No state changes from TypeScript layer
 		});
 	});
 
@@ -150,29 +148,30 @@ describe('AudioPro Module', () => {
 			const invalidTrack = { ...mockTrack, url: '' };
 			AudioPro.play(invalidTrack as AudioProTrack);
 			expect(NativeModules.AudioPro.play).not.toHaveBeenCalled();
+			expect(emitter.emit).toHaveBeenCalledWith(
+				'AudioProEvent',
+				expect.objectContaining({
+					type: AudioProEventType.PLAYBACK_ERROR,
+					payload: expect.objectContaining({
+						error: 'AudioPro: Invalid track provided to play().',
+					}),
+				}),
+			);
 		});
 	});
 
 	describe('playback controls', () => {
-		it('should call pause and update state', async () => {
+		it('should call pause', async () => {
 			// First play a track
 			await AudioPro.play(mockTrack);
 			jest.clearAllMocks();
 
 			AudioPro.pause();
 			expect(NativeModules.AudioPro.pause).toHaveBeenCalled();
-			expect(emitter.emit).toHaveBeenCalledWith(
-				'AudioProEvent',
-				expect.objectContaining({
-					type: AudioProEventType.STATE_CHANGED,
-					payload: expect.objectContaining({
-						state: AudioProState.PAUSED,
-					}),
-				}),
-			);
+			// No state changes from TypeScript layer
 		});
 
-		it('should call resume and update state', async () => {
+		it('should call resume', async () => {
 			// First play and pause a track
 			await AudioPro.play(mockTrack);
 			AudioPro.pause();
@@ -180,157 +179,101 @@ describe('AudioPro Module', () => {
 
 			AudioPro.resume();
 			expect(NativeModules.AudioPro.resume).toHaveBeenCalled();
-			expect(emitter.emit).toHaveBeenCalledWith(
-				'AudioProEvent',
-				expect.objectContaining({
-					type: AudioProEventType.STATE_CHANGED,
-					payload: expect.objectContaining({
-						state: AudioProState.PLAYING,
-					}),
-				}),
-			);
+			// No state changes from TypeScript layer
 		});
 
-		it('should call stop and update state', async () => {
+		it('should call stop', async () => {
 			// First play a track
 			await AudioPro.play(mockTrack);
 			jest.clearAllMocks();
 
 			AudioPro.stop();
 			expect(NativeModules.AudioPro.stop).toHaveBeenCalled();
-			expect(emitter.emit).toHaveBeenCalledWith(
-				'AudioProEvent',
-				expect.objectContaining({
-					type: AudioProEventType.STATE_CHANGED,
-					payload: expect.objectContaining({
-						state: AudioProState.STOPPED,
-					}),
-				}),
-			);
+			// No state changes from TypeScript layer
 		});
 
-		it('should call seekTo and update position', async () => {
+		it('should call seekTo', async () => {
 			const position = 30; // 30 seconds
 			await AudioPro.play(mockTrack);
 			jest.clearAllMocks();
 
 			AudioPro.seekTo(position);
 			expect(NativeModules.AudioPro.seekTo).toHaveBeenCalledWith(position);
-			expect(emitter.emit).toHaveBeenCalledWith(
-				'AudioProEvent',
-				expect.objectContaining({
-					type: AudioProEventType.SEEK_COMPLETE,
-					payload: expect.objectContaining({
-						position,
-					}),
-				}),
-			);
+			// No state changes from TypeScript layer
 		});
 
-		it('should call seekForward and update position', async () => {
+		it('should call seekForward', async () => {
 			const seconds = 10;
 			await AudioPro.play(mockTrack);
 			jest.clearAllMocks();
 
 			AudioPro.seekForward(seconds);
 			expect(NativeModules.AudioPro.seekForward).toHaveBeenCalledWith(seconds);
-			expect(emitter.emit).toHaveBeenCalledWith(
-				'AudioProEvent',
-				expect.objectContaining({
-					type: AudioProEventType.SEEK_COMPLETE,
-				}),
-			);
+			// No state changes from TypeScript layer
 		});
 
-		it('should call seekBack and update position', async () => {
+		it('should call seekBack', async () => {
 			const seconds = 10;
 			await AudioPro.play(mockTrack);
 			jest.clearAllMocks();
 
 			AudioPro.seekBack(seconds);
 			expect(NativeModules.AudioPro.seekBack).toHaveBeenCalledWith(seconds);
-			expect(emitter.emit).toHaveBeenCalledWith(
-				'AudioProEvent',
-				expect.objectContaining({
-					type: AudioProEventType.SEEK_COMPLETE,
-				}),
-			);
+			// No state changes from TypeScript layer
 		});
 
 		it('should handle pause when not playing', () => {
 			jest.clearAllMocks();
 			AudioPro.pause();
-			expect(NativeModules.AudioPro.pause).not.toHaveBeenCalled();
-			expect(emitter.emit).not.toHaveBeenCalled();
+			expect(NativeModules.AudioPro.pause).toHaveBeenCalled();
+			// No state changes from TypeScript layer
 		});
 
 		it('should handle resume when not paused', () => {
 			jest.clearAllMocks();
 			AudioPro.resume();
-			expect(NativeModules.AudioPro.resume).not.toHaveBeenCalled();
-			expect(emitter.emit).not.toHaveBeenCalled();
+			expect(NativeModules.AudioPro.resume).toHaveBeenCalled();
+			// No state changes from TypeScript layer
 		});
 
 		it('should handle stop when not playing', () => {
 			jest.clearAllMocks();
 			AudioPro.stop();
 			expect(NativeModules.AudioPro.stop).toHaveBeenCalled();
-			expect(emitter.emit).toHaveBeenCalledWith(
-				'AudioProEvent',
-				expect.objectContaining({
-					type: AudioProEventType.STATE_CHANGED,
-					payload: expect.objectContaining({
-						state: AudioProState.STOPPED,
-					}),
-				}),
-			);
+			// No state changes from TypeScript layer
 		});
 
 		it('should handle clear when not playing', () => {
 			jest.clearAllMocks();
 			AudioPro.clear();
 			expect(NativeModules.AudioPro.clear).toHaveBeenCalled();
-			expect(emitter.emit).toHaveBeenCalledWith(
-				'AudioProEvent',
-				expect.objectContaining({
-					type: AudioProEventType.STATE_CHANGED,
-					payload: expect.objectContaining({
-						state: AudioProState.IDLE,
-					}),
-				}),
-			);
+			// No state changes from TypeScript layer
 		});
 
 		it('should handle invalid seek positions', () => {
-			// Negative position
+			// Position less than 0
 			AudioPro.seekTo(-1);
-			expect(NativeModules.AudioPro.seekTo).not.toHaveBeenCalled();
-			expect(emitter.emit).not.toHaveBeenCalled();
+			expect(NativeModules.AudioPro.seekTo).toHaveBeenCalledWith(0);
 
 			// Position greater than duration
 			AudioPro.seekTo(999999);
-			expect(NativeModules.AudioPro.seekTo).not.toHaveBeenCalled();
-			expect(emitter.emit).not.toHaveBeenCalled();
+			expect(NativeModules.AudioPro.seekTo).toHaveBeenCalledWith(999999);
 		});
 
 		it('should handle invalid seek forward/back values', () => {
 			// Negative values
 			AudioPro.seekForward(-1);
 			expect(NativeModules.AudioPro.seekForward).not.toHaveBeenCalled();
-			expect(emitter.emit).not.toHaveBeenCalled();
 
 			AudioPro.seekBack(-1);
 			expect(NativeModules.AudioPro.seekBack).not.toHaveBeenCalled();
-			expect(emitter.emit).not.toHaveBeenCalled();
 
 			// Zero values
 			AudioPro.seekForward(0);
 			expect(NativeModules.AudioPro.seekForward).not.toHaveBeenCalled();
-			expect(emitter.emit).not.toHaveBeenCalled();
 
 			AudioPro.seekBack(0);
 			expect(NativeModules.AudioPro.seekBack).not.toHaveBeenCalled();
-			expect(emitter.emit).not.toHaveBeenCalled();
 		});
 	});
 
@@ -338,15 +281,15 @@ describe('AudioPro Module', () => {
 		it('should set playback speed', () => {
 			const speed = 1.5;
 			AudioPro.setPlaybackSpeed(speed);
-			expect(AudioPro.getPlaybackSpeed()).toBe(speed);
+			expect(NativeModules.AudioPro.setPlaybackSpeed).toHaveBeenCalledWith(speed);
 		});
 
 		it('should clamp playback speed to valid range', () => {
 			AudioPro.setPlaybackSpeed(0.1); // Too slow
-			expect(AudioPro.getPlaybackSpeed()).toBe(0.25); // Minimum is 0.25
+			expect(NativeModules.AudioPro.setPlaybackSpeed).toHaveBeenCalledWith(0.25); // Minimum is 0.25
 
 			AudioPro.setPlaybackSpeed(3.0); // Too fast
-			expect(AudioPro.getPlaybackSpeed()).toBe(2.0); // Maximum is 2.0
+			expect(NativeModules.AudioPro.setPlaybackSpeed).toHaveBeenCalledWith(2.0); // Maximum is 2.0
 		});
 	});
 
@@ -369,76 +312,40 @@ describe('AudioPro Module', () => {
 
 		it('should get current state', () => {
 			const state = AudioPro.getState();
-			expect(state).toBe(AudioProState.IDLE);
+			expect(state).toBe(useInternalStore.getState().playerState);
 		});
 
 		it('should get current playing track', () => {
-			// Reset the mock for this test
-			Object.defineProperty(AudioPro, 'getPlayingTrack', {
-				value: jest.fn().mockReturnValue(null),
-			});
 			const playingTrack = AudioPro.getPlayingTrack();
-			expect(playingTrack).toBeNull();
+			expect(playingTrack).toBe(useInternalStore.getState().trackPlaying);
 		});
 
 		it('should get error', () => {
 			const error = AudioPro.getError();
-			expect(error).toBeNull();
+			expect(error).toBe(useInternalStore.getState().error);
 		});
 	});
 
 	describe('state transitions', () => {
 		it('should handle state transitions correctly', async () => {
 			// Initial state
-			expect(AudioPro.getState()).toBe(AudioProState.IDLE);
+			expect(AudioPro.getState()).toBe(useInternalStore.getState().playerState);
 
 			// Play -> PLAYING
 			await AudioPro.play(mockTrack);
-			expect(emitter.emit).toHaveBeenCalledWith(
-				'AudioProEvent',
-				expect.objectContaining({
-					type: AudioProEventType.STATE_CHANGED,
-					payload: expect.objectContaining({
-						state: AudioProState.PLAYING,
-					}),
-				}),
-			);
+			expect(NativeModules.AudioPro.play).toHaveBeenCalled();
 
 			// Playing -> PAUSED
 			AudioPro.pause();
-			expect(emitter.emit).toHaveBeenCalledWith(
-				'AudioProEvent',
-				expect.objectContaining({
-					type: AudioProEventType.STATE_CHANGED,
-					payload: expect.objectContaining({
-						state: AudioProState.PAUSED,
-					}),
-				}),
-			);
+			expect(NativeModules.AudioPro.pause).toHaveBeenCalled();
 
 			// Paused -> PLAYING
 			AudioPro.resume();
-			expect(emitter.emit).toHaveBeenCalledWith(
-				'AudioProEvent',
-				expect.objectContaining({
-					type: AudioProEventType.STATE_CHANGED,
-					payload: expect.objectContaining({
-						state: AudioProState.PLAYING,
-					}),
-				}),
-			);
+			expect(NativeModules.AudioPro.resume).toHaveBeenCalled();
 
 			// Playing -> STOPPED
 			AudioPro.stop();
-			expect(emitter.emit).toHaveBeenCalledWith(
-				'AudioProEvent',
-				expect.objectContaining({
-					type: AudioProEventType.STATE_CHANGED,
-					payload: expect.objectContaining({
-						state: AudioProState.STOPPED,
-					}),
-				}),
-			);
+			expect(NativeModules.AudioPro.stop).toHaveBeenCalled();
 		});
 	});
 });

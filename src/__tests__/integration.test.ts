@@ -5,6 +5,7 @@ import { useInternalStore } from '../useInternalStore';
 import { AudioProEventType, AudioProState } from '../values';
 
 import type { AudioProTrack } from '../types';
+import type { AudioProStore } from '../useInternalStore';
 
 // Mock the NativeModules
 jest.mock('react-native', () => ({
@@ -63,121 +64,33 @@ jest.mock('../utils', () => ({
 	}),
 }));
 
-// Create a mock store with a proper state management implementation
-const createMockStore = () => {
-	const state: {
-		playerState: AudioProState;
-		position: number;
-		duration: number;
-		playbackSpeed: number;
-		volume: number;
-		debug: boolean;
-		debugIncludesProgress: boolean;
-		trackPlaying: AudioProTrack | null;
-		configureOptions: {
-			contentType: string;
-			debug: boolean;
-			debugIncludesProgress: boolean;
-			progressIntervalMs: number;
-			showNextPrevControls: boolean;
-		};
-		error: { error: string; errorCode: number } | null;
-		setDebug: jest.Mock;
-		setDebugIncludesProgress: jest.Mock;
-		setTrackPlaying: jest.Mock;
-		setConfigureOptions: jest.Mock;
-		setPlaybackSpeed: jest.Mock;
-		setVolume: jest.Mock;
-		setError: jest.Mock;
-		updateFromEvent: jest.Mock;
-	} = {
-		playerState: AudioProState.IDLE,
-		position: 0,
-		duration: 0,
-		playbackSpeed: 1.0,
-		volume: 1.0,
-		debug: false,
-		debugIncludesProgress: false,
-		trackPlaying: null,
-		configureOptions: {
-			contentType: 'MUSIC',
-			debug: false,
-			debugIncludesProgress: false,
-			progressIntervalMs: 1000,
-			showNextPrevControls: true,
-		},
-		error: null,
-		setDebug: jest.fn().mockImplementation((debug) => {
-			state.debug = debug;
-		}),
-		setDebugIncludesProgress: jest.fn().mockImplementation((includeProgress) => {
-			state.debugIncludesProgress = includeProgress;
-		}),
-		setTrackPlaying: jest.fn().mockImplementation((track) => {
-			state.trackPlaying = track;
-		}),
-		setConfigureOptions: jest.fn().mockImplementation((options) => {
-			state.configureOptions = options;
-		}),
-		setPlaybackSpeed: jest.fn().mockImplementation((speed) => {
-			state.playbackSpeed = speed;
-		}),
-		setVolume: jest.fn().mockImplementation((volume) => {
-			state.volume = volume;
-		}),
-		setError: jest.fn().mockImplementation((error) => {
-			state.error = error;
-		}),
-		updateFromEvent: jest.fn().mockImplementation((event) => {
-			// Simplified implementation of updateFromEvent
-			const { type, track, payload } = event;
-
-			if (type === AudioProEventType.STATE_CHANGED && payload?.state) {
-				state.playerState = payload.state;
-				if (payload.state !== AudioProState.ERROR && state.error !== null) {
-					state.error = null;
-				}
-			}
-
-			if (type === AudioProEventType.PLAYBACK_ERROR && payload?.error) {
-				state.error = {
-					error: payload.error,
-					errorCode: payload.errorCode,
-				};
-			}
-
-			if (type === AudioProEventType.PLAYBACK_SPEED_CHANGED && payload?.speed !== undefined) {
-				state.playbackSpeed = payload.speed;
-			}
-
-			if (payload?.position !== undefined) {
-				state.position = payload.position;
-			}
-
-			if (payload?.duration !== undefined) {
-				state.duration = payload.duration;
-			}
-
-			if (track) {
-				state.trackPlaying = track;
-			} else if (track === null && type !== AudioProEventType.PLAYBACK_ERROR) {
-				state.trackPlaying = null;
-			}
-		}),
-	};
-
-	return state;
+const mockState: AudioProStore = {
+	playerState: AudioProState.IDLE,
+	position: 0,
+	duration: 0,
+	playbackSpeed: 1.0,
+	volume: 1.0,
+	debug: false,
+	debugIncludesProgress: false,
+	trackPlaying: null,
+	configureOptions: {},
+	error: null,
+	setDebug: jest.fn(),
+	setDebugIncludesProgress: jest.fn(),
+	setTrackPlaying: jest.fn(),
+	setConfigureOptions: jest.fn(),
+	setPlaybackSpeed: jest.fn(),
+	setVolume: jest.fn(),
+	setError: jest.fn(),
+	updateFromEvent: jest.fn(),
 };
 
-const mockStore = createMockStore();
-
-// Mock useInternalStore
 jest.mock('../useInternalStore', () => ({
-	useInternalStore: {
-		getState: jest.fn().mockImplementation(() => mockStore),
-		setState: jest.fn().mockImplementation((updates) => {
-			Object.assign(mockStore, updates);
-		}),
+	useInternalStore: (selector?: (state: AudioProStore) => any) => {
+		if (selector) {
+			return selector(mockState);
+		}
+		return mockState;
 	},
 }));
 
@@ -198,7 +111,7 @@ describe('Integration Tests', () => {
 	describe('State Management Flow', () => {
 		it('should update store state when receiving state change events', () => {
 			// Set initial state to IDLE
-			mockStore.playerState = AudioProState.IDLE;
+			mockState.playerState = AudioProState.IDLE;
 
 			// Play a track
 			AudioPro.play(mockTrack);
@@ -207,7 +120,7 @@ describe('Integration Tests', () => {
 			expect(NativeModules.AudioPro.play).toHaveBeenCalled();
 
 			// Simulate native module emitting LOADING state
-			mockStore.updateFromEvent({
+			mockState.updateFromEvent({
 				type: AudioProEventType.STATE_CHANGED,
 				track: mockTrack,
 				payload: {
@@ -222,7 +135,7 @@ describe('Integration Tests', () => {
 			expect(useInternalStore.getState().trackPlaying).toEqual(mockTrack);
 
 			// Simulate native module emitting PLAYING state
-			mockStore.updateFromEvent({
+			mockState.updateFromEvent({
 				type: AudioProEventType.STATE_CHANGED,
 				track: mockTrack,
 				payload: {
@@ -245,7 +158,7 @@ describe('Integration Tests', () => {
 			expect(NativeModules.AudioPro.play).toHaveBeenCalled();
 
 			// Simulate native module emitting PLAYING state
-			mockStore.updateFromEvent({
+			mockState.updateFromEvent({
 				type: AudioProEventType.STATE_CHANGED,
 				track: mockTrack,
 				payload: {
@@ -256,7 +169,7 @@ describe('Integration Tests', () => {
 			});
 
 			// Simulate progress event
-			mockStore.updateFromEvent({
+			mockState.updateFromEvent({
 				type: AudioProEventType.PROGRESS,
 				track: mockTrack,
 				payload: {
@@ -277,7 +190,7 @@ describe('Integration Tests', () => {
 			expect(NativeModules.AudioPro.play).toHaveBeenCalled();
 
 			// Simulate error event
-			mockStore.updateFromEvent({
+			mockState.updateFromEvent({
 				type: AudioProEventType.PLAYBACK_ERROR,
 				track: mockTrack,
 				payload: {
@@ -293,7 +206,7 @@ describe('Integration Tests', () => {
 			});
 
 			// Simulate state change to ERROR
-			mockStore.updateFromEvent({
+			mockState.updateFromEvent({
 				type: AudioProEventType.STATE_CHANGED,
 				track: mockTrack,
 				payload: {
@@ -315,15 +228,15 @@ describe('Integration Tests', () => {
 
 		it('should clear error when transitioning from ERROR to another state', () => {
 			// Set initial ERROR state
-			mockStore.setError({ error: 'Test error message', errorCode: 123 });
-			mockStore.playerState = AudioProState.ERROR;
+			mockState.setError({ error: 'Test error message', errorCode: 123 });
+			mockState.playerState = AudioProState.ERROR;
 
 			// Verify ERROR state
 			expect(useInternalStore.getState().playerState).toBe(AudioProState.ERROR);
 			expect(useInternalStore.getState().error).not.toBeNull();
 
 			// Transition to IDLE state
-			mockStore.updateFromEvent({
+			mockState.updateFromEvent({
 				type: AudioProEventType.STATE_CHANGED,
 				track: mockTrack,
 				payload: {
@@ -348,7 +261,7 @@ describe('Integration Tests', () => {
 			expect(NativeModules.AudioPro.play).toHaveBeenCalledWith(mockTrack, expect.anything());
 
 			// Simulate PLAYING state
-			mockStore.updateFromEvent({
+			mockState.updateFromEvent({
 				type: AudioProEventType.STATE_CHANGED,
 				track: mockTrack,
 				payload: {
@@ -365,7 +278,7 @@ describe('Integration Tests', () => {
 			expect(NativeModules.AudioPro.pause).toHaveBeenCalled();
 
 			// Simulate PAUSED state
-			mockStore.updateFromEvent({
+			mockState.updateFromEvent({
 				type: AudioProEventType.STATE_CHANGED,
 				track: mockTrack,
 				payload: {
@@ -386,7 +299,7 @@ describe('Integration Tests', () => {
 			expect(NativeModules.AudioPro.resume).toHaveBeenCalled();
 
 			// Simulate PLAYING state
-			mockStore.updateFromEvent({
+			mockState.updateFromEvent({
 				type: AudioProEventType.STATE_CHANGED,
 				track: mockTrack,
 				payload: {
@@ -405,7 +318,7 @@ describe('Integration Tests', () => {
 			AudioPro.play(mockTrack);
 
 			// Simulate PLAYING state
-			mockStore.updateFromEvent({
+			mockState.updateFromEvent({
 				type: AudioProEventType.STATE_CHANGED,
 				track: mockTrack,
 				payload: {
@@ -422,7 +335,7 @@ describe('Integration Tests', () => {
 			expect(NativeModules.AudioPro.seekTo).toHaveBeenCalledWith(60000);
 
 			// Simulate seek complete event
-			mockStore.updateFromEvent({
+			mockState.updateFromEvent({
 				type: AudioProEventType.SEEK_COMPLETE,
 				track: mockTrack,
 				payload: {
@@ -458,7 +371,7 @@ describe('Integration Tests', () => {
 			expect(NativeModules.AudioPro.setPlaybackSpeed).toHaveBeenCalledWith(1.5);
 
 			// Simulate playback speed changed event
-			mockStore.updateFromEvent({
+			mockState.updateFromEvent({
 				type: AudioProEventType.PLAYBACK_SPEED_CHANGED,
 				track: mockTrack,
 				payload: {
@@ -472,7 +385,7 @@ describe('Integration Tests', () => {
 
 		it('should handle volume changes', () => {
 			// Set initial volume
-			mockStore.volume = 1.0;
+			mockState.volume = 1.0;
 
 			// Set volume
 			AudioPro.setVolume(0.5);
@@ -481,7 +394,7 @@ describe('Integration Tests', () => {
 			expect(NativeModules.AudioPro.setVolume).toHaveBeenCalledWith(0.5);
 
 			// Manually update the store since volume is set directly
-			mockStore.volume = 0.5;
+			mockState.volume = 0.5;
 
 			// Store should be updated
 			expect(useInternalStore.getState().volume).toBe(0.5);
@@ -494,7 +407,7 @@ describe('Integration Tests', () => {
 			AudioPro.play(mockTrack);
 
 			// Simulate PLAYING state
-			mockStore.updateFromEvent({
+			mockState.updateFromEvent({
 				type: AudioProEventType.STATE_CHANGED,
 				track: mockTrack,
 				payload: {
@@ -505,7 +418,7 @@ describe('Integration Tests', () => {
 			});
 
 			// Simulate track ended event
-			mockStore.updateFromEvent({
+			mockState.updateFromEvent({
 				type: AudioProEventType.TRACK_ENDED,
 				track: mockTrack,
 				payload: {
@@ -515,7 +428,7 @@ describe('Integration Tests', () => {
 			});
 
 			// Simulate STOPPED state (native code should emit this after TRACK_ENDED)
-			mockStore.updateFromEvent({
+			mockState.updateFromEvent({
 				type: AudioProEventType.STATE_CHANGED,
 				track: mockTrack,
 				payload: {
@@ -535,7 +448,7 @@ describe('Integration Tests', () => {
 			AudioPro.play(mockTrack);
 
 			// Simulate PLAYING state
-			mockStore.updateFromEvent({
+			mockState.updateFromEvent({
 				type: AudioProEventType.STATE_CHANGED,
 				track: mockTrack,
 				payload: {
@@ -552,7 +465,7 @@ describe('Integration Tests', () => {
 			expect(NativeModules.AudioPro.stop).toHaveBeenCalled();
 
 			// Simulate STOPPED state
-			mockStore.updateFromEvent({
+			mockState.updateFromEvent({
 				type: AudioProEventType.STATE_CHANGED,
 				track: mockTrack,
 				payload: {
@@ -573,7 +486,7 @@ describe('Integration Tests', () => {
 			expect(NativeModules.AudioPro.clear).toHaveBeenCalled();
 
 			// Simulate IDLE state with null track
-			mockStore.updateFromEvent({
+			mockState.updateFromEvent({
 				type: AudioProEventType.STATE_CHANGED,
 				track: null,
 				payload: {

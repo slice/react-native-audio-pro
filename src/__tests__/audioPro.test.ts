@@ -61,43 +61,35 @@ jest.mock('../utils', () => ({
 }));
 
 // Mock useInternalStore
-jest.mock('../useInternalStore', () => {
-	const mockState = {
-		playerState: 'PLAYING',
-		position: 0,
-		duration: 0,
-		playbackSpeed: 1.0,
-		volume: 1.0,
-		debug: false,
-		debugIncludesProgress: false,
-		trackPlaying: null,
-		configureOptions: {
-			contentType: 'MUSIC',
-			debug: false,
-			debugIncludesProgress: false,
-			progressIntervalMs: 1000,
-		},
-		error: null,
-		setDebug: jest.fn(),
-		setDebugIncludesProgress: jest.fn(),
-		setTrackPlaying: jest.fn(),
-		setConfigureOptions: jest.fn(),
-		setPlaybackSpeed: jest.fn(),
-		setVolume: jest.fn(),
-		setError: jest.fn(),
-		updateFromEvent: jest.fn(),
-	};
+const mockState: AudioProStore = {
+	playerState: AudioProState.IDLE,
+	position: 0,
+	duration: 0,
+	playbackSpeed: 1.0,
+	volume: 1.0,
+	debug: false,
+	debugIncludesProgress: false,
+	trackPlaying: null,
+	configureOptions: {},
+	error: null,
+	setDebug: jest.fn(),
+	setDebugIncludesProgress: jest.fn(),
+	setTrackPlaying: jest.fn(),
+	setConfigureOptions: jest.fn(),
+	setPlaybackSpeed: jest.fn(),
+	setVolume: jest.fn(),
+	setError: jest.fn(),
+	updateFromEvent: jest.fn(),
+};
 
-	return {
-		useInternalStore: jest.fn().mockImplementation((selector) => {
-			if (selector) {
-				return selector(mockState);
-			}
-			return mockState;
-		}),
-		__mockState: mockState,
-	};
-});
+jest.mock('../useInternalStore', () => ({
+	useInternalStore: (selector?: (state: AudioProStore) => any) => {
+		if (selector) {
+			return selector(mockState);
+		}
+		return mockState;
+	},
+}));
 
 // Import after mocks
 import { NativeModules } from 'react-native';
@@ -105,6 +97,8 @@ import { NativeModules } from 'react-native';
 import { AudioPro } from '../audioPro';
 import { useInternalStore } from '../useInternalStore';
 import { AudioProState } from '../values';
+
+import type { AudioProStore } from '../useInternalStore';
 
 describe('AudioPro', () => {
 	it('should export the expected functions', () => {

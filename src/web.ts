@@ -242,7 +242,9 @@ export class WebAudioProImpl implements WebAudioProInterface {
 				});
 			}
 		} catch (error) {
-			this.emitError(`Failed to play: ${error instanceof Error ? error.message : String(error)}`);
+			this.emitError(
+				`Failed to play: ${error instanceof Error ? error.message : String(error)}`,
+			);
 		}
 	}
 
@@ -262,7 +264,9 @@ export class WebAudioProImpl implements WebAudioProInterface {
 				});
 			}
 		} catch (error) {
-			this.emitError(`Failed to resume: ${error instanceof Error ? error.message : String(error)}`);
+			this.emitError(
+				`Failed to resume: ${error instanceof Error ? error.message : String(error)}`,
+			);
 		}
 	}
 
@@ -299,7 +303,7 @@ export class WebAudioProImpl implements WebAudioProInterface {
 
 		const newPosition = Math.min(
 			this.audio.duration || Infinity,
-			this.audio.currentTime + amountMs / 1000
+			this.audio.currentTime + amountMs / 1000,
 		);
 		this.audio.currentTime = newPosition;
 		this.emitSeekComplete();

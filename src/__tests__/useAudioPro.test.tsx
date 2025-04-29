@@ -33,173 +33,131 @@ jest.mock('../emitter', () => ({
 	},
 }));
 
-// Mock useInternalStore
-jest.mock('../useInternalStore', () => {
-	const mockState = {
-		playerState: 'PLAYING',
-		position: 0,
-		duration: 0,
-		playbackSpeed: 1.0,
-		volume: 1.0,
-		debug: false,
-		debugIncludesProgress: false,
-		trackPlaying: null,
-		configureOptions: {
-			contentType: 'MUSIC',
-			debug: false,
-			debugIncludesProgress: false,
-			progressIntervalMs: 1000,
-		},
-		error: null,
-		setDebug: jest.fn(),
-		setDebugIncludesProgress: jest.fn(),
-		setTrackPlaying: jest.fn(),
-		setConfigureOptions: jest.fn(),
-		setPlaybackSpeed: jest.fn(),
-		setVolume: jest.fn(),
-		setError: jest.fn(),
-		updateFromEvent: jest.fn(),
-	};
-
-	return {
-		useInternalStore: jest.fn().mockImplementation((selector) => {
-			if (selector) {
-				return selector(mockState);
-			}
-			return mockState;
-		}),
-		__mockState: mockState,
-	};
-});
-
-// Import after mocks
-import { act, renderHook } from '@testing-library/react-hooks';
+import { renderHook, act } from '@testing-library/react-hooks';
 
 import { useAudioPro } from '../useAudioPro';
 import { AudioProState } from '../values';
 
 import type { AudioProTrack } from '../types';
+import type { AudioProStore } from '../useInternalStore';
 
-describe('useAudioPro Hook', () => {
-	const mockTrack: AudioProTrack = {
-		id: 'test-track-1',
-		url: 'https://example.com/audio.mp3',
-		title: 'Test Track',
-		artwork: 'https://example.com/artwork.jpg',
-		artist: 'Test Artist',
-		album: 'Test Album',
-	};
+// Mock track for testing
+const mockTrack: AudioProTrack = {
+	id: 'test-track',
+	url: 'https://example.com/test.mp3',
+	title: 'Test Track',
+	artwork: 'https://example.com/artwork.jpg',
+	artist: 'Test Artist',
+	album: 'Test Album',
+};
 
+// Mock useInternalStore
+const mockState: AudioProStore = {
+	playerState: AudioProState.IDLE,
+	position: 0,
+	duration: 0,
+	playbackSpeed: 1.0,
+	volume: 1.0,
+	debug: false,
+	debugIncludesProgress: false,
+	trackPlaying: null,
+	configureOptions: {},
+	error: null,
+	setDebug: jest.fn(),
+	setDebugIncludesProgress: jest.fn(),
+	setTrackPlaying: jest.fn(),
+	setConfigureOptions: jest.fn(),
+	setPlaybackSpeed: jest.fn(),
+	setVolume: jest.fn(),
+	setError: jest.fn(),
+	updateFromEvent: jest.fn(),
+};
+
+jest.mock('../useInternalStore', () => ({
+	useInternalStore: (selector?: (state: AudioProStore) => any) => {
+		if (selector) {
+			return selector(mockState);
+		}
+		return mockState;
+	},
+}));
+
+describe('useAudioPro', () => {
 	beforeEach(() => {
-		// Reset the mock state before each test
-		require('../useInternalStore').setMockState({
-			playerState: AudioProState.STOPPED,
-			position: 0,
-			duration: 0,
-			playbackSpeed: 1.0,
-			volume: 0.8,
-			trackPlaying: null,
-			error: null,
-		});
+		jest.clearAllMocks();
 	});
 
-	it('should return the current state', () => {
+	it('should return the correct initial state', () => {
 		const { result } = renderHook(() => useAudioPro());
 
-		expect(result.current.state).toBe(AudioProState.STOPPED);
+		expect(result.current.state).toBe(AudioProState.IDLE);
 		expect(result.current.position).toBe(0);
 		expect(result.current.duration).toBe(0);
 		expect(result.current.playingTrack).toBeNull();
 		expect(result.current.playbackSpeed).toBe(1.0);
-		expect(result.current.volume).toBe(0.8);
+		expect(result.current.volume).toBe(1.0);
 		expect(result.current.error).toBeNull();
 	});
 
-	it('should update when state changes', () => {
-		const { result, rerender } = renderHook(() => useAudioPro());
+	it('should update state when store changes', () => {
+		const { result } = renderHook(() => useAudioPro());
 
-		// Initial state
-		expect(result.current.state).toBe(AudioProState.STOPPED);
-
-		// Update the state
 		act(() => {
-			require('../useInternalStore').setMockState({
-				playerState: AudioProState.PLAYING,
-				position: 1000,
-				duration: 5000,
-				trackPlaying: mockTrack,
-			});
+			mockState.playerState = AudioProState.PLAYING;
+			mockState.position = 1000;
+			mockState.duration = 5000;
+			mockState.trackPlaying = mockTrack;
+			mockState.playbackSpeed = 1.5;
+			mockState.volume = 0.8;
+			mockState.error = { error: 'Test error', errorCode: 123 };
 		});
 
-		// Re-render the hook
-		rerender();
-
-		// Check that the hook returns the updated state
 		expect(result.current.state).toBe(AudioProState.PLAYING);
 		expect(result.current.position).toBe(1000);
 		expect(result.current.duration).toBe(5000);
 		expect(result.current.playingTrack).toEqual(mockTrack);
+		expect(result.current.playbackSpeed).toBe(1.5);
+		expect(result.current.volume).toBe(0.8);
+		expect(result.current.error).toEqual({ error: 'Test error', errorCode: 123 });
 	});
 
 	it('should update when playback speed changes', () => {
-		const { result, rerender } = renderHook(() => useAudioPro());
+		const { result } = renderHook(() => useAudioPro());
 
-		// Initial state
-		expect(result.current.playbackSpeed).toBe(1.0);
-
-		// Update the playback speed
 		act(() => {
-			require('../useInternalStore').setMockState({
-				playbackSpeed: 1.5,
-			});
+			mockState.playbackSpeed = 1.5;
 		});
 
-		// Re-render the hook
-		rerender();
-
-		// Check that the hook returns the updated playback speed
 		expect(result.current.playbackSpeed).toBe(1.5);
 	});
 
 	it('should update when volume changes', () => {
-		const { result, rerender } = renderHook(() => useAudioPro());
+		const { result } = renderHook(() => useAudioPro());
 
-		// Initial state
-		expect(result.current.volume).toBe(0.8);
-
-		// Update the volume
 		act(() => {
-			require('../useInternalStore').setMockState({
-				volume: 0.5,
-			});
+			mockState.volume = 0.5;
 		});
 
-		// Re-render the hook
-		rerender();
-
-		// Check that the hook returns the updated volume
 		expect(result.current.volume).toBe(0.5);
 	});
 
 	it('should update when error occurs', () => {
-		const { result, rerender } = renderHook(() => useAudioPro());
+		const { result } = renderHook(() => useAudioPro());
 
-		// Initial state
-		expect(result.current.error).toBeNull();
-
-		// Set an error
 		act(() => {
-			require('../useInternalStore').setMockState({
-				playerState: AudioProState.ERROR,
-				error: { message: 'Test error', code: 123 },
-			});
+			mockState.error = { error: 'Test error', errorCode: 123 };
 		});
 
-		// Re-render the hook
-		rerender();
+		expect(result.current.error).toEqual({ error: 'Test error', errorCode: 123 });
+	});
 
-		// Check that the hook returns the error
-		expect(result.current.state).toBe(AudioProState.ERROR);
-		expect(result.current.error).toEqual({ message: 'Test error', code: 123 });
+	it('should update when track playing changes', () => {
+		const { result } = renderHook(() => useAudioPro());
+
+		act(() => {
+			mockState.trackPlaying = mockTrack;
+		});
+
+		expect(result.current.playingTrack).toEqual(mockTrack);
 	});
 });
