@@ -62,4 +62,12 @@ module.exports = {
 			typescript: {},
 		},
 	},
+	overrides: [
+		{
+			files: ['jest.setup.js'],
+			env: {
+				jest: true,
+			},
+		},
+	],
 };
