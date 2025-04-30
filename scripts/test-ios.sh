@@ -21,7 +21,12 @@ let package = Package(
     ],
     targets: [
         .target(name: "AudioProTests", dependencies: []),
-        .testTarget(name: "AudioProTestsTests", dependencies: ["AudioProTests"], path: "Tests"),
+        .testTarget(
+            name: "AudioProTestsTests",
+            dependencies: ["AudioProTests"],
+            path: "Tests",
+            resources: [.process("test_audio.mp3")]
+        ),
     ]
 )
 EOL
