@@ -23,6 +23,7 @@ describe('useAudioPro', () => {
 	beforeEach(() => {
 		jest.clearAllMocks();
 		(useInternalStore as unknown as jest.Mock).mockImplementation(() => ({
+			...useInternalStoreMock,
 			playerState: useInternalStoreMock.playerState,
 			position: useInternalStoreMock.position,
 			duration: useInternalStoreMock.duration,
@@ -30,6 +31,9 @@ describe('useAudioPro', () => {
 			playbackSpeed: useInternalStoreMock.playbackSpeed,
 			volume: useInternalStoreMock.volume,
 			error: useInternalStoreMock.error,
+			debug: useInternalStoreMock.debug,
+			debugIncludesProgress: useInternalStoreMock.debugIncludesProgress,
+			configureOptions: useInternalStoreMock.configureOptions,
 		}));
 	});
 

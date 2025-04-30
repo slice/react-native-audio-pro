@@ -5,7 +5,4 @@ module.exports = {
 	testMatch: ['**/__tests__/**/*.test.ts?(x)'],
 	clearMocks: true,
 	resetMocks: true,
-	moduleNameMapper: {
-		'^react-native$': '<rootDir>/src/__mocks__/react-native.ts',
-	},
 };

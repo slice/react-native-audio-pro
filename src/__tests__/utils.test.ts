@@ -30,8 +30,11 @@ describe('utils', () => {
 	beforeEach(() => {
 		jest.clearAllMocks();
 		(useInternalStore.getState as jest.Mock).mockReturnValue({
-			trackPlaying: null,
-			debug: false,
+			...useInternalStoreMock,
+			trackPlaying: useInternalStoreMock.trackPlaying,
+			debug: useInternalStoreMock.debug,
+			debugIncludesProgress: useInternalStoreMock.debugIncludesProgress,
+			configureOptions: useInternalStoreMock.configureOptions,
 		});
 	});
 
