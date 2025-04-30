@@ -12,25 +12,12 @@ import {
 
 import type { AudioProTrack } from '../types';
 
+// Import centralized mocks
+import { NativeEventEmitter } from '../__mocks__';
+import { useInternalStoreMock } from '../test-utils';
+
 // Mock console.log for debug logging
 jest.spyOn(console, 'log').mockImplementation(() => {});
-
-// Mock Image.resolveAssetSource
-jest.mock('react-native', () => ({
-	Image: {
-		resolveAssetSource: jest.fn(),
-	},
-	Platform: {
-		OS: 'ios',
-	},
-}));
-
-// Mock useInternalStore
-jest.mock('../useInternalStore', () => ({
-	useInternalStore: {
-		getState: jest.fn(),
-	},
-}));
 
 describe('utils', () => {
 	const mockTrack: AudioProTrack = {

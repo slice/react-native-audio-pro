@@ -4,30 +4,8 @@ import { AudioPro } from '../audioPro';
 import { ambientEmitter } from '../emitter';
 import { AudioProAmbientEventType } from '../values';
 
-// Mock NativeModules
-jest.mock('react-native', () => ({
-	NativeModules: {
-		AudioPro: {
-			ambientPlay: jest.fn(),
-			ambientStop: jest.fn(),
-			ambientSetVolume: jest.fn(),
-			ambientPause: jest.fn(),
-			ambientResume: jest.fn(),
-			ambientSeekTo: jest.fn(),
-		},
-	},
-	Platform: {
-		OS: 'ios',
-	},
-}));
-
-// Mock ambient emitter
-jest.mock('../emitter', () => ({
-	ambientEmitter: {
-		emit: jest.fn(),
-		addListener: jest.fn(),
-	},
-}));
+// Import centralized mocks
+import { NativeEventEmitter } from '../__mocks__';
 
 describe('Ambient Audio', () => {
 	const mockAmbientOptions = {

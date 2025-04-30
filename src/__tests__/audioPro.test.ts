@@ -3,61 +3,10 @@ import { AudioPro } from '../audioPro';
 import { emitter, ambientEmitter } from '../emitter';
 import { useInternalStore } from '../useInternalStore';
 import { AudioProState, AudioProEventType, AudioProContentType } from '../values';
-import { mockState } from '../__mocks__/useInternalStore';
 
-// Mock NativeModules.AudioPro
-const mockAudioPro = {
-	play: jest.fn(),
-	pause: jest.fn(),
-	resume: jest.fn(),
-	stop: jest.fn(),
-	clear: jest.fn(),
-	seekTo: jest.fn(),
-	seekForward: jest.fn(),
-	seekBack: jest.fn(),
-	setPlaybackSpeed: jest.fn(),
-	setVolume: jest.fn(),
-	setProgressInterval: jest.fn(),
-	ambientPlay: jest.fn(),
-	ambientStop: jest.fn(),
-	ambientPause: jest.fn(),
-	ambientResume: jest.fn(),
-	ambientSeekTo: jest.fn(),
-	ambientSetVolume: jest.fn(),
-};
-
-jest.mock('react-native', () => ({
-	NativeModules: {
-		AudioPro: mockAudioPro,
-	},
-	Platform: {
-		OS: 'ios',
-		select: jest.fn().mockImplementation((obj) => obj.ios),
-	},
-}));
-
-describe('Mock Verification', () => {
-	it('should confirm AudioPro is mocked', () => {
-		expect(NativeModules.AudioPro).toBeDefined();
-		expect(typeof NativeModules.AudioPro.play).toBe('function');
-		expect(NativeModules.AudioPro.play._isMockFunction).toBe(true);
-	});
-});
-
-// Mock internal store
-jest.mock('../useInternalStore');
-
-// Mock emitters
-jest.mock('../emitter', () => ({
-	emitter: {
-		emit: jest.fn(),
-		addListener: jest.fn().mockReturnValue({ remove: jest.fn() }),
-	},
-	ambientEmitter: {
-		emit: jest.fn(),
-		addListener: jest.fn().mockReturnValue({ remove: jest.fn() }),
-	},
-}));
+// Import centralized mocks
+import { NativeEventEmitter } from '../__mocks__';
+import { useInternalStoreMock } from '../test-utils';
 
 describe('AudioPro', () => {
 	const mockTrack = {
@@ -96,7 +45,7 @@ describe('AudioPro', () => {
 	beforeEach(() => {
 		jest.clearAllMocks();
 		// Reset store state
-		(useInternalStore.getState as jest.Mock).mockReturnValue(mockState);
+		(useInternalStore.getState as jest.Mock).mockReturnValue(defaultMockState);
 	});
 
 	describe('configure()', () => {

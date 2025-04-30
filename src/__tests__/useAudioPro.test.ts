@@ -5,43 +5,12 @@ import { emitter } from '../emitter';
 import { useAudioPro } from '../useAudioPro';
 import { useInternalStore } from '../useInternalStore';
 import { AudioProState, AudioProEventType } from '../values';
-import { mockState } from '../__mocks__/useInternalStore';
 
 import type { AudioProTrack } from '../types';
 
-// Mock AudioPro
-jest.mock('../audioPro', () => ({
-	AudioPro: {
-		play: jest.fn(),
-		pause: jest.fn(),
-		resume: jest.fn(),
-		stop: jest.fn(),
-		clear: jest.fn(),
-		seekTo: jest.fn(),
-		seekForward: jest.fn(),
-		seekBack: jest.fn(),
-		setPlaybackSpeed: jest.fn(),
-		setVolume: jest.fn(),
-		setProgressInterval: jest.fn(),
-		getTimings: jest.fn(),
-		getState: jest.fn(),
-		getPlayingTrack: jest.fn(),
-		getPlaybackSpeed: jest.fn(),
-		getVolume: jest.fn(),
-		getError: jest.fn(),
-		getProgressInterval: jest.fn(),
-	},
-}));
-
-// Mock internal store
-jest.mock('../useInternalStore');
-
-// Mock emitter
-jest.mock('../emitter', () => ({
-	emitter: {
-		addListener: jest.fn().mockReturnValue({ remove: jest.fn() }),
-	},
-}));
+// Import centralized mocks
+import { NativeEventEmitter } from '../__mocks__';
+import { useInternalStoreMock } from '../test-utils';
 
 describe('useAudioPro', () => {
 	const mockTrack: AudioProTrack = {
@@ -54,13 +23,13 @@ describe('useAudioPro', () => {
 	beforeEach(() => {
 		jest.clearAllMocks();
 		(useInternalStore as unknown as jest.Mock).mockImplementation(() => ({
-			playerState: mockState.playerState,
-			position: mockState.position,
-			duration: mockState.duration,
-			trackPlaying: mockState.trackPlaying,
-			playbackSpeed: mockState.playbackSpeed,
-			volume: mockState.volume,
-			error: mockState.error,
+			playerState: useInternalStoreMock.playerState,
+			position: useInternalStoreMock.position,
+			duration: useInternalStoreMock.duration,
+			trackPlaying: useInternalStoreMock.trackPlaying,
+			playbackSpeed: useInternalStoreMock.playbackSpeed,
+			volume: useInternalStoreMock.volume,
+			error: useInternalStoreMock.error,
 		}));
 	});
 
