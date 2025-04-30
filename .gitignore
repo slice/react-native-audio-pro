@@ -86,3 +86,4 @@ android/generated
 nitrogen/
 coverage
 ios/.build
+example/android/.kotlin
