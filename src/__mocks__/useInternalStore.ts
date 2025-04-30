@@ -1,6 +1,7 @@
-import { AudioProState } from '../values';
+import { AudioProState, AudioProContentType } from '../values';
+import type { AudioProStore } from '../types';
 
-const mockState = {
+export const mockState: AudioProStore = {
     playerState: AudioProState.IDLE,
     position: 0,
     duration: 0,
@@ -10,7 +11,7 @@ const mockState = {
     debugIncludesProgress: false,
     trackPlaying: null,
     configureOptions: {
-        contentType: 'MUSIC',
+        contentType: AudioProContentType.MUSIC,
         debug: false,
         debugIncludesProgress: false,
         progressIntervalMs: 1000,
@@ -26,4 +27,12 @@ const mockState = {
     updateFromEvent: jest.fn(),
 };
 
-export const useInternalStore = jest.fn().mockReturnValue(mockState); 
+export const useInternalStore = jest.fn().mockImplementation(() => ({
+    playerState: mockState.playerState,
+    position: mockState.position,
+    duration: mockState.duration,
+    trackPlaying: mockState.trackPlaying,
+    playbackSpeed: mockState.playbackSpeed,
+    volume: mockState.volume,
+    error: mockState.error,
+})); 

@@ -1,31 +1,21 @@
-export const NativeModules = {
-	AudioPro: {
-		play: jest.fn(),
-		pause: jest.fn(),
-		resume: jest.fn(),
-		stop: jest.fn(),
-		clear: jest.fn(),
-		seekTo: jest.fn(),
-		seekForward: jest.fn(),
-		seekBack: jest.fn(),
-		setPlaybackSpeed: jest.fn(),
-		setVolume: jest.fn(),
-		ambientPlay: jest.fn(),
-		ambientStop: jest.fn(),
-		ambientPause: jest.fn(),
-		ambientResume: jest.fn(),
-		ambientSeekTo: jest.fn(),
-		ambientSetVolume: jest.fn(),
-	},
+// Mock Platform first to ensure correct module resolution
+export const Platform = {
+	OS: 'ios',
+	select: jest.fn().mockImplementation((obj) => obj.ios),
 };
 
-// Mock NativeEventEmitter
-export class NativeEventEmitter {
-	constructor() {}
-	addListener = jest.fn().mockReturnValue({ remove: jest.fn() });
-	removeListener = jest.fn();
-	removeAllListeners = jest.fn();
-}
+// Import and re-export AudioPro mock
+import AudioProMock from './audio-pro';
+export const NativeModules = {
+	AudioPro: AudioProMock,
+};
+
+// Export AudioPro mock directly for web fallback
+export const WebAudioPro = AudioProMock;
+
+// Import and re-export NativeEventEmitter
+import NativeEventEmitter from './events';
+export { NativeEventEmitter };
 
 // Mock Image module
 export const Image = {
@@ -42,10 +32,4 @@ export const View = 'View';
 export const Text = 'Text';
 export const StyleSheet = {
 	create: jest.fn().mockImplementation((styles) => styles),
-};
-
-// Mock Platform
-export const Platform = {
-	OS: 'ios',
-	select: jest.fn().mockImplementation((obj) => obj.ios),
 };

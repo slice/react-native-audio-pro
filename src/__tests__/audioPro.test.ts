@@ -1,48 +1,61 @@
 import { NativeModules } from 'react-native';
-
 import { AudioPro } from '../audioPro';
 import { emitter, ambientEmitter } from '../emitter';
 import { useInternalStore } from '../useInternalStore';
 import { AudioProState, AudioProEventType, AudioProContentType } from '../values';
+import { mockState } from '../__mocks__/useInternalStore';
 
-// Mock NativeModules
+// Mock NativeModules.AudioPro
+const mockAudioPro = {
+	play: jest.fn(),
+	pause: jest.fn(),
+	resume: jest.fn(),
+	stop: jest.fn(),
+	clear: jest.fn(),
+	seekTo: jest.fn(),
+	seekForward: jest.fn(),
+	seekBack: jest.fn(),
+	setPlaybackSpeed: jest.fn(),
+	setVolume: jest.fn(),
+	setProgressInterval: jest.fn(),
+	ambientPlay: jest.fn(),
+	ambientStop: jest.fn(),
+	ambientPause: jest.fn(),
+	ambientResume: jest.fn(),
+	ambientSeekTo: jest.fn(),
+	ambientSetVolume: jest.fn(),
+};
+
 jest.mock('react-native', () => ({
 	NativeModules: {
-		AudioPro: {
-			play: jest.fn(),
-			pause: jest.fn(),
-			resume: jest.fn(),
-			stop: jest.fn(),
-			clear: jest.fn(),
-			seekTo: jest.fn(),
-			seekForward: jest.fn(),
-			seekBack: jest.fn(),
-			setPlaybackSpeed: jest.fn(),
-			setVolume: jest.fn(),
-			setProgressInterval: jest.fn(),
-		},
+		AudioPro: mockAudioPro,
 	},
 	Platform: {
 		OS: 'ios',
+		select: jest.fn().mockImplementation((obj) => obj.ios),
 	},
 }));
 
+describe('Mock Verification', () => {
+	it('should confirm AudioPro is mocked', () => {
+		expect(NativeModules.AudioPro).toBeDefined();
+		expect(typeof NativeModules.AudioPro.play).toBe('function');
+		expect(NativeModules.AudioPro.play._isMockFunction).toBe(true);
+	});
+});
+
 // Mock internal store
-jest.mock('../useInternalStore', () => ({
-	useInternalStore: {
-		getState: jest.fn(),
-	},
-}));
+jest.mock('../useInternalStore');
 
 // Mock emitters
 jest.mock('../emitter', () => ({
 	emitter: {
 		emit: jest.fn(),
-		addListener: jest.fn(),
+		addListener: jest.fn().mockReturnValue({ remove: jest.fn() }),
 	},
 	ambientEmitter: {
 		emit: jest.fn(),
-		addListener: jest.fn(),
+		addListener: jest.fn().mockReturnValue({ remove: jest.fn() }),
 	},
 }));
 
@@ -54,30 +67,36 @@ describe('AudioPro', () => {
 		artwork: 'https://example.com/artwork.jpg',
 	};
 
+	const defaultMockState = {
+		playerState: 'IDLE',
+		trackPlaying: null,
+		position: 0,
+		duration: 0,
+		volume: 1.0,
+		playbackSpeed: 1.0,
+		error: null,
+		debug: false,
+		debugIncludesProgress: false,
+		configureOptions: {
+			contentType: 'MUSIC',
+			debug: false,
+			debugIncludesProgress: false,
+			progressIntervalMs: 1000,
+		},
+		setTrackPlaying: jest.fn(),
+		setError: jest.fn(),
+		setVolume: jest.fn(),
+		setPlaybackSpeed: jest.fn(),
+		setConfigureOptions: jest.fn(),
+		setDebug: jest.fn(),
+		setDebugIncludesProgress: jest.fn(),
+		updateFromEvent: jest.fn(),
+	};
+
 	beforeEach(() => {
 		jest.clearAllMocks();
 		// Reset store state
-		(useInternalStore.getState as jest.Mock).mockReturnValue({
-			playerState: AudioProState.IDLE,
-			trackPlaying: null,
-			position: 0,
-			duration: 0,
-			volume: 1.0,
-			playbackSpeed: 1.0,
-			error: null,
-			configureOptions: {
-				contentType: AudioProContentType.MUSIC,
-				debug: false,
-				debugIncludesProgress: false,
-				progressIntervalMs: 1000,
-			},
-			setTrackPlaying: jest.fn(),
-			setError: jest.fn(),
-			setVolume: jest.fn(),
-			setConfigureOptions: jest.fn(),
-			setDebug: jest.fn(),
-			setDebugIncludesProgress: jest.fn(),
-		});
+		(useInternalStore.getState as jest.Mock).mockReturnValue(mockState);
 	});
 
 	describe('configure()', () => {
@@ -129,7 +148,7 @@ describe('AudioPro', () => {
 
 		it('should clear error state when playing new track', () => {
 			(useInternalStore.getState as jest.Mock).mockReturnValueOnce({
-				...useInternalStore.getState(),
+				...defaultMockState,
 				error: 'Previous error',
 			});
 
@@ -143,8 +162,8 @@ describe('AudioPro', () => {
 	describe('pause()', () => {
 		it('should pause playback when track is playing', () => {
 			(useInternalStore.getState as jest.Mock).mockReturnValueOnce({
-				...useInternalStore.getState(),
-				playerState: AudioProState.PLAYING,
+				...defaultMockState,
+				playerState: 'PLAYING',
 				trackPlaying: mockTrack,
 			});
 
@@ -155,8 +174,8 @@ describe('AudioPro', () => {
 
 		it('should not pause when in IDLE state', () => {
 			(useInternalStore.getState as jest.Mock).mockReturnValueOnce({
-				...useInternalStore.getState(),
-				playerState: AudioProState.IDLE,
+				...defaultMockState,
+				playerState: 'IDLE',
 			});
 
 			AudioPro.pause();
@@ -168,8 +187,8 @@ describe('AudioPro', () => {
 	describe('resume()', () => {
 		it('should resume playback when paused', () => {
 			(useInternalStore.getState as jest.Mock).mockReturnValueOnce({
-				...useInternalStore.getState(),
-				playerState: AudioProState.PAUSED,
+				...defaultMockState,
+				playerState: 'PAUSED',
 				trackPlaying: mockTrack,
 			});
 
@@ -180,8 +199,8 @@ describe('AudioPro', () => {
 
 		it('should clear error state when resuming', () => {
 			(useInternalStore.getState as jest.Mock).mockReturnValueOnce({
-				...useInternalStore.getState(),
-				playerState: AudioProState.PAUSED,
+				...defaultMockState,
+				playerState: 'PAUSED',
 				trackPlaying: mockTrack,
 				error: 'Previous error',
 			});
@@ -196,7 +215,7 @@ describe('AudioPro', () => {
 	describe('stop()', () => {
 		it('should stop playback and clear error state', () => {
 			(useInternalStore.getState as jest.Mock).mockReturnValueOnce({
-				...useInternalStore.getState(),
+				...defaultMockState,
 				error: 'Previous error',
 			});
 
@@ -223,8 +242,8 @@ describe('AudioPro', () => {
 	describe('seek operations', () => {
 		beforeEach(() => {
 			(useInternalStore.getState as jest.Mock).mockReturnValueOnce({
-				...useInternalStore.getState(),
-				playerState: AudioProState.PLAYING,
+				...defaultMockState,
+				playerState: 'PLAYING',
 				trackPlaying: mockTrack,
 			});
 		});

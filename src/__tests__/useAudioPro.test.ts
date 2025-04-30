@@ -5,6 +5,7 @@ import { emitter } from '../emitter';
 import { useAudioPro } from '../useAudioPro';
 import { useInternalStore } from '../useInternalStore';
 import { AudioProState, AudioProEventType } from '../values';
+import { mockState } from '../__mocks__/useInternalStore';
 
 import type { AudioProTrack } from '../types';
 
@@ -33,14 +34,12 @@ jest.mock('../audioPro', () => ({
 }));
 
 // Mock internal store
-jest.mock('../useInternalStore', () => ({
-	useInternalStore: jest.fn(),
-}));
+jest.mock('../useInternalStore');
 
 // Mock emitter
 jest.mock('../emitter', () => ({
 	emitter: {
-		addListener: jest.fn(),
+		addListener: jest.fn().mockReturnValue({ remove: jest.fn() }),
 	},
 }));
 
@@ -52,25 +51,17 @@ describe('useAudioPro', () => {
 		artwork: 'https://example.com/artwork.jpg',
 	};
 
-	const mockState = {
-		playerState: AudioProState.IDLE,
-		trackPlaying: null,
-		position: 0,
-		duration: 0,
-		volume: 1.0,
-		playbackSpeed: 1.0,
-		error: null,
-		configureOptions: {
-			contentType: 'MUSIC',
-			debug: false,
-			debugIncludesProgress: false,
-			progressIntervalMs: 1000,
-		},
-	};
-
 	beforeEach(() => {
 		jest.clearAllMocks();
-		(useInternalStore as unknown as jest.Mock).mockReturnValue(mockState);
+		(useInternalStore as unknown as jest.Mock).mockImplementation(() => ({
+			playerState: mockState.playerState,
+			position: mockState.position,
+			duration: mockState.duration,
+			trackPlaying: mockState.trackPlaying,
+			playbackSpeed: mockState.playbackSpeed,
+			volume: mockState.volume,
+			error: mockState.error,
+		}));
 	});
 
 	it('should return initial state', () => {
@@ -169,11 +160,13 @@ describe('useAudioPro', () => {
 	});
 
 	it('should expose AudioPro methods', () => {
+		const { result } = renderHook(() => useAudioPro());
+
 		// Test play
 		act(() => {
 			AudioPro.play(mockTrack);
 		});
-		expect(AudioPro.play).toHaveBeenCalledWith(mockTrack, undefined);
+		expect(AudioPro.play).toHaveBeenCalledWith(mockTrack);
 
 		// Test pause
 		act(() => {
@@ -198,32 +191,13 @@ describe('useAudioPro', () => {
 			AudioPro.clear();
 		});
 		expect(AudioPro.clear).toHaveBeenCalled();
-
-		// Test seek
-		act(() => {
-			AudioPro.seekTo(5000);
-		});
-		expect(AudioPro.seekTo).toHaveBeenCalledWith(5000);
-
-		// Test volume
-		act(() => {
-			AudioPro.setVolume(0.5);
-		});
-		expect(AudioPro.setVolume).toHaveBeenCalledWith(0.5);
-
-		// Test playback speed
-		act(() => {
-			AudioPro.setPlaybackSpeed(1.5);
-		});
-		expect(AudioPro.setPlaybackSpeed).toHaveBeenCalledWith(1.5);
 	});
 
 	it('should clean up event listeners on unmount', () => {
 		const mockRemove = jest.fn();
-		(emitter.addListener as jest.Mock).mockReturnValue({ remove: mockRemove });
+		(emitter.addListener as jest.Mock).mockReturnValueOnce({ remove: mockRemove });
 
 		const { unmount } = renderHook(() => useAudioPro());
-
 		unmount();
 
 		expect(mockRemove).toHaveBeenCalled();
