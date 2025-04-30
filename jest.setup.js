@@ -13,6 +13,10 @@ jest.mock('react-native', () => ({
       pause: jest.fn(),
       resume: jest.fn(),
       stop: jest.fn(),
+      ambientPlay: jest.fn(),
+      ambientStop: jest.fn(),
+      ambientPause: jest.fn(),
+      ambientResume: jest.fn(),
     },
   },
   NativeEventEmitter: jest.fn().mockImplementation(() => ({

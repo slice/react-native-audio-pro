@@ -39,4 +39,41 @@ describe('AudioPro basic functionality', () => {
     AudioPro.stop();
     expect(NativeModules.AudioPro.stop).toHaveBeenCalled();
   });
+});
+
+describe('AudioPro ambient functionality', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('calls native ambientPlay method with correct parameters', () => {
+    const options = {
+      url: 'https://example.com/ambient.mp3',
+      loop: true,
+    };
+
+    AudioPro.ambientPlay(options);
+
+    expect(NativeModules.AudioPro.ambientPlay).toHaveBeenCalledWith(
+      expect.objectContaining({
+        url: 'https://example.com/ambient.mp3',
+        loop: true,
+      })
+    );
+  });
+
+  it('calls native ambientStop method', () => {
+    AudioPro.ambientStop();
+    expect(NativeModules.AudioPro.ambientStop).toHaveBeenCalled();
+  });
+
+  it('calls native ambientPause method', () => {
+    AudioPro.ambientPause();
+    expect(NativeModules.AudioPro.ambientPause).toHaveBeenCalled();
+  });
+
+  it('calls native ambientResume method', () => {
+    AudioPro.ambientResume();
+    expect(NativeModules.AudioPro.ambientResume).toHaveBeenCalled();
+  });
 }); 
