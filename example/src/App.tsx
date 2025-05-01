@@ -237,8 +237,6 @@ export default function App() {
 		}
 	};
 
-	console.log('~~~ currentTrack', JSON.stringify(currentTrack, undefined, 2));
-
 	return (
 		<SafeAreaView style={styles.container}>
 			<ScrollView

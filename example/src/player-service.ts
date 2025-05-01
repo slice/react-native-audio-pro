@@ -16,7 +16,7 @@ export function setupAudioPro(): void {
 	AudioPro.configure({
 		contentType: AudioProContentType.MUSIC,
 		debug: true,
-		debugIncludesProgress: true,
+		debugIncludesProgress: false,
 		progressIntervalMs: 1000,
 		// showNextPrevControls: false,
 	});

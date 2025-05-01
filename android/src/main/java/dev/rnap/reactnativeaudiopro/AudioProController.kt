@@ -35,11 +35,16 @@ object AudioProController {
 	var showNextPrevControls: Boolean = true
 	private var reactContext: ReactApplicationContext? = null
 	private var playerListener: Player.Listener? = null
-	private var lastEmittedState: String = ""
 	private var currentPlaybackSpeed: Float = 1.0f
 	private var currentVolume: Float = 1.0f
 	private var currentTrack: ReadableMap? = null
 	private var isInErrorState: Boolean = false
+	
+	// Suppress PAUSED immediately after LOADING to avoid misleading UI
+	private const val PAUSED_AFTER_LOADING_SUPPRESSION_MS: Long = 300L
+	private var lastStateEmittedTimeMs: Long = 0L
+	private var lastEmittedState: String = ""
+
 	var audioHeaders: Map<String, String>? = null
 	var artworkHeaders: Map<String, String>? = null
 
@@ -159,16 +164,9 @@ object AudioProController {
 		browser?.setVolume(volume)
 		browser?.playWhenReady = autoplay
 
-		// Set up the media item
-		val mediaItem = buildMediaItem(track, contentType)
-		browser?.setMediaItem(mediaItem)
-
-		// If startTimeMs is provided and autoplay is true, seek to that position
+		// If startTimeMs is provided and autoplay is true, set pendingSeekPosition
 		if (startTimeMs != null && autoplay) {
-			pendingSeek = true
 			pendingSeekPosition = startTimeMs
-			pendingSeekDuration = 0L
-			browser?.seekTo(startTimeMs)
 		}
 
 		// Prepare the player
@@ -183,7 +181,8 @@ object AudioProController {
 		currentPlaybackSpeed = speed
 		currentVolume = volume
 		progressIntervalMs = progressInterval
-		showNextPrevControls = if (options.hasKey("showNextPrevControls")) options.getBoolean("showNextPrevControls") else true
+		showNextPrevControls =
+			if (options.hasKey("showNextPrevControls")) options.getBoolean("showNextPrevControls") else true
 
 		log("Configured with contentType=$contentType debug=$debug speed=$speed volume=$volume autoplay=$autoplay")
 
@@ -213,7 +212,7 @@ object AudioProController {
 		}
 
 		// Parse the URL string into a Uri object to properly handle all URI schemes including file://
-		val uri = android.net.Uri.parse(url)
+		val uri = url.toUri()
 		log("Parsed URI: $uri, scheme: ${uri.scheme}")
 
 		val mediaItem = MediaItem.Builder()
@@ -472,6 +471,13 @@ object AudioProController {
 					}
 
 					Player.STATE_READY -> {
+						// If there's a pending seek position, perform the seek now that the player is ready
+						pendingSeekPosition?.let { seekPos ->
+							log("Performing pending seek to $seekPos in STATE_READY")
+							browser?.seekTo(seekPos)
+							// pendingSeekPosition will be cleared in onPositionDiscontinuity
+						}
+
 						if (isActuallyPlaying) {
 							emitState(AudioProModule.STATE_PLAYING, pos, dur)
 							startProgressTimer()
@@ -499,10 +505,7 @@ object AudioProController {
 						browser?.seekTo(0)
 
 						// Cancel any pending seek operations
-						cancelSeekTimeout()
-						pendingSeek = false
-						pendingSeekPosition = 0
-						pendingSeekDuration = 0
+						pendingSeekPosition = null
 
 						// First, emit STATE_CHANGED: STOPPED
 						emitState(AudioProModule.STATE_STOPPED, 0L, dur)
@@ -625,6 +628,14 @@ object AudioProController {
 	}
 
 	private fun emitState(state: String, position: Long, duration: Long) {
+		// Suppress PAUSED if it follows LOADING too quickly
+		if (state == AudioProModule.STATE_PAUSED &&
+			lastEmittedState == AudioProModule.STATE_LOADING &&
+			System.currentTimeMillis() - lastStateEmittedTimeMs < PAUSED_AFTER_LOADING_SUPPRESSION_MS) {
+			log("Suppressing PAUSED state emitted too soon after LOADING")
+			return
+		}
+
 		// Don't emit PAUSED if we've already emitted STOPPED
 		if (state == AudioProModule.STATE_PAUSED && lastEmittedState == AudioProModule.STATE_STOPPED) {
 			log("Ignoring PAUSED state after STOPPED")
@@ -657,6 +668,8 @@ object AudioProController {
 
 		// Track the last emitted state
 		lastEmittedState = state
+		// Record time of this state emission
+		lastStateEmittedTimeMs = System.currentTimeMillis()
 	}
 
 	private fun emitNotice(eventType: String, position: Long, duration: Long) {
@@ -715,9 +728,7 @@ object AudioProController {
 		currentVolume = volume
 		runOnUiThread {
 			log("Setting volume to", volume)
-			browser?.let {
-				it.setVolume(volume)
-			}
+			browser?.setVolume(volume)
 		}
 	}
 }
