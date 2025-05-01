@@ -39,7 +39,7 @@ object AudioProController {
 	private var currentVolume: Float = 1.0f
 	private var currentTrack: ReadableMap? = null
 	private var isInErrorState: Boolean = false
-	
+
 	// Suppress PAUSED immediately after LOADING to avoid misleading UI
 	private const val PAUSED_AFTER_LOADING_SUPPRESSION_MS: Long = 300L
 	private var lastStateEmittedTimeMs: Long = 0L
