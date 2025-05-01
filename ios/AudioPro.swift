@@ -551,6 +551,8 @@ class AudioPro: RCTEventEmitter {
         lastEmittedState = ""
         shouldBePlaying = false
 
+        pendingStartTimeMs = nil
+
         player?.pause()
         player?.seek(to: .zero)
         stopTimer()
@@ -582,6 +584,8 @@ class AudioPro: RCTEventEmitter {
         // Reset volume to default
         currentVolume = 1.0
 
+        pendingStartTimeMs = nil
+
         // Stop playback
         player?.pause()
 
@@ -604,10 +608,10 @@ class AudioPro: RCTEventEmitter {
     /// - Parameter clearTrack: Whether to clear the currentTrack (default: true)
     @objc func cleanup(emitStateChange: Bool = true, clearTrack: Bool = true) {
         log("Cleanup", "emitStateChange:", emitStateChange, "clearTrack:", clearTrack)
-        
+
         // Reset pending start time
         pendingStartTimeMs = nil
-        
+
         // Remove observers from current player item
         if let item = player?.currentItem {
             item.removeObserver(self, forKeyPath: "status")
@@ -865,16 +869,8 @@ class AudioPro: RCTEventEmitter {
                 case .readyToPlay:
                     log("Player item ready to play")
                     if let pendingStartTimeMs = pendingStartTimeMs {
-                        seekTo(position: pendingStartTimeMs) { [weak self] in
-                            guard let self = self else { return }
-                            self.emitSeekComplete()
-                            if autoplay {
-                                self.player?.play()
-                            }
-                            self.pendingStartTimeMs = nil
-                        }
-                    } else if autoplay {
-                        player?.play()
+                        performSeek(to: pendingStartTimeMs, isAbsolute: true)
+                        self.pendingStartTimeMs = nil
                     }
                 case .failed:
                     if let error = item.error {

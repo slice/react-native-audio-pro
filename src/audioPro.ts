@@ -79,9 +79,7 @@ export const AudioPro = {
 	 * @param options.autoPlay - Whether to start playback immediately (default: true)
 	 * @param options.headers - Custom HTTP headers for audio and artwork requests
 	 */
-	play(track: AudioProTrack, options?: AudioProPlayOptions) {
-		const playOptions: AudioProPlayOptions = options || {};
-
+	play(track: AudioProTrack, options: AudioProPlayOptions = {}) {
 		const resolvedTrack = { ...track };
 
 		// Resolve asset sources (for require() resources)
@@ -119,13 +117,15 @@ export const AudioPro = {
 			setError(null);
 		}
 
+		// Clear startTimeMs if autoplay is false
+		options.startTimeMs = options.autoPlay ? options.startTimeMs : undefined;
+
 		// Prepare options for native module
 		const nativeOptions = {
 			...configureOptions,
+			...options,
 			playbackSpeed,
 			volume: normalizeVolume(volume),
-			autoplay: playOptions.autoPlay ?? true,
-			headers: playOptions.headers,
 		};
 
 		logDebug('AudioPro: play()', track, 'options:', options, 'nativeOptions:', nativeOptions);

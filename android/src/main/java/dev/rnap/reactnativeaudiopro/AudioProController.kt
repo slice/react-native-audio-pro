@@ -43,13 +43,7 @@ object AudioProController {
 	var audioHeaders: Map<String, String>? = null
 	var artworkHeaders: Map<String, String>? = null
 
-	// Variables to track seek operations
-	private var pendingSeek: Boolean = false
-	private var pendingSeekPosition: Long = 0
-	private var pendingSeekDuration: Long = 0
-	private var seekTimeoutHandler: Handler? = null
-	private var seekTimeoutRunnable: Runnable? = null
-	private val SEEK_TIMEOUT_MS = 1000L
+	private var pendingSeekPosition: Long? = null
 
 	private fun log(vararg args: Any?) {
 		if (debug) {
@@ -102,10 +96,7 @@ object AudioProController {
 
 		stopProgressTimer()
 
-		cancelSeekTimeout()
-		pendingSeek = false
-		pendingSeekPosition = 0
-		pendingSeekDuration = 0
+		pendingSeekPosition = null
 	}
 
 	suspend fun play(track: ReadableMap, options: ReadableMap) {
@@ -172,8 +163,8 @@ object AudioProController {
 		val mediaItem = buildMediaItem(track, contentType)
 		browser?.setMediaItem(mediaItem)
 
-		// If startTimeMs is provided, seek to that position
-		if (startTimeMs != null) {
+		// If startTimeMs is provided and autoplay is true, seek to that position
+		if (startTimeMs != null && autoplay) {
 			pendingSeek = true
 			pendingSeekPosition = startTimeMs
 			pendingSeekDuration = 0L
@@ -301,10 +292,7 @@ object AudioProController {
 		stopProgressTimer()
 
 		// Cancel any pending seek operations
-		cancelSeekTimeout()
-		pendingSeek = false
-		pendingSeekPosition = 0
-		pendingSeekDuration = 0
+		pendingSeekPosition = null
 
 		// Do not call release() as stop() should not tear down the player
 		// Only clear() and unrecoverable onError() should call release()
@@ -335,10 +323,7 @@ object AudioProController {
 		lastEmittedState = ""
 
 		// Clear pending seek state
-		pendingSeek = false
-		pendingSeekPosition = 0
-		pendingSeekDuration = 0
-		cancelSeekTimeout()
+		pendingSeekPosition = null
 
 		// Stop playback
 		runOnUiThread {
@@ -370,9 +355,6 @@ object AudioProController {
 				MediaBrowser.releaseFuture(browserFuture)
 			}
 			browser = null
-
-			// Cancel any pending seek operations
-			cancelSeekTimeout()
 		}
 	}
 
@@ -403,42 +385,6 @@ object AudioProController {
 		}
 	}
 
-	/**
-	 * Helper method to start a seek timeout that will emit SEEK_COMPLETE if
-	 * onPositionDiscontinuity is not called within the timeout period
-	 */
-	private fun startSeekTimeout() {
-		// Cancel any existing timeout
-		cancelSeekTimeout()
-
-		// Create a new timeout
-		seekTimeoutHandler = Handler(Looper.getMainLooper())
-		seekTimeoutRunnable = Runnable {
-			if (pendingSeek) {
-				log("Seek timeout reached, emitting SEEK_COMPLETE")
-				emitNotice(
-					AudioProModule.EVENT_TYPE_SEEK_COMPLETE,
-					pendingSeekPosition,
-					pendingSeekDuration
-				)
-				pendingSeek = false
-				pendingSeekPosition = 0
-				pendingSeekDuration = 0
-			}
-		}
-
-		// Schedule the timeout
-		seekTimeoutRunnable?.let { seekTimeoutHandler?.postDelayed(it, SEEK_TIMEOUT_MS) }
-	}
-
-	/**
-	 * Helper method to cancel a seek timeout
-	 */
-	private fun cancelSeekTimeout() {
-		seekTimeoutRunnable?.let { seekTimeoutHandler?.removeCallbacks(it) }
-		seekTimeoutHandler = null
-		seekTimeoutRunnable = null
-	}
 
 	fun seekTo(position: Long) {
 		ensureSession()
@@ -450,62 +396,37 @@ object AudioProController {
 				else -> position
 			}
 
-			// Set pending seek variables
-			pendingSeek = true
+			// Set pending seek position
 			pendingSeekPosition = validPosition
-			pendingSeekDuration = dur
+
+			// Stop progress timer during seek
+			stopProgressTimer()
 
 			log("Seeking to position: $validPosition")
 			browser?.seekTo(validPosition)
 
-			// Start seek timeout
-			startSeekTimeout()
-
-			// SEEK_COMPLETE will be emitted in onPositionDiscontinuity or when timeout is reached
+			// SEEK_COMPLETE will be emitted in onPositionDiscontinuity
 		}
 	}
 
 	fun seekForward(amount: Long) {
-		ensureSession()
 		runOnUiThread {
 			val current = browser?.currentPosition ?: 0L
 			val dur = browser?.duration ?: 0L
 			val newPos = (current + amount).coerceAtMost(dur)
 
-			// Set pending seek variables
-			pendingSeek = true
-			pendingSeekPosition = newPos
-			pendingSeekDuration = dur
-
 			log("Seeking forward to position: $newPos")
-			browser?.seekTo(newPos)
-
-			// Start seek timeout
-			startSeekTimeout()
-
-			// SEEK_COMPLETE will be emitted in onPositionDiscontinuity or when timeout is reached
+			seekTo(newPos)
 		}
 	}
 
 	fun seekBack(amount: Long) {
-		ensureSession()
 		runOnUiThread {
 			val current = browser?.currentPosition ?: 0L
 			val newPos = (current - amount).coerceAtLeast(0L)
-			val dur = browser?.duration ?: 0L
-
-			// Set pending seek variables
-			pendingSeek = true
-			pendingSeekPosition = newPos
-			pendingSeekDuration = dur
 
 			log("Seeking back to position: $newPos")
-			browser?.seekTo(newPos)
-
-			// Start seek timeout
-			startSeekTimeout()
-
-			// SEEK_COMPLETE will be emitted in onPositionDiscontinuity or when timeout is reached
+			seekTo(newPos)
 		}
 	}
 
@@ -602,23 +523,25 @@ object AudioProController {
 				reason: Int
 			) {
 				// Check if this is a seek operation
-				if (pendingSeek && (reason == Player.DISCONTINUITY_REASON_SEEK || reason == Player.DISCONTINUITY_REASON_SEEK_ADJUSTMENT)) {
+				if (pendingSeekPosition != null && (reason == Player.DISCONTINUITY_REASON_SEEK || reason == Player.DISCONTINUITY_REASON_SEEK_ADJUSTMENT)) {
 					log("Seek completed: position=${newPosition.positionMs}, reason=$reason")
 
-					// Cancel the seek timeout
-					cancelSeekTimeout()
+					// Get current position and duration
+					val pos = pendingSeekPosition ?: 0L
+					val dur = browser?.duration ?: 0L
 
 					// Emit SEEK_COMPLETE event
 					emitNotice(
 						AudioProModule.EVENT_TYPE_SEEK_COMPLETE,
-						pendingSeekPosition,
-						pendingSeekDuration
+						pos,
+						dur
 					)
 
-					// Reset pending seek variables
-					pendingSeek = false
-					pendingSeekPosition = 0
-					pendingSeekDuration = 0
+					// Resume progress timer if a seek was pending
+					startProgressTimer()
+
+					// Reset pending seek position
+					pendingSeekPosition = null
 				}
 			}
 
@@ -793,7 +716,6 @@ object AudioProController {
 		runOnUiThread {
 			log("Setting volume to", volume)
 			browser?.let {
-				// Set volume for both left and right channels
 				it.setVolume(volume)
 			}
 		}

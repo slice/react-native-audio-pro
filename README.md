@@ -222,7 +222,7 @@ type AudioProSetupOptions = {
 type AudioProPlayOptions = {
     autoPlay?: boolean; // Whether to start playback immediately (default: true)
     headers?: AudioProHeaders; // Custom HTTP headers for audio and artwork requests
-    startTimeMs?: number; // Optional position in milliseconds to start playback from.
+    startTimeMs?: number; // Optional position in milliseconds to start playback from. Ignored if autoPlay is false.
 };
 ```
 </details>
