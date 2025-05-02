@@ -32,7 +32,7 @@
 	"files": [
 		"src",
 		"lib",
-		"android/src/main",
+		"android",
 		"ios",
 		"cpp",
 		"*.podspec",
