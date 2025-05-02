@@ -685,6 +685,8 @@ class AudioPro: RCTEventEmitter {
             return
         }
 
+        stopTimer()
+
         // Calculate target position based on whether this is absolute or relative
         let targetPosition: Double
         if isAbsolute {
@@ -701,8 +703,6 @@ class AudioPro: RCTEventEmitter {
         // Ensure position is within valid range
         let validPosition = max(0, min(targetPosition, duration))
         let time = CMTime(seconds: validPosition, preferredTimescale: 1000)
-
-        beginSeeking()
 
         player.seek(to: time, toleranceBefore: .zero, toleranceAfter: .zero) { [weak self] completed in
             guard let self = self else { return }
@@ -740,9 +740,6 @@ class AudioPro: RCTEventEmitter {
         performSeek(to: -amount, isAbsolute: false)
     }
 
-    private func beginSeeking() {
-        stopTimer()
-    }
 
     private func completeSeekingAndSendSeekCompleteNoticeEvent(newPosition: Double) {
         if hasListeners {
@@ -755,7 +752,10 @@ class AudioPro: RCTEventEmitter {
             sendEvent(type: EVENT_TYPE_SEEK_COMPLETE, track: info.track, payload: payload)
         }
         if player?.rate != 0 {
-            startProgressTimer()
+            // Resume progress timer after a short delay to ensure UI is in sync
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.10) {
+                self.startProgressTimer()
+            }
         }
     }
 
