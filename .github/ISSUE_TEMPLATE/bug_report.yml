@@ -57,17 +57,10 @@ body:
           description: Run `npx react-native info` in your terminal and paste the results below.
           value: |
               ```
-              # Paste output of `npx react-native info` here
+              # Paste output of `npx react-native info` here inside this code block
               ```
       validations:
           required: true
-
-    - type: checkboxes
-      attributes:
-          label: Can be reproduced in the example app?
-          description: Please confirm whether this issue can be reproduced in the provided example app.
-          options:
-              - label: Yes, I can reproduce this in the example app.
 
     - type: textarea
       id: steps-to-reproduce
@@ -79,6 +72,13 @@ body:
               2. …
       validations:
           required: true
+
+    - type: checkboxes
+      attributes:
+          label: Can be reproduced in the example app?
+          description: Please confirm whether this issue can be reproduced in the provided example app.
+          options:
+              - label: Yes, I can reproduce this in the example app.
 
     - type: input
       id: reproducible-example
