@@ -55,7 +55,7 @@ body:
       attributes:
           label: Environment info
           description: Run `npx react-native info` in your terminal and paste the results below.
-          placeholder: |
+          value: |
               ```
               # Paste output of `npx react-native info` here
               ```
