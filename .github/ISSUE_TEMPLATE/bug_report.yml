@@ -7,9 +7,9 @@ body:
           value: |
               # Bug report
 
-              👋 Hi!
+              👋 Hi! Thank you so much for taking the time to submit a bug report — it really helps us improve the library. We appreciate it! 🙏
 
-              **Please fill the following carefully before opening a new issue ❗**
+              **Please fill out the following carefully before opening a new issue ❗**
               *(Your issue may be closed if it doesn't provide the required pieces of information)*
 
     - type: checkboxes
