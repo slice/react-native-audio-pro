@@ -54,16 +54,11 @@ body:
       id: react-native-info
       attributes:
           label: Environment info
-          description: |
-              Run `npx react-native info` in your terminal and paste the results here.
-              For better readability, wrap it in triple backticks (```).
+          description: Run `npx react-native info` in your terminal and paste the results below.
           placeholder: |
-              System:
-                  OS: macOS 13.4
-                  CPU: Apple M1
-              Binaries:
-                  Node: 18.x.x
-                  npm: 9.x.x
+              ```
+              # Paste output of `npx react-native info` here
+              ```
       validations:
           required: true
 
