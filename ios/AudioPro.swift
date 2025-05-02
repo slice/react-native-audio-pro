@@ -612,16 +612,6 @@ class AudioPro: RCTEventEmitter {
         // Reset pending start time
         pendingStartTimeMs = nil
 
-        // Remove observers from current player item
-        if let item = player?.currentItem {
-            item.removeObserver(self, forKeyPath: "status")
-            NotificationCenter.default.removeObserver(
-                self,
-                name: .AVPlayerItemDidPlayToEndTime,
-                object: item
-            )
-        }
-
         shouldBePlaying = false
 
         NotificationCenter.default.removeObserver(self)
