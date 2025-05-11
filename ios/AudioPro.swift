@@ -284,7 +284,7 @@ class AudioPro: RCTEventEmitter {
         debugIncludesProgress = options["debugIncludesProgress"] as? Bool ?? false
         let speed = options["playbackSpeed"] as? Float ?? 1.0
         let volume = options["volume"] as? Float ?? 1.0
-        let autoplay = options["autoplay"] as? Bool ?? true
+        let autoPlay = options["autoPlay"] as? Bool ?? true
         showNextPrevControls = options["showNextPrevControls"] as? Bool ?? true
         pendingStartTimeMs = options["startTimeMs"] as? Double
 
@@ -297,7 +297,7 @@ class AudioPro: RCTEventEmitter {
 
         currentPlaybackSpeed = speed
         currentVolume = volume
-        log("Play", track["title"] ?? "Unknown", "speed:", speed, "volume:", volume, "autoplay:", autoplay)
+        log("Play", track["title"] ?? "Unknown", "speed:", speed, "volume:", volume, "autoPlay:", autoPlay)
 
         if player != nil {
             DispatchQueue.main.sync {
@@ -332,7 +332,7 @@ class AudioPro: RCTEventEmitter {
         }
 
         sendStateEvent(state: STATE_LOADING, position: 0, duration: 0, track: currentTrack)
-        shouldBePlaying = autoplay
+        shouldBePlaying = autoPlay
 
         let album = track["album"] as? String
         let artist = track["artist"] as? String
@@ -420,7 +420,7 @@ class AudioPro: RCTEventEmitter {
             MPNowPlayingInfoCenter.default().nowPlayingInfo = currentInfo
         }
 
-        if autoplay {
+        if autoPlay {
             player?.play()
         } else {
             DispatchQueue.main.async {

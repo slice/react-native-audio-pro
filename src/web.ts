@@ -8,7 +8,7 @@ import type { AudioProTrack } from './types';
  */
 export interface WebAudioProOptions {
 	/** Whether to start playback automatically */
-	autoplay?: boolean;
+	autoPlay?: boolean;
 	/** Whether to enable debug logging */
 	debug?: boolean;
 	/** Whether to include progress events in debug logs */
@@ -260,8 +260,8 @@ export class WebAudioProImpl implements WebAudioProInterface {
 	 * @param options - Playback options
 	 */
 	play(track: AudioProTrack, options: WebAudioProOptions): void {
-		const autoplay = options.autoplay !== undefined ? options.autoplay : true;
-		this.log('Play', track, options, 'autoplay:', autoplay);
+		const autoPlay = options.autoPlay !== undefined ? options.autoPlay : true;
+		this.log('Play', track, options, 'autoPlay:', autoPlay);
 		this.currentTrack = track;
 		this.debug = !!options.debug;
 		this.playbackSpeed = options.playbackSpeed || 1.0;
@@ -294,7 +294,7 @@ export class WebAudioProImpl implements WebAudioProInterface {
 		this.audio.playbackRate = this.playbackSpeed;
 		this.audio.load();
 
-		if (!autoplay) {
+		if (!autoPlay) {
 			this.emitStateChanged(AudioProState.PAUSED);
 			return;
 		}

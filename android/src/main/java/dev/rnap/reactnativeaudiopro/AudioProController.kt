@@ -120,8 +120,8 @@ object AudioProController {
 		val volume = if (options.hasKey("volume")) {
 			options.getDouble("volume").toFloat()
 		} else 1.0f
-		val autoplay = if (options.hasKey("autoplay")) {
-			options.getBoolean("autoplay")
+		val autoPlay = if (options.hasKey("autoPlay")) {
+			options.getBoolean("autoPlay")
 		} else true
 		val startTimeMs = if (options.hasKey("startTimeMs")) {
 			options.getDouble("startTimeMs").toLong()
@@ -162,10 +162,10 @@ object AudioProController {
 		// Configure the player
 		browser?.setPlaybackSpeed(speed)
 		browser?.setVolume(volume)
-		browser?.playWhenReady = autoplay
+		browser?.playWhenReady = autoPlay
 
-		// If startTimeMs is provided and autoplay is true, set pendingSeekPosition
-		if (startTimeMs != null && autoplay) {
+		// If startTimeMs is provided and autoPlay is true, set pendingSeekPosition
+		if (startTimeMs != null && autoPlay) {
 			pendingSeekPosition = startTimeMs
 		}
 
@@ -184,7 +184,7 @@ object AudioProController {
 		showNextPrevControls =
 			if (options.hasKey("showNextPrevControls")) options.getBoolean("showNextPrevControls") else true
 
-		log("Configured with contentType=$contentType debug=$debug speed=$speed volume=$volume autoplay=$autoplay")
+		log("Configured with contentType=$contentType debug=$debug speed=$speed volume=$volume autoPlay=$autoPlay")
 
 		if (browser != null) {
 			prepareForNewPlayback()
@@ -230,12 +230,12 @@ object AudioProController {
 				it.setMediaItem(mediaItem)
 				it.prepare()
 
-				// Set playback speed regardless of autoplay
+				// Set playback speed regardless of autoPlay
 				it.setPlaybackSpeed(currentPlaybackSpeed)
-				// Set volume regardless of autoplay
+				// Set volume regardless of autoPlay
 				it.setVolume(currentVolume)
 
-				if (autoplay) {
+				if (autoPlay) {
 					it.play()
 				} else {
 					emitState(AudioProModule.STATE_PAUSED, 0L, 0L)

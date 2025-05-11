@@ -117,7 +117,7 @@ export const AudioPro = {
 			setError(null);
 		}
 
-		// Clear startTimeMs if autoplay is false
+		// Clear startTimeMs if autoPlay is false
 		options.startTimeMs = options.autoPlay ? options.startTimeMs : undefined;
 
 		// Prepare options for native module
