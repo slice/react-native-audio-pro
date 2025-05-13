@@ -37,7 +37,7 @@ class AudioProModule(private val reactContext: ReactApplicationContext) :
 
 	init {
 		AudioProController.setReactContext(reactContext)
-		AmbientAudioController.setReactContext(reactContext)
+		AudioProAmbientController.setReactContext(reactContext)
 		// Register for lifecycle events
 		reactContext.addLifecycleEventListener(this)
 	}
@@ -98,32 +98,32 @@ class AudioProModule(private val reactContext: ReactApplicationContext) :
 
 	@ReactMethod
 	fun ambientPlay(options: ReadableMap) {
-		AmbientAudioController.ambientPlay(options)
+		AudioProAmbientController.ambientPlay(options)
 	}
 
 	@ReactMethod
 	fun ambientStop() {
-		AmbientAudioController.ambientStop()
+		AudioProAmbientController.ambientStop()
 	}
 
 	@ReactMethod
 	fun ambientSetVolume(volume: Double) {
-		AmbientAudioController.ambientSetVolume(volume.toFloat())
+		AudioProAmbientController.ambientSetVolume(volume.toFloat())
 	}
 
 	@ReactMethod
 	fun ambientPause() {
-		AmbientAudioController.ambientPause()
+		AudioProAmbientController.ambientPause()
 	}
 
 	@ReactMethod
 	fun ambientResume() {
-		AmbientAudioController.ambientResume()
+		AudioProAmbientController.ambientResume()
 	}
 
 	@ReactMethod
 	fun ambientSeekTo(positionMs: Double) {
-		AmbientAudioController.ambientSeekTo(positionMs.toLong())
+		AudioProAmbientController.ambientSeekTo(positionMs.toLong())
 	}
 
 	override fun getName(): String {
@@ -143,7 +143,7 @@ class AudioProModule(private val reactContext: ReactApplicationContext) :
 		AudioProController.clear()
 
 		// Stop ambient audio
-		AmbientAudioController.ambientStop()
+		AudioProAmbientController.ambientStop()
 	}
 
 	override fun onCatalystInstanceDestroy() {
@@ -154,7 +154,7 @@ class AudioProModule(private val reactContext: ReactApplicationContext) :
 		AudioProController.clear()
 
 		// Stop ambient audio
-		AmbientAudioController.ambientStop()
+		AudioProAmbientController.ambientStop()
 
 		// Remove lifecycle listener
 		try {
