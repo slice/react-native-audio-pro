@@ -22,15 +22,17 @@ import com.facebook.react.modules.core.DeviceEventManagerModule
  * share any state, events, or resources with it.
  */
 object AmbientAudioController {
+    private const val TAG = "AudioPro-Ambient"
     private const val AMBIENT_EVENT_NAME = "AudioProAmbientEvent"
     private const val EVENT_TYPE_AMBIENT_TRACK_ENDED = "AMBIENT_TRACK_ENDED"
     private const val EVENT_TYPE_AMBIENT_ERROR = "AMBIENT_ERROR"
 
     private var reactContext: ReactApplicationContext? = null
     private var player: ExoPlayer? = null
-    private var debug: Boolean = false
-    private var ambientLoop: Boolean = true
-    private var ambientVolume: Float = 1.0f
+    private var ambientListener: Player.Listener? = null
+    private var optionDebug: Boolean = false
+    private var optionAmbientLoop: Boolean = true
+    private var optionAmbientVolume: Float = 1.0f
 
     /**
      * Set the React context
@@ -43,8 +45,8 @@ object AmbientAudioController {
      * Log a message if debug is enabled
      */
     private fun log(vararg args: Any?) {
-        if (debug) {
-            Log.d("AudioPro-Ambient", "~~~ ${args.joinToString(" ")}")
+        if (optionDebug) {
+            Log.d(TAG, "~~~ ${args.joinToString(" ")}")
         }
     }
 
@@ -52,32 +54,43 @@ object AmbientAudioController {
      * Play an ambient audio track
      */
     fun ambientPlay(options: ReadableMap) {
-        val url = options.getString("url") ?: run {
+        val optionUrl = options.getString("url") ?: run {
             emitAmbientError("Invalid URL provided to ambientPlay()")
             return
         }
 
-        // Get loop option, default to true if not provided
-        ambientLoop = if (options.hasKey("loop")) options.getBoolean("loop") else true
+        if (options.hasKey("volume")) optionAmbientVolume = options.getDouble("volume").toFloat()
+        if (options.hasKey("debug"))   optionDebug        = options.getBoolean("debug")
 
-        log("Ambient Play", url, "loop:", ambientLoop)
+        // Get loop option, default to true if not provided
+        val optionLoop = if (options.hasKey("loop")) options.getBoolean("loop") else true
+        optionAmbientLoop = optionLoop
+
+        // Log all options for debugging
+        log("Ambient options parsed:",
+            "url=$optionUrl",
+            "loop=$optionLoop"
+        )
 
         // Stop any existing ambient playback
         ambientStop()
 
         // Create a new player
-        val context = reactContext ?: return
+        val context = reactContext ?: run {
+            emitAmbientError("React context is not set")
+            return
+        }
 
         runOnUiThread {
             player = ExoPlayer.Builder(context).build().apply {
                 // Set up player
-                repeatMode = if (ambientLoop) Player.REPEAT_MODE_ONE else Player.REPEAT_MODE_OFF
-                volume = ambientVolume
+                repeatMode = if (optionAmbientLoop) Player.REPEAT_MODE_ONE else Player.REPEAT_MODE_OFF
+                volume = optionAmbientVolume
 
                 // Set up listener
-                addListener(object : Player.Listener {
+                ambientListener = object : Player.Listener {
                     override fun onPlaybackStateChanged(state: Int) {
-                        if (state == Player.STATE_ENDED && !ambientLoop) {
+                        if (state == Player.STATE_ENDED && !optionAmbientLoop) {
                             // If playback ended and loop is disabled, emit event and clean up
                             emitAmbientTrackEnded()
                             ambientStop()
@@ -88,11 +101,12 @@ object AmbientAudioController {
                         emitAmbientError(error.message ?: "Unknown ambient playback error")
                         ambientStop()
                     }
-                })
+                }
+                addListener(ambientListener!!)
 
                 // Prepare media item
                 // Parse the URL string into a Uri object to properly handle all URI schemes including file://
-                val uri = android.net.Uri.parse(url)
+                val uri = android.net.Uri.parse(optionUrl)
                 log("Parsed ambient URI: $uri, scheme: ${uri.scheme}")
 
                 val mediaItem = MediaItem.Builder()
@@ -113,9 +127,13 @@ object AmbientAudioController {
         log("Ambient Stop")
 
         runOnUiThread {
-            player?.stop()
-            player?.release()
+            player?.let { exo ->
+                ambientListener?.let { exo.removeListener(it) }
+                exo.stop()
+                exo.release()
+            }
             player = null
+            ambientListener = null
         }
     }
 
@@ -161,11 +179,11 @@ object AmbientAudioController {
      * Set the volume of ambient audio playback
      */
     fun ambientSetVolume(volume: Float) {
-        ambientVolume = volume
-        log("Ambient Set Volume", ambientVolume)
+        optionAmbientVolume = volume
+        log("Ambient Set Volume", optionAmbientVolume)
 
         runOnUiThread {
-            player?.volume = ambientVolume
+            player?.volume = optionAmbientVolume
         }
     }
 
@@ -208,7 +226,7 @@ object AmbientAudioController {
                 .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
                 .emit(AMBIENT_EVENT_NAME, body)
         } else {
-            Log.w("AmbientAudioController", "Context is not an instance of ReactApplicationContext")
+            Log.w(TAG, "Context is not an instance of ReactApplicationContext")
         }
     }
 
