@@ -1,5 +1,5 @@
 PODS:
-  - AudioPro (9.8.0):
+  - AudioPro (9.9.0):
     - DoubleConversion
     - glog
     - hermes-engine
@@ -1813,7 +1813,7 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native/ReactCommon/yoga"
 
 SPEC CHECKSUMS:
-  AudioPro: 57223242ef58a1b0de7f4a7ff4bb5026a9504ef9
+  AudioPro: 9090ddb6facf1d4ad16127bc7aa24d323a0c085d
   boost: 7e761d76ca2ce687f7cc98e698152abd03a18f90
   DoubleConversion: cb417026b2400c8f53ae97020b2be961b59470cb
   fast_float: 06eeec4fe712a76acc9376682e4808b05ce978b6

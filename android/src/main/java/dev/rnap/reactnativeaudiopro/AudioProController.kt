@@ -485,15 +485,19 @@ object AudioProController {
 						flowIsInErrorState = false
 						flowLastEmittedState = ""
 
-						// Seek to position 0
+						// 1. Pause playback to ensure state is correct
+						enginerBrowser?.pause()
+
+						// 2. Seek to position 0
 						enginerBrowser?.seekTo(0)
 
-						// Cancel any pending seek operations
+						// 3. Cancel any pending seek operations
 						flowPendingSeekPosition = null
 
-						// First, emit STATE_CHANGED: STOPPED
+						// 4. Emit STOPPED (stopped = loaded but at 0, not playing)
 						emitState(AudioProModule.STATE_STOPPED, 0L, dur)
-						// Then, emit TRACK_ENDED
+
+						// 5. Emit TRACK_ENDED for JS
 						emitNotice(AudioProModule.EVENT_TYPE_TRACK_ENDED, dur, dur)
 					}
 
