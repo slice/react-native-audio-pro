@@ -17,11 +17,9 @@ class AudioPro: RCTEventEmitter {
     private let EVENT_NAME = "AudioProEvent"
     private let AMBIENT_EVENT_NAME = "AudioProAmbientEvent"
 
-    // Ambient audio player (completely isolated from main player)
     private var ambientPlayer: AVPlayer?
     private var ambientPlayerItem: AVPlayerItem?
-    private var ambientLoop: Bool = true
-    private var ambientVolume: Float = 1.0
+
 
     // Event types
     private let EVENT_TYPE_STATE_CHANGED = "STATE_CHANGED"
@@ -46,9 +44,7 @@ class AudioPro: RCTEventEmitter {
     private let STATE_ERROR = "ERROR"
 
     private let GENERIC_ERROR_CODE = 900
-    private var progressInterval: TimeInterval = 1.0
     private var shouldBePlaying = false
-    private var showNextPrevControls = true // Default to showing next/prev controls
     private var isRemoteCommandCenterSetup = false
 
     private var isRateObserverAdded = false
@@ -57,15 +53,18 @@ class AudioPro: RCTEventEmitter {
     private var currentPlaybackSpeed: Float = 1.0
     private var currentTrack: NSDictionary?
 
-    private var debugLog: Bool = false
-    private var debugIncludesProgress: Bool = false
+    private var settingDebug: Bool = false
+    private var settingDebugIncludeProgress: Bool = false
+	private var settingProgressInterval: TimeInterval = 1.0
+	private var settingShowNextPrevControls = true
+	private var settingLoopAmbient: Bool = true
+	
+	private var activeVolume: Float = 1.0
+	private var activeVolumeAmbient: Float = 1.0
+	
     private var isInErrorState: Bool = false
     private var lastEmittedState: String = ""
-    private var currentVolume: Float = 1.0
-
-    // Audio session interruption handling
     private var wasPlayingBeforeInterruption: Bool = false
-
     private var pendingStartTimeMs: Double? = nil
 
     ////////////////////////////////////////////////////////////
@@ -178,9 +177,9 @@ class AudioPro: RCTEventEmitter {
     ////////////////////////////////////////////////////////////
 
     private func log(_ items: Any...) {
-        guard debugLog else { return }
+        guard settingDebug else { return }
 
-        if !debugIncludesProgress && items.count > 0 {
+        if !settingDebugIncludeProgress && items.count > 0 {
             if let firstItem = items.first, "\(firstItem)" == EVENT_TYPE_PROGRESS {
                 return
             }
@@ -215,7 +214,7 @@ class AudioPro: RCTEventEmitter {
         DispatchQueue.main.async {
             self.timer?.invalidate()
             self.sendProgressNoticeEvent()
-            self.timer = Timer.scheduledTimer(withTimeInterval: self.progressInterval, repeats: true) { [weak self] _ in
+            self.timer = Timer.scheduledTimer(withTimeInterval: self.settingProgressInterval, repeats: true) { [weak self] _ in
                 self?.sendProgressNoticeEvent()
             }
         }
@@ -280,23 +279,23 @@ class AudioPro: RCTEventEmitter {
         // Reset last emitted state when playing a new track
         lastEmittedState = ""
         currentTrack = track
-        debugLog = options["debug"] as? Bool ?? false
-        debugIncludesProgress = options["debugIncludesProgress"] as? Bool ?? false
+        settingDebug = options["debug"] as? Bool ?? false
+        settingDebugIncludeProgress = options["debugIncludesProgress"] as? Bool ?? false
         let speed = options["playbackSpeed"] as? Float ?? 1.0
         let volume = options["volume"] as? Float ?? 1.0
         let autoPlay = options["autoPlay"] as? Bool ?? true
-        showNextPrevControls = options["showNextPrevControls"] as? Bool ?? true
+        settingShowNextPrevControls = options["showNextPrevControls"] as? Bool ?? true
         pendingStartTimeMs = options["startTimeMs"] as? Double
 
         if let progressIntervalMs = options["progressIntervalMs"] as? Double {
             let intervalSeconds = progressIntervalMs / 1000.0
-            progressInterval = intervalSeconds
+            settingProgressInterval = intervalSeconds
         } else {
-            progressInterval = 1.0
+            settingProgressInterval = 1.0
         }
 
         currentPlaybackSpeed = speed
-        currentVolume = volume
+        activeVolume = volume
         log("Play", track["title"] ?? "Unknown", "speed:", speed, "volume:", volume, "autoPlay:", autoPlay)
 
         if player != nil {
@@ -395,7 +394,7 @@ class AudioPro: RCTEventEmitter {
         isRateObserverAdded = true
 
         // Set up volume to ensure it's applied before playback starts
-        player?.volume = currentVolume
+        player?.volume = activeVolume
 
         nowPlayingInfo = MPNowPlayingInfoCenter.default().nowPlayingInfo ?? [:]
         nowPlayingInfo[MPNowPlayingInfoPropertyElapsedPlaybackTime] = 0
@@ -582,7 +581,7 @@ class AudioPro: RCTEventEmitter {
         shouldBePlaying = false
 
         // Reset volume to default
-        currentVolume = 1.0
+        activeVolume = 1.0
 
         pendingStartTimeMs = nil
 
@@ -786,7 +785,7 @@ class AudioPro: RCTEventEmitter {
 
     @objc(setVolume:)
     func setVolume(volume: Double) {
-        currentVolume = Float(volume)
+        activeVolume = Float(volume)
 
         guard let player = player else {
             log("Cannot set volume: no track is playing")
@@ -1074,7 +1073,7 @@ class AudioPro: RCTEventEmitter {
         ]
 
         // Only add next/previous commands if showNextPrevControls is true
-        if showNextPrevControls {
+        if settingShowNextPrevControls {
             commands.append((commandCenter.nextTrackCommand, true))
             commands.append((commandCenter.previousTrackCommand, true))
         } else {
@@ -1154,9 +1153,9 @@ class AudioPro: RCTEventEmitter {
         }
 
         // Get loop option, default to true if not provided
-        ambientLoop = options["loop"] as? Bool ?? true
+        settingLoopAmbient = options["loop"] as? Bool ?? true
 
-        log("Ambient Play", urlString, "loop:", ambientLoop)
+        log("Ambient Play", urlString, "loop:", settingLoopAmbient)
 
         // Stop any existing ambient playback
         ambientStop()
@@ -1166,7 +1165,7 @@ class AudioPro: RCTEventEmitter {
 
         // Create a new player
         ambientPlayer = AVPlayer(playerItem: ambientPlayerItem)
-        ambientPlayer?.volume = ambientVolume
+        ambientPlayer?.volume = activeVolumeAmbient
 
         // Add observer for track completion
         NotificationCenter.default.addObserver(
@@ -1207,11 +1206,11 @@ class AudioPro: RCTEventEmitter {
      */
     @objc(ambientSetVolume:)
     func ambientSetVolume(volume: Double) {
-        ambientVolume = Float(volume)
-        log("Ambient Set Volume", ambientVolume)
+        activeVolumeAmbient = Float(volume)
+        log("Ambient Set Volume", activeVolumeAmbient)
 
         // Apply volume to player if it exists
-        ambientPlayer?.volume = ambientVolume
+        ambientPlayer?.volume = activeVolumeAmbient
     }
 
     /**
@@ -1264,7 +1263,7 @@ class AudioPro: RCTEventEmitter {
     @objc private func ambientPlayerItemDidPlayToEndTime(_ notification: Notification) {
         log("Ambient Track Ended")
 
-        if ambientLoop {
+        if settingLoopAmbient {
             // If looping is enabled, seek to beginning and continue playback
             ambientPlayer?.seek(to: CMTime.zero)
             ambientPlayer?.play()
