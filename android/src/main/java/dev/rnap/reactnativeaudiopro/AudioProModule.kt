@@ -38,7 +38,6 @@ class AudioProModule(private val reactContext: ReactApplicationContext) :
 	init {
 		AudioProController.setReactContext(reactContext)
 		AudioProAmbientController.setReactContext(reactContext)
-		// Register for lifecycle events
 		reactContext.addLifecycleEventListener(this)
 	}
 
@@ -94,8 +93,6 @@ class AudioProModule(private val reactContext: ReactApplicationContext) :
 		AudioProController.clear()
 	}
 
-	// Ambient audio methods
-
 	@ReactMethod
 	fun ambientPlay(options: ReadableMap) {
 		AudioProAmbientController.ambientPlay(options)
@@ -130,39 +127,25 @@ class AudioProModule(private val reactContext: ReactApplicationContext) :
 		return NAME
 	}
 
-	// LifecycleEventListener methods
-	override fun onHostResume() {} // Not used, but required by interface
-
-	override fun onHostPause() {} // Not used, but required by interface
-
 	override fun onHostDestroy() {
-		// App is being destroyed
 		Log.d("AudioProModule", "App is being destroyed, clearing playback")
-
-		// Clear playback and service using the central method
 		AudioProController.clear()
-
-		// Stop ambient audio
 		AudioProAmbientController.ambientStop()
 	}
 
 	override fun onCatalystInstanceDestroy() {
-		// React Native bridge is being destroyed
 		Log.d("AudioProModule", "React Native bridge is being destroyed, clearing playback")
-
-		// Clear playback and service using the central method
 		AudioProController.clear()
-
-		// Stop ambient audio
 		AudioProAmbientController.ambientStop()
-
-		// Remove lifecycle listener
 		try {
 			reactContext.removeLifecycleEventListener(this)
 		} catch (e: Exception) {
 			Log.e("AudioProModule", "Error removing lifecycle listener", e)
 		}
-
 		super.onCatalystInstanceDestroy()
 	}
+
+	override fun onHostResume() {}
+
+	override fun onHostPause() {}
 }

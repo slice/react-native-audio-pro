@@ -38,7 +38,7 @@ open class AudioProMediaLibrarySessionCallback : MediaLibraryService.MediaLibrar
 		.build()
 
 	private fun getCommandButtons(): List<CommandButton> {
-		return if (AudioProController.showNextPrevControls) {
+		return if (AudioProController.settingShowNextPrevControls) {
 			listOf(nextButton, prevButton)
 		} else {
 			emptyList()

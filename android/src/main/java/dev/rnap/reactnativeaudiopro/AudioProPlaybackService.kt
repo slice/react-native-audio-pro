@@ -16,7 +16,6 @@ import androidx.media3.common.C
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.DefaultHttpDataSource
-import androidx.media3.datasource.FileDataSource
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.datasource.DataSource
@@ -142,7 +141,8 @@ open class AudioProPlaybackService : MediaLibraryService() {
 	private fun removeNotificationAndStopService() {
 		try {
 			// Remove notification directly
-			val notificationManager = getSystemService(NOTIFICATION_SERVICE) as android.app.NotificationManager
+			val notificationManager =
+				getSystemService(NOTIFICATION_SERVICE) as android.app.NotificationManager
 			notificationManager.cancel(NOTIFICATION_ID)
 
 			// Stop foreground service
@@ -164,16 +164,20 @@ open class AudioProPlaybackService : MediaLibraryService() {
 				val httpDataSourceFactory = DefaultHttpDataSource.Factory()
 
 				// Apply custom headers if they exist
-				AudioProController.audioHeaders?.let { headers ->
+				AudioProController.headersAudio?.let { headers ->
 					if (headers.isNotEmpty()) {
 						httpDataSourceFactory.setDefaultRequestProperties(headers)
-						android.util.Log.d("AudioProPlaybackService", "Applied custom headers: $headers")
+						android.util.Log.d(
+							"AudioProPlaybackService",
+							"Applied custom headers: $headers"
+						)
 					}
 				}
 
 				// Create a DefaultDataSource that will handle both HTTP and file URIs
 				// It will delegate to FileDataSource for file:// URIs and to HttpDataSource for http(s):// URIs
-				return DefaultDataSource.Factory(applicationContext, httpDataSourceFactory).createDataSource()
+				return DefaultDataSource.Factory(applicationContext, httpDataSourceFactory)
+					.createDataSource()
 			}
 		}
 
@@ -185,7 +189,7 @@ open class AudioProPlaybackService : MediaLibraryService() {
 				.setAudioAttributes(
 					AudioAttributes.Builder()
 						.setUsage(C.USAGE_MEDIA)
-						.setContentType(AudioProController.audioContentType)
+						.setContentType(AudioProController.settingAudioContentType)
 						.build(),
 					/* handleAudioFocus = */ true
 				)

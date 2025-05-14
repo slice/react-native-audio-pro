@@ -26,11 +26,11 @@ object AudioProAmbientController {
 	private const val EVENT_TYPE_AMBIENT_ERROR = "AMBIENT_ERROR"
 
 	private var reactContext: ReactApplicationContext? = null
-	private var player: ExoPlayer? = null
-	private var ambientListener: Player.Listener? = null
-	private var optionDebug: Boolean = false
-	private var optionAmbientLoop: Boolean = true
-	private var optionAmbientVolume: Float = 1.0f
+	private var enginePlayerAmbient: ExoPlayer? = null
+	private var engineListenerAmbient: Player.Listener? = null
+	private var settingDebug: Boolean = false
+	private var settingAmbientLoop: Boolean = true
+	private var settingAmbientVolume: Float = 1.0f
 
 	/**
 	 * Set the React context
@@ -43,7 +43,7 @@ object AudioProAmbientController {
 	 * Log a message if debug is enabled
 	 */
 	private fun log(vararg args: Any?) {
-		if (optionDebug) {
+		if (settingDebug) {
 			Log.d(TAG, "~~~ ${args.joinToString(" ")}")
 		}
 	}
@@ -57,12 +57,12 @@ object AudioProAmbientController {
 			return
 		}
 
-		if (options.hasKey("volume")) optionAmbientVolume = options.getDouble("volume").toFloat()
-		if (options.hasKey("debug")) optionDebug = options.getBoolean("debug")
+		if (options.hasKey("volume")) settingAmbientVolume = options.getDouble("volume").toFloat()
+		if (options.hasKey("debug")) settingDebug = options.getBoolean("debug")
 
 		// Get loop option, default to true if not provided
 		val optionLoop = if (options.hasKey("loop")) options.getBoolean("loop") else true
-		optionAmbientLoop = optionLoop
+		settingAmbientLoop = optionLoop
 
 		// Log all options for debugging
 		log(
@@ -81,16 +81,16 @@ object AudioProAmbientController {
 		}
 
 		runOnUiThread {
-			player = ExoPlayer.Builder(context).build().apply {
+			enginePlayerAmbient = ExoPlayer.Builder(context).build().apply {
 				// Set up player
 				repeatMode =
-					if (optionAmbientLoop) Player.REPEAT_MODE_ONE else Player.REPEAT_MODE_OFF
-				volume = optionAmbientVolume
+					if (settingAmbientLoop) Player.REPEAT_MODE_ONE else Player.REPEAT_MODE_OFF
+				volume = settingAmbientVolume
 
 				// Set up listener
-				ambientListener = object : Player.Listener {
+				engineListenerAmbient = object : Player.Listener {
 					override fun onPlaybackStateChanged(state: Int) {
-						if (state == Player.STATE_ENDED && !optionAmbientLoop) {
+						if (state == Player.STATE_ENDED && !settingAmbientLoop) {
 							// If playback ended and loop is disabled, emit event and clean up
 							emitAmbientTrackEnded()
 							ambientStop()
@@ -102,7 +102,7 @@ object AudioProAmbientController {
 						ambientStop()
 					}
 				}
-				addListener(ambientListener!!)
+				addListener(engineListenerAmbient!!)
 
 				// Prepare media item
 				// Parse the URL string into a Uri object to properly handle all URI schemes including file://
@@ -127,13 +127,13 @@ object AudioProAmbientController {
 		log("Ambient Stop")
 
 		runOnUiThread {
-			player?.let { exo ->
-				ambientListener?.let { exo.removeListener(it) }
+			enginePlayerAmbient?.let { exo ->
+				engineListenerAmbient?.let { exo.removeListener(it) }
 				exo.stop()
 				exo.release()
 			}
-			player = null
-			ambientListener = null
+			enginePlayerAmbient = null
+			engineListenerAmbient = null
 		}
 	}
 
@@ -145,7 +145,7 @@ object AudioProAmbientController {
 		log("Ambient Pause")
 
 		runOnUiThread {
-			player?.pause()
+			enginePlayerAmbient?.pause()
 		}
 	}
 
@@ -157,7 +157,7 @@ object AudioProAmbientController {
 		log("Ambient Resume")
 
 		runOnUiThread {
-			player?.play()
+			enginePlayerAmbient?.play()
 		}
 	}
 
@@ -171,7 +171,7 @@ object AudioProAmbientController {
 		log("Ambient Seek To", positionMs)
 
 		runOnUiThread {
-			player?.seekTo(positionMs)
+			enginePlayerAmbient?.seekTo(positionMs)
 		}
 	}
 
@@ -179,11 +179,11 @@ object AudioProAmbientController {
 	 * Set the volume of ambient audio playback
 	 */
 	fun ambientSetVolume(volume: Float) {
-		optionAmbientVolume = volume
-		log("Ambient Set Volume", optionAmbientVolume)
+		settingAmbientVolume = volume
+		log("Ambient Set Volume", settingAmbientVolume)
 
 		runOnUiThread {
-			player?.volume = optionAmbientVolume
+			enginePlayerAmbient?.volume = settingAmbientVolume
 		}
 	}
 
