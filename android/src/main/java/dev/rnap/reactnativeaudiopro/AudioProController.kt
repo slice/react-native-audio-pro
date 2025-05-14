@@ -24,9 +24,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.guava.await
 
 object AudioProController {
-	/**
-	 * INTERNAL
-	 */
 	private var reactContext: ReactApplicationContext? = null
 	private lateinit var engineBrowserFuture: ListenableFuture<MediaBrowser>
 	private var enginerBrowser: MediaBrowser? = null
@@ -43,17 +40,14 @@ object AudioProController {
 	private var flowLastStateEmittedTimeMs: Long = 0L
 	private var flowPendingSeekPosition: Long? = null
 
-	var headersAudio: Map<String, String>? = null
-	var headersArtwork: Map<String, String>? = null
-
-	/**
-	 * SETTINGS
-	 */
 	private var settingDebug: Boolean = false
 	private var settingDebugIncludesProgress: Boolean = false
 	private var settingProgressIntervalMs: Long = 1000
 	var settingAudioContentType: Int = C.AUDIO_CONTENT_TYPE_MUSIC
 	var settingShowNextPrevControls: Boolean = true
+
+	var headersAudio: Map<String, String>? = null
+	var headersArtwork: Map<String, String>? = null
 
 	private fun log(vararg args: Any?) {
 		if (settingDebug) {
@@ -113,6 +107,7 @@ object AudioProController {
 		flowIsInErrorState = false
 		flowLastEmittedState = ""
 		activeTrack = track
+
 		val contentType = if (options.hasKey("contentType")) {
 			options.getString("contentType") ?: "MUSIC"
 		} else "MUSIC"
@@ -638,18 +633,7 @@ object AudioProController {
 	}
 
 	private fun emitState(state: String, position: Long, duration: Long) {
-		val PAUSED_AFTER_LOADING_SUPPRESSION_MS = 300L
-
-		// Suppress PAUSED if it follows LOADING too quickly
-		if (state == AudioProModule.STATE_PAUSED &&
-			flowLastEmittedState == AudioProModule.STATE_LOADING &&
-			System.currentTimeMillis() - flowLastStateEmittedTimeMs < PAUSED_AFTER_LOADING_SUPPRESSION_MS
-		) {
-			log("Suppressing PAUSED state emitted too soon after LOADING")
-			return
-		}
-
-		// Don't emit PAUSED if we've already emitted STOPPED
+		// Don't emit PAUSED if we've already emitted STOPPED (catch slow listener emit)
 		if (state == AudioProModule.STATE_PAUSED && flowLastEmittedState == AudioProModule.STATE_STOPPED) {
 			log("Ignoring PAUSED state after STOPPED")
 			return
