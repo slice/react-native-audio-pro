@@ -253,9 +253,8 @@ object AudioProController {
 			// Do not detach player listener to ensure lock screen controls still work
 			// and state changes are emitted when playback is resumed from lock screen
 
-			// Seek to position 0 before stopping
-			enginerBrowser?.seekTo(0)
 			enginerBrowser?.stop()
+			enginerBrowser?.seekTo(0)
 			enginerBrowser?.let {
 				// Use position 0 for STOPPED state as per logic.md contract
 				val dur = it.duration.takeIf { d -> d > 0 } ?: 0L
@@ -510,26 +509,26 @@ object AudioProController {
 				newPosition: Player.PositionInfo,
 				reason: Int
 			) {
-				// Check if this is a seek operation
-				if (flowPendingSeekPosition != null && (reason == Player.DISCONTINUITY_REASON_SEEK || reason == Player.DISCONTINUITY_REASON_SEEK_ADJUSTMENT)) {
+				if (reason == Player.DISCONTINUITY_REASON_SEEK || reason == Player.DISCONTINUITY_REASON_SEEK_ADJUSTMENT) {
 					log("Seek completed: position=${newPosition.positionMs}, reason=$reason")
-
-					// Get current position and duration
-					val pos = flowPendingSeekPosition ?: 0L
 					val dur = enginerBrowser?.duration ?: 0L
 
-					// Emit SEEK_COMPLETE event
+					val (eventType, pos) = if (flowPendingSeekPosition != null) {
+						// manual or programmatic seek
+						val manualPos = flowPendingSeekPosition!!
+						flowPendingSeekPosition = null
+						startProgressTimer()
+						Pair(AudioProModule.EVENT_TYPE_SEEK_COMPLETE, manualPos)
+					} else {
+						// external/system (e.g., lock-screen) seek
+						Pair(AudioProModule.EVENT_TYPE_SEEK_COMPLETE, newPosition.positionMs)
+					}
+
 					emitNotice(
-						AudioProModule.EVENT_TYPE_SEEK_COMPLETE,
+						eventType,
 						pos,
 						dur
 					)
-
-					// Resume progress timer if a seek was pending
-					startProgressTimer()
-
-					// Reset pending seek position
-					flowPendingSeekPosition = null
 				}
 			}
 
