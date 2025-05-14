@@ -513,22 +513,27 @@ object AudioProController {
 					log("Seek completed: position=${newPosition.positionMs}, reason=$reason")
 					val dur = enginerBrowser?.duration ?: 0L
 
-					val (eventType, pos) = if (flowPendingSeekPosition != null) {
-						// manual or programmatic seek
-						val manualPos = flowPendingSeekPosition!!
-						flowPendingSeekPosition = null
-						startProgressTimer()
-						Pair(AudioProModule.EVENT_TYPE_SEEK_COMPLETE, manualPos)
+					val triggeredBy = if (flowPendingSeekPosition != null) {
+						AudioProModule.TRIGGER_SOURCE_USER
 					} else {
-						// external/system (e.g., lock-screen) seek
-						Pair(AudioProModule.EVENT_TYPE_SEEK_COMPLETE, newPosition.positionMs)
+						AudioProModule.TRIGGER_SOURCE_SYSTEM
 					}
 
-					emitNotice(
-						eventType,
-						pos,
-						dur
-					)
+					// Determine position for user-initiated seeks
+					val pos = flowPendingSeekPosition ?: newPosition.positionMs
+					flowPendingSeekPosition = null
+
+					val payload = Arguments.createMap().apply {
+						putDouble("position", pos.toDouble())
+						putDouble("duration", dur.toDouble())
+						putString("triggeredBy", triggeredBy)
+					}
+
+					emitEvent(AudioProModule.EVENT_TYPE_SEEK_COMPLETE, activeTrack, payload)
+
+					if (triggeredBy == AudioProModule.TRIGGER_SOURCE_USER) {
+						startProgressTimer()
+					}
 				}
 			}
 

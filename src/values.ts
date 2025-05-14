@@ -56,6 +56,16 @@ export enum AudioProEventType {
 }
 
 /**
+ * Sources for seek-complete events.
+ */
+export enum AudioProTriggerSource {
+	/** Seek initiated by user or app code */
+	USER = 'USER',
+	/** Seek initiated by system or remote controls */
+	SYSTEM = 'SYSTEM',
+}
+
+/**
  * Types of events that can be emitted by the ambient audio player
  */
 export enum AudioProAmbientEventType {

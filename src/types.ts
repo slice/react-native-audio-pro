@@ -1,4 +1,5 @@
 import {
+	AudioProTriggerSource,
 	AudioProAmbientEventType,
 	AudioProContentType,
 	AudioProEventType,
@@ -91,6 +92,8 @@ export interface AudioProProgressPayload {
 export interface AudioProSeekCompletePayload {
 	position: number;
 	duration: number;
+	/** Indicates who initiated the seek: user or system */
+	triggeredBy: AudioProTriggerSource;
 }
 
 export interface AudioProPlaybackSpeedChangedPayload {

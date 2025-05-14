@@ -163,7 +163,7 @@ const { state, position, duration, playingTrack, playbackSpeed, volume, error } 
 | `STATE_CHANGED`          | Emitted when the player's state changes (e.g., from LOADING to PLAYING).                  |
 | `PROGRESS`               | Emitted approximately once per second during playback with current position and duration. |
 | `TRACK_ENDED`            | Emitted when a track completes playback naturally.                                        |
-| `SEEK_COMPLETE`          | Emitted when a seek operation completes.                                                  |
+| `SEEK_COMPLETE`          | Emitted when a seek operation completes. Payload includes `triggeredBy` (`USER` or `SYSTEM`). |
 | `PLAYBACK_SPEED_CHANGED` | Emitted when the playback speed is changed.                                               |
 | `REMOTE_NEXT`            | Emitted when the user presses the "Next" button on lock screen controls.                  |
 | `REMOTE_PREV`            | Emitted when the user presses the "Previous" button on lock screen controls.              |

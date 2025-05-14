@@ -31,6 +31,10 @@ class AudioPro: RCTEventEmitter {
 	private let EVENT_TYPE_REMOTE_PREV = "REMOTE_PREV"
 	private let EVENT_TYPE_PLAYBACK_SPEED_CHANGED = "PLAYBACK_SPEED_CHANGED"
 
+	// Seek trigger sources
+	private let TRIGGER_SOURCE_USER = "USER"
+	private let TRIGGER_SOURCE_SYSTEM = "SYSTEM"
+
 	// Ambient audio event types
 	private let EVENT_TYPE_AMBIENT_TRACK_ENDED = "AMBIENT_TRACK_ENDED"
 	private let EVENT_TYPE_AMBIENT_ERROR = "AMBIENT_ERROR"
@@ -58,10 +62,10 @@ class AudioPro: RCTEventEmitter {
 	private var settingProgressInterval: TimeInterval = 1.0
 	private var settingShowNextPrevControls = true
 	private var settingLoopAmbient: Bool = true
-	
+
 	private var activeVolume: Float = 1.0
 	private var activeVolumeAmbient: Float = 1.0
-	
+
 	private var isInErrorState: Bool = false
 	private var lastEmittedState: String = ""
 	private var wasPlayingBeforeInterruption: Bool = false
@@ -746,7 +750,8 @@ class AudioPro: RCTEventEmitter {
 
 			let payload: [String: Any] = [
 				"position": info.position,
-				"duration": info.duration
+				"duration": info.duration,
+				"triggeredBy": TRIGGER_SOURCE_USER
 			]
 			sendEvent(type: EVENT_TYPE_SEEK_COMPLETE, track: info.track, payload: payload)
 		}
@@ -1126,7 +1131,8 @@ class AudioPro: RCTEventEmitter {
 				let info = self.getPlaybackInfo()
 				let payload: [String: Any] = [
 					"position": Int(positionMs),
-					"duration": info.duration
+					"duration": info.duration,
+					"triggeredBy": self.TRIGGER_SOURCE_SYSTEM
 				]
 				self.sendEvent(type: self.EVENT_TYPE_SEEK_COMPLETE, track: self.currentTrack, payload: payload)
 			}
