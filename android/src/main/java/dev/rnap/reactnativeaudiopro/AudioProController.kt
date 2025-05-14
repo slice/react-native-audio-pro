@@ -101,11 +101,12 @@ object AudioProController {
 		stopProgressTimer()
 
 		flowPendingSeekPosition = null
+		flowIsInErrorState = false
+		flowLastEmittedState = ""
 	}
 
 	suspend fun play(track: ReadableMap, options: ReadableMap) {
-		flowIsInErrorState = false
-		flowLastEmittedState = ""
+		ensurePreparedForNewPlayback()
 		activeTrack = track
 
 		val contentType = if (options.hasKey("contentType")) {
@@ -126,38 +127,9 @@ object AudioProController {
 		val startTimeMs = if (options.hasKey("startTimeMs")) {
 			options.getDouble("startTimeMs").toLong()
 		} else null
-
 		val progressInterval = if (options.hasKey("progressIntervalMs")) {
 			options.getDouble("progressIntervalMs").toLong()
 		} else 1000L
-
-		// Helper function to extract headers from a ReadableMap
-		fun extractHeaders(headersMap: ReadableMap?): Map<String, String>? {
-			if (headersMap == null) return null
-
-			val headerMap = mutableMapOf<String, String>()
-			val iterator = headersMap.keySetIterator()
-			while (iterator.hasNextKey()) {
-				val key = iterator.nextKey()
-				val value = headersMap.getString(key)
-				if (value != null) {
-					headerMap[key] = value
-				}
-			}
-			return if (headerMap.isNotEmpty()) headerMap else null
-		}
-
-		// Process custom headers if provided
-		headersAudio = null
-		headersArtwork = null
-
-		if (options.hasKey("headers")) {
-			val headers = options.getMap("headers")
-			if (headers != null) {
-				headersAudio = extractHeaders(headers.getMap("audio"))
-				headersArtwork = extractHeaders(headers.getMap("artwork"))
-			}
-		}
 
 		// Configure the player
 		enginerBrowser?.setPlaybackSpeed(speed)
@@ -168,9 +140,6 @@ object AudioProController {
 		if (startTimeMs != null && autoPlay) {
 			flowPendingSeekPosition = startTimeMs
 		}
-
-		// Prepare the player
-		enginerBrowser?.prepare()
 
 		settingDebug = enableDebug
 		settingDebugIncludesProgress = includeProgressInDebug
@@ -185,12 +154,6 @@ object AudioProController {
 			if (options.hasKey("showNextPrevControls")) options.getBoolean("showNextPrevControls") else true
 
 		log("Configured with contentType=$contentType debug=$settingDebug speed=$speed volume=$volume autoPlay=$autoPlay")
-
-		if (enginerBrowser != null) {
-			prepareForNewPlayback()
-		} else {
-			internalPrepareSession()
-		}
 
 		val url = track.getString("url") ?: run {
 			log("Missing track URL")
@@ -209,6 +172,18 @@ object AudioProController {
 
 		if (artwork != null) {
 			metadataBuilder.setArtworkUri(artwork)
+		}
+
+		// Process custom headers if provided
+		headersAudio = null
+		headersArtwork = null
+
+		if (options.hasKey("headers")) {
+			val headers = options.getMap("headers")
+			if (headers != null) {
+				headersAudio = extractHeaders(headers.getMap("audio"))
+				headersArtwork = extractHeaders(headers.getMap("artwork"))
+			}
 		}
 
 		// Parse the URL string into a Uri object to properly handle all URI schemes including file://
@@ -307,6 +282,16 @@ object AudioProController {
 	 */
 	fun clear() {
 		resetInternal(AudioProModule.STATE_IDLE)
+	}
+
+	/**
+	 * Ensures the session is ready and prepares for new playback.
+	 */
+	private suspend fun ensurePreparedForNewPlayback() {
+		if (enginerBrowser == null) {
+			internalPrepareSession()
+		}
+		prepareForNewPlayback()
 	}
 
 	/**
@@ -727,5 +712,23 @@ object AudioProController {
 			log("Setting volume to", volume)
 			enginerBrowser?.setVolume(volume)
 		}
+	}
+
+	/**
+	 * Helper to extract header maps from a ReadableMap.
+	 */
+	private fun extractHeaders(headersMap: ReadableMap?): Map<String, String>? {
+		if (headersMap == null) return null
+
+		val headerMap = mutableMapOf<String, String>()
+		val iterator = headersMap.keySetIterator()
+		while (iterator.hasNextKey()) {
+			val key = iterator.nextKey()
+			val value = headersMap.getString(key)
+			if (value != null) {
+				headerMap[key] = value
+			}
+		}
+		return if (headerMap.isNotEmpty()) headerMap else null
 	}
 }
