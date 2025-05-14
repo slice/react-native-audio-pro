@@ -28,9 +28,9 @@ object AudioProAmbientController {
 	private var reactContext: ReactApplicationContext? = null
 	private var enginePlayerAmbient: ExoPlayer? = null
 	private var engineListenerAmbient: Player.Listener? = null
-	private var settingDebug: Boolean = false
-	private var settingAmbientLoop: Boolean = true
-	private var settingAmbientVolume: Float = 1.0f
+	private var settingDebugAmbient: Boolean = false
+	private var settingLoopAmbient: Boolean = true
+	private var settingVolumeAmbient: Float = 1.0f
 
 	/**
 	 * Set the React context
@@ -43,7 +43,7 @@ object AudioProAmbientController {
 	 * Log a message if debug is enabled
 	 */
 	private fun log(vararg args: Any?) {
-		if (settingDebug) {
+		if (settingDebugAmbient) {
 			Log.d(TAG, "~~~ ${args.joinToString(" ")}")
 		}
 	}
@@ -57,12 +57,10 @@ object AudioProAmbientController {
 			return
 		}
 
-		if (options.hasKey("volume")) settingAmbientVolume = options.getDouble("volume").toFloat()
-		if (options.hasKey("debug")) settingDebug = options.getBoolean("debug")
+		if (options.hasKey("debug")) settingDebugAmbient = options.getBoolean("debug")
 
-		// Get loop option, default to true if not provided
 		val optionLoop = if (options.hasKey("loop")) options.getBoolean("loop") else true
-		settingAmbientLoop = optionLoop
+		settingLoopAmbient = optionLoop
 
 		// Log all options for debugging
 		log(
@@ -84,13 +82,12 @@ object AudioProAmbientController {
 			enginePlayerAmbient = ExoPlayer.Builder(context).build().apply {
 				// Set up player
 				repeatMode =
-					if (settingAmbientLoop) Player.REPEAT_MODE_ONE else Player.REPEAT_MODE_OFF
-				volume = settingAmbientVolume
+					if (settingLoopAmbient) Player.REPEAT_MODE_ONE else Player.REPEAT_MODE_OFF
 
 				// Set up listener
 				engineListenerAmbient = object : Player.Listener {
 					override fun onPlaybackStateChanged(state: Int) {
-						if (state == Player.STATE_ENDED && !settingAmbientLoop) {
+						if (state == Player.STATE_ENDED && !settingLoopAmbient) {
 							// If playback ended and loop is disabled, emit event and clean up
 							emitAmbientTrackEnded()
 							ambientStop()
@@ -115,6 +112,7 @@ object AudioProAmbientController {
 
 				setMediaItem(mediaItem)
 				prepare()
+				volume = settingVolumeAmbient
 				play()
 			}
 		}
@@ -179,11 +177,11 @@ object AudioProAmbientController {
 	 * Set the volume of ambient audio playback
 	 */
 	fun ambientSetVolume(volume: Float) {
-		settingAmbientVolume = volume
-		log("Ambient Set Volume", settingAmbientVolume)
+		settingVolumeAmbient = volume
+		log("Ambient Set Volume", volume)
 
 		runOnUiThread {
-			enginePlayerAmbient?.volume = settingAmbientVolume
+			enginePlayerAmbient?.volume = volume
 		}
 	}
 
