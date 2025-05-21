@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-import { normalizeVolume } from './utils';
+import normalizeVolume from './normalizeVolume';
 import { AudioProEventType, AudioProState, DEFAULT_CONFIG } from './values';
 
 import type {

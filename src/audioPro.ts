@@ -1,12 +1,12 @@
 import { NativeModules, Platform } from 'react-native';
 
 import { ambientEmitter, emitter } from './emitter';
+import normalizeVolume from './normalizeVolume';
 import { useInternalStore } from './useInternalStore';
 import {
 	guardTrackPlaying,
 	logDebug,
 	normalizeFilePath,
-	normalizeVolume,
 	resolveAssetSource,
 	validateTrack,
 } from './utils';
